@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Cpu, Laptop, Mouse, MemoryStick, ChevronRight, Monitor, Keyboard, Headphones, Camera, HardDrive, CircuitBoard, Power, Wind } from 'lucide-react';
+import { Cpu, Laptop, Mouse, MemoryStick, ChevronRight, Monitor, Keyboard, Headphones, Camera, HardDrive, CircuitBoard, Power, Wind, View } from 'lucide-react';
 import Image from 'next/image';
 import { categories } from '@/lib/mock-data';
 import ProductCard from '@/components/shop/product-card';
@@ -28,6 +28,7 @@ const iconMap: { [key: string]: React.ElementType } = {
 export default async function Home() {
   const allProducts = await getProducts();
   const featuredProducts = allProducts.filter(p => p.featured).slice(0, 4);
+  const displayedCategories = categories.slice(0, 7);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -53,11 +54,18 @@ export default async function Home() {
 
         <section className="py-16">
           <div className="container">
-            <h2 className="text-3xl font-bold text-center mb-10 glow-primary">
-              <span className="text-accent">{'//'}</span> Mission Modules
-            </h2>
+            <div className="flex justify-between items-center mb-10">
+              <h2 className="text-3xl font-bold glow-primary">
+                <span className="text-accent">{'//'}</span> Mission Modules
+              </h2>
+               <Button asChild variant="outline">
+                <Link href="/categories">
+                  View All <View className="w-4 h-4 ml-2"/>
+                </Link>
+              </Button>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-              {categories.map((category) => {
+              {displayedCategories.map((category) => {
                 const Icon = iconMap[category.name];
                 return (
                   <Link href={category.href} key={category.name}>
@@ -76,9 +84,16 @@ export default async function Home() {
 
         <section className="py-16">
           <div className="container">
-            <h2 className="text-3xl font-bold text-center mb-10 glow-primary">
-              <span className="text-accent">{'//'}</span> 🔥 Featured Deals
-            </h2>
+             <div className="flex justify-between items-center mb-10">
+                <h2 className="text-3xl font-bold glow-primary">
+                  <span className="text-accent">{'//'}</span> 🔥 Featured Deals
+                </h2>
+                 <Button asChild variant="outline">
+                  <Link href="/deals">
+                    View All <View className="w-4 h-4 ml-2"/>
+                  </Link>
+                </Button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {featuredProducts.map((product) => (
                 <ProductCard key={product.id} product={product as Product} />

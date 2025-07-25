@@ -2,10 +2,12 @@
 'use server';
 
 import { db } from './firebase-admin';
-import type { Product, Order } from './types';
+import type { Product, Order, CartItem } from './types';
+import { FieldValue } from 'firebase-admin/firestore';
+import { revalidatePath } from 'next/cache';
 
 // Re-export types for convenience
-export type { Product, Order };
+export type { Product, Order, CartItem };
 
 // --- Product Functions ---
 
@@ -89,4 +91,99 @@ export async function getOrdersByVendor(brandName: string): Promise<Order[]> {
   const snapshot = await ordersCol.where('productName', 'in', vendorProductNames).orderBy('timestamp', 'desc').get();
   
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+}
+
+
+// --- User Interaction Functions (Cart, Wishlist) ---
+
+/**
+ * Adds a product to a user's cart.
+ * @param {string} userId - The ID of the user.
+ * @param {string} productId - The ID of the product to add.
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function addToCart(userId: string, productId: string) {
+  if (!userId) {
+    return { success: false, message: "User not authenticated." };
+  }
+  
+  const product = await getProductById(productId);
+  if (!product) {
+    return { success: false, message: "Product not found." };
+  }
+
+  const userRef = db.collection('users').doc(userId);
+  const cartRef = userRef.collection('cart').doc(productId);
+
+  try {
+    await cartRef.set({
+      productId: product.id,
+      quantity: 1, // For now, default to 1. Could be updated to increment.
+      name: product.name,
+      price: product.price,
+      imageUrl: product.imageUrl,
+    }, { merge: true }); // Use merge to not overwrite if item already exists
+
+    revalidatePath('/product/[id]', 'page');
+    revalidatePath('/');
+    return { success: true, message: `${product.name} added to cart.` };
+  } catch (error) {
+    console.error("Error adding to cart:", error);
+    return { success: false, message: "Failed to add item to cart." };
+  }
+}
+
+/**
+ * Adds a product to a user's wishlist.
+ * @param {string} userId - The ID of the user.
+ * @param {string} productId - The ID of the product to add.
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function toggleWishlist(userId: string, productId: string) {
+  if (!userId) {
+    return { success: false, message: "User not authenticated." };
+  }
+
+  const userRef = db.collection('users').doc(userId);
+  
+  try {
+    const userDoc = await userRef.get();
+    const wishlist = userDoc.data()?.wishlist || [];
+    let message = '';
+
+    if (wishlist.includes(productId)) {
+      // Remove from wishlist
+      await userRef.update({
+        wishlist: FieldValue.arrayRemove(productId)
+      });
+      message = 'Removed from wishlist.';
+    } else {
+      // Add to wishlist
+      await userRef.update({
+        wishlist: FieldValue.arrayUnion(productId)
+      });
+      message = 'Added to wishlist.';
+    }
+    
+    revalidatePath('/product/[id]', 'page');
+    revalidatePath('/');
+    return { success: true, message };
+  } catch (error) {
+    console.error("Error updating wishlist:", error);
+    return { success: false, message: "Failed to update wishlist." };
+  }
+}
+
+/**
+ * Gets the current cart items for a user.
+ * @param {string} userId - The ID of the user.
+ * @returns {Promise<CartItem[]>}
+ */
+export async function getCart(userId: string): Promise<CartItem[]> {
+  if (!userId) return [];
+  const cartSnapshot = await db.collection('users').doc(userId).collection('cart').get();
+  if (cartSnapshot.empty) {
+    return [];
+  }
+  return cartSnapshot.docs.map(doc => doc.data() as CartItem);
 }

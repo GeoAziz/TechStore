@@ -8,9 +8,58 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import type { Product } from '@/lib/types';
 import AiEnhancer from './ai-enhancer';
-import { Star, ShoppingCart } from 'lucide-react';
+import { Star, ShoppingCart, Heart } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { addToCart, toggleWishlist } from '@/lib/firestore-service';
+import { useState } from 'react';
 
 export default function ProductDetailsClient({ product }: { product: Product }) {
+  const { user } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isAdding, setIsAdding] = useState(false);
+
+  const handleAddToCart = async () => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "Please log in to add items to your cart.",
+      });
+      router.push('/login');
+      return;
+    }
+    setIsAdding(true);
+    const result = await addToCart(user.uid, product.id);
+    if (result.success) {
+      toast({ title: "Success", description: result.message });
+    } else {
+      toast({ variant: "destructive", title: "Error", description: result.message });
+    }
+    setIsAdding(false);
+  };
+  
+  const handleToggleWishlist = async () => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "Please log in to manage your wishlist.",
+      });
+      router.push('/login');
+      return;
+    }
+    const result = await toggleWishlist(user.uid, product.id);
+     if (result.success) {
+      toast({ title: "Wishlist Updated", description: result.message });
+    } else {
+      toast({ variant: "destructive", title: "Error", description: result.message });
+    }
+  };
+
+
   return (
     <div className="container py-12">
       <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
@@ -45,11 +94,13 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
           <Card className="bg-card/50 backdrop-blur-sm border-primary/10 mb-6">
             <CardContent className="p-4">
                <div className="flex gap-4">
-                <Button size="lg" className="flex-1 bg-primary/90 hover:bg-primary text-primary-foreground">
+                <Button size="lg" className="flex-1 bg-primary/90 hover:bg-primary text-primary-foreground" onClick={handleAddToCart} disabled={isAdding}>
                   <ShoppingCart className="w-5 h-5 mr-2"/>
                   Add to Cart
                 </Button>
-                <Button size="lg" variant="outline" className="flex-1">Buy Now</Button>
+                <Button size="icon" variant="outline" className="h-auto px-3" onClick={handleToggleWishlist}>
+                  <Heart className="w-6 h-6"/>
+                </Button>
               </div>
             </CardContent>
           </Card>

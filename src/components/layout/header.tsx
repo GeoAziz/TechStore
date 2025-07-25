@@ -1,13 +1,15 @@
+
 "use client";
 
 import Link from "next/link";
-import { Menu, ShoppingCart, X, Search } from 'lucide-react';
-import { useState } from 'react';
+import { Menu, ShoppingCart, X, Search, Heart } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import Logo from "./logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/auth-context";
 import { auth } from "@/lib/firebase";
+import { getCart } from "@/lib/firestore-service";
 
 const navLinks = [
   { href: "/shop", label: "Shop" },
@@ -18,6 +20,30 @@ const navLinks = [
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, loading } = useAuth();
+  const [cartCount, setCartCount] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+        if (currentUser) {
+          const cartItems = await getCart(currentUser.uid);
+          setCartCount(cartItems.length);
+        } else {
+          setCartCount(0);
+        }
+      });
+      // To-do: This could be optimized with a realtime listener on the cart collection
+      // For now, re-fetch on auth state change.
+      getCart(user.uid).then(items => setCartCount(items.length));
+
+      return () => {
+        if (unsubscribe) unsubscribe();
+      };
+    } else {
+        setCartCount(0);
+    }
+  }, [user]);
+
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -56,8 +82,20 @@ export default function Header() {
             <Input placeholder="Search transmissions..." className="pl-10" />
           </div>
           <Button variant="ghost" size="icon" asChild>
+             {/* TODO: Create a dedicated wishlist page */}
+            <Link href="#">
+              <Heart className="h-6 w-6" />
+              <span className="sr-only">Wishlist</span>
+            </Link>
+          </Button>
+          <Button variant="ghost" size="icon" asChild className="relative">
             <Link href="/checkout">
               <ShoppingCart className="h-6 w-6" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">
+                  {cartCount}
+                </span>
+              )}
               <span className="sr-only">Cart</span>
             </Link>
           </Button>

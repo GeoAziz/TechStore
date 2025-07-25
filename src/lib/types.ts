@@ -1,4 +1,5 @@
 
+
 export interface Product {
   id: string;
   name: string;
@@ -23,3 +24,12 @@ export interface Order {
 }
 
 export type UserRole = 'admin' | 'vendor' | 'client';
+
+export interface CartItem {
+  productId: string;
+  quantity: number;
+  // Denormalized product data for easier display in the cart
+  name: string;
+  price: number;
+  imageUrl: string;
+}
