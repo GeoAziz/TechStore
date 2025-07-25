@@ -31,10 +31,43 @@ export default function AdminDashboardClient({ orders, products }: { orders: Ord
     }
   }, [user, loading, role, router]);
 
+  // Admin actions
   const handleLogout = async () => {
     await auth.signOut();
     router.push('/');
   };
+
+  // Update order status
+  const handleUpdateOrderStatus = async (orderId: string, status: string) => {
+    const { db } = await import('@/lib/firebase-admin');
+    await db.collection('orders').doc(orderId).update({ status });
+  };
+
+  // Edit product
+  const handleEditProduct = async (productId: string, updates: Partial<Product>) => {
+    const { db } = await import('@/lib/firebase-admin');
+    await db.collection('products').doc(productId).update(updates);
+  };
+
+  // Add product
+  const handleAddProduct = async (product: Product) => {
+    const { db } = await import('@/lib/firebase-admin');
+    await db.collection('products').add(product);
+  };
+
+  // Delete product
+  const handleDeleteProduct = async (productId: string) => {
+    const { db } = await import('@/lib/firebase-admin');
+    await db.collection('products').doc(productId).delete();
+  };
+
+  // User management
+  const handleDeleteUser = async (userId: string) => {
+    const { db } = await import('@/lib/firebase-admin');
+    await db.collection('users').doc(userId).delete();
+  };
+
+  // Analytics, logs, notifications, bulk actions can be similarly structured
 
   if (loading || !user) {
     return (

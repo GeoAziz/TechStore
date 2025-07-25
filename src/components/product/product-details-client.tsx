@@ -2,6 +2,7 @@
 "use client";
 
 import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -18,6 +19,7 @@ import { useCompare } from '@/context/compare-context';
 import { Textarea } from '../ui/textarea';
 
 export default function ProductDetailsClient({ product, initialReviews }: { product: Product, initialReviews: Review[] }) {
+  const [zoomed, setZoomed] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -143,26 +145,42 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
     <div className="container py-12" role="main" aria-label="Product Details">
       <div className="grid md:grid-cols-2 gap-8 lg:gap-12" aria-live="polite">
         <div>
-          <Card className="overflow-hidden glass-panel" tabIndex={0} aria-label={`Image of ${product.name}`}>
-            <Image
-              src={product.imageUrl}
-              alt={product.name}
-              width={600}
-              height={600}
-              className="w-full h-auto object-cover"
-              data-ai-hint={`${product.category.toLowerCase()} device`}
-            />
-          </Card>
-           <div className="mt-4 grid grid-cols-2 gap-4 text-sm text-muted-foreground">
-             <div className="flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            <Card className="overflow-hidden glass-panel group relative" tabIndex={0} aria-label={`Image of ${product.name}`}> 
+              <Image
+                src={product.imageUrl}
+                alt={product.name}
+                width={600}
+                height={600}
+                className="w-full h-auto object-cover cursor-zoom-in transition-transform duration-300 group-hover:scale-105"
+                onClick={() => setZoomed(true)}
+                data-ai-hint={`${product.category.toLowerCase()} device`}
+              />
+              {product.stock < 10 && (
+                <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5 }}
+                  className="absolute top-4 left-4 px-4 py-2 rounded-full bg-gradient-to-r from-pink-500 via-yellow-500 to-red-500 text-white font-bold shadow-lg text-lg animate-pulse border-2 border-accent">
+                  <span>Only {product.stock} left!</span>
+                </motion.div>
+              )}
+            </Card>
+            <div className="mt-4 grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+              <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="flex items-center gap-2">
                 <Truck className="w-5 h-5 text-primary" />
                 <span>Est. Delivery: 3-5 Working Days</span>
-             </div>
-              <div className="flex items-center gap-2">
+              </motion.div>
+              <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-primary" />
                 <span>1-Year Warranty</span>
-             </div>
-           </div>
+              </motion.div>
+            </div>
+          </motion.div>
+          <AnimatePresence>
+            {zoomed && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center" onClick={() => setZoomed(false)}>
+                <motion.img src={product.imageUrl} alt={product.name} initial={{ scale: 0.8 }} animate={{ scale: 1 }} exit={{ scale: 0.8 }} className="max-w-3xl max-h-[80vh] rounded-xl shadow-2xl border-4 border-accent cursor-zoom-out" />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         
         <div>
@@ -276,19 +294,21 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
       </div>
 
       <div className="mt-12" aria-label="Technical Specifications">
-        <h2 className="text-2xl font-bold mb-4 glow-primary" tabIndex={0}>Technical Specifications</h2>
-        <Card className="glass-panel">
-          <CardContent className="p-6">
-            <ul className="space-y-2 text-muted-foreground">
-              <li className="flex justify-between"><span>Brand:</span> <strong>{product.brand}</strong></li>
-              <li className="flex justify-between"><span>Category:</span> <strong>{product.category}</strong></li>
-              {product.subcategory && <li className="flex justify-between"><span>Sub-Category:</span> <strong>{product.subcategory}</strong></li>}
-              <li className="flex justify-between"><span>In Stock:</span> <strong className="text-primary">{product.stock > 0 ? 'Yes' : 'No'}</strong></li>
-            </ul>
-             <Separator className="my-4"/>
-            <p className="whitespace-pre-line" aria-label="Product technical description">{product.description}</p>
-          </CardContent>
-        </Card>
+        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
+          <h2 className="text-2xl font-bold mb-4 glow-primary" tabIndex={0}>Technical Specifications</h2>
+          <Card className="glass-panel">
+            <CardContent className="p-6">
+              <motion.ul initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.15 } } }} className="space-y-2 text-muted-foreground">
+                <motion.li variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="flex justify-between"><span>Brand:</span> <strong>{product.brand}</strong></motion.li>
+                <motion.li variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="flex justify-between"><span>Category:</span> <strong>{product.category}</strong></motion.li>
+                {product.subcategory && <motion.li variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="flex justify-between"><span>Sub-Category:</span> <strong>{product.subcategory}</strong></motion.li>}
+                <motion.li variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="flex justify-between"><span>In Stock:</span> <strong className="text-primary">{product.stock > 0 ? 'Yes' : 'No'}</strong></motion.li>
+              </motion.ul>
+              <Separator className="my-4"/>
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="whitespace-pre-line" aria-label="Product technical description">{product.description}</motion.p>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );

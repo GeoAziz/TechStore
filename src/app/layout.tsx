@@ -28,6 +28,12 @@ export default function RootLayout({
         <AuthProvider>
           <CompareProvider>
             <AppWrapper>
+              {/* SplashScreen HUD intro */}
+              <div id="splash-root">
+                <div suppressHydrationWarning>
+                  {typeof window !== "undefined" && require('@/components/splash/splash-screen').default()}
+                </div>
+              </div>
               {children}
             </AppWrapper>
           </CompareProvider>

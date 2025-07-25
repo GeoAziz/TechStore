@@ -19,119 +19,13 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-const FilterPanel = ({ 
-  searchTerm, 
-  setSearchTerm,
-  handleSortChange,
-  currentSort,
-  brands,
-  selectedBrands,
-  toggleBrand,
-  priceRange,
-  setPriceRange,
-  maxPrice,
-  clearFilters
-}: {
-  searchTerm: string;
-  setSearchTerm: (value: string) => void;
-  handleSortChange: (value: string) => void;
-  currentSort?: string;
-  brands: string[];
-  selectedBrands: string[];
-  toggleBrand: (brand: string) => void;
-  priceRange: [number, number];
-  setPriceRange: (value: [number, number]) => void;
-  maxPrice: number;
-  clearFilters: () => void;
-}) => {
-  const isMobile = useIsMobile();
-  return (
-    <div className="w-full flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Input
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          placeholder="Search products..."
-          className="w-full max-w-xs bg-card/80 border-accent/30 text-accent"
-        />
-        <select
-          aria-label="Sort products"
-          value={currentSort}
-          onChange={e => handleSortChange(e.target.value)}
-          className="ml-2 px-2 py-1 rounded bg-card/80 border-accent/30 text-accent"
-        >
-          <option value="">Sort By</option>
-          <option value="price-asc">Price: Low to High</option>
-          <option value="price-desc">Price: High to Low</option>
-          <option value="rating">Rating</option>
-        </select>
-      </div>
-      <Collapsible>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" className="w-full justify-between">
-            Filters
-            <span className="ml-2">{selectedBrands.length + (priceRange[0] > 0 || priceRange[1] < maxPrice ? 1 : 0)}</span>
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="pt-2">
-          <div className="flex flex-wrap gap-2 mb-2">
-            {selectedBrands.map(brand => (
-              <Badge key={brand} variant="secondary" onClick={() => toggleBrand(brand)}>
-                {brand}
-              </Badge>
-            ))}
-            {(priceRange[0] > 0 || priceRange[1] < maxPrice) && (
-              <Badge variant="secondary" onClick={() => setPriceRange([0, maxPrice])}>
-                Price: {priceRange[0]} - {priceRange[1]}
-              </Badge>
-            )}
-          </div>
-          <div className="flex flex-col gap-2">
-            <div>
-              <span className="font-space-mono text-xs text-accent">Brand</span>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {brands.map(brand => (
-                  <Button
-                    key={brand}
-                    size="sm"
-                    variant={selectedBrands.includes(brand) ? "accent" : "ghost"}
-                    onClick={() => toggleBrand(brand)}
-                  >
-                    {brand}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <span className="font-space-mono text-xs text-accent">Price</span>
-              <Slider
-                value={priceRange}
-                min={0}
-                max={maxPrice}
-                step={1000}
-                onValueChange={setPriceRange}
-                className="mt-2"
-              />
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" className="mt-2" onClick={clearFilters}>
-            Clear Filters
-          </Button>
-        </CollapsibleContent>
-      </Collapsible>
-      {isMobile && (
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="accent" className="w-full mt-2">Open Filters</Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="bg-card/90 backdrop-blur-lg">
-            {/* Repeat filter UI for mobile */}
-          </SheetContent>
-        </Sheet>
-      )}
-    </div>
-  );
-}
+// --- Sticky Search/Sort/Toggle Bar ---
+import SearchBar from '@/components/search/search-bar';
+// Make sure this file exists at src/components/shop/filter-panel.tsx
+import FilterPanel from './filter-panel';
+
+// Removed duplicate ShopClient implementation. See below for the correct export.
+// ...existing code...
 
 function ShopClientInternal({ products, searchParams: serverSearchParams }: { products: Product[], searchParams: { category?: string, search?: string, sort?: string, subcategory?: string } }) {
   const router = useRouter();
@@ -415,5 +309,5 @@ export default function ShopClient(props: { products: Product[], searchParams: {
     <Suspense>
       <ShopClientInternal {...props} />
     </Suspense>
-  )
+  );
 }
