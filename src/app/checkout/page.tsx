@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { products } from '@/lib/mock-data';
 import Image from 'next/image';
-import { Rocket, Loader2 } from 'lucide-react';
+import { Rocket, Loader2, ShieldCheck } from 'lucide-react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -248,6 +248,10 @@ export default function CheckoutPage() {
                   )}
                   Initiate Purchase Protocol
                 </Button>
+                <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground">
+                    <ShieldCheck className="w-4 h-4 text-green-500" />
+                    <span>Secure SSL Encrypted Payment</span>
+                </div>
               </CardContent>
             </Card>
           </div>

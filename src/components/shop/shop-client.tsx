@@ -8,11 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Search, SlidersHorizontal, X, List, LayoutGrid } from 'lucide-react';
+import { Search, SlidersHorizontal, X, List, LayoutGrid, DollarSign } from 'lucide-react';
 import ProductCard from './product-card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Slider } from '@/components/ui/slider';
 
 const FilterPanel = ({ 
   searchTerm, 
@@ -23,7 +24,10 @@ const FilterPanel = ({
   currentSort,
   brands,
   selectedBrands,
-  toggleBrand
+  toggleBrand,
+  priceRange,
+  setPriceRange,
+  maxPrice,
 }: {
   searchTerm: string;
   setSearchTerm: (value: string) => void;
@@ -34,6 +38,9 @@ const FilterPanel = ({
   brands: string[];
   selectedBrands: string[];
   toggleBrand: (brand: string) => void;
+  priceRange: [number, number];
+  setPriceRange: (value: [number, number]) => void;
+  maxPrice: number;
 }) => (
   <aside className="lg:h-screen lg:sticky top-16 bg-card/30 backdrop-blur-sm p-6 lg:w-80 border-r border-primary/10">
      <h2 className="text-2xl font-bold mb-6 glow-primary">Filters</h2>
@@ -69,7 +76,25 @@ const FilterPanel = ({
              </SelectContent>
            </Select>
         </div>
-        <Accordion type="multiple" defaultValue={['brands']} className="w-full">
+        <Accordion type="multiple" defaultValue={['price', 'brands']} className="w-full">
+            <AccordionItem value="price">
+                <AccordionTrigger className="text-lg font-semibold text-primary">Price Range</AccordionTrigger>
+                <AccordionContent>
+                    <div className="pt-4 px-1">
+                       <Slider
+                          min={0}
+                          max={maxPrice}
+                          step={1000}
+                          value={priceRange}
+                          onValueChange={(value: number[]) => setPriceRange(value as [number, number])}
+                        />
+                        <div className="flex justify-between text-sm text-muted-foreground mt-2">
+                            <span>{priceRange[0].toLocaleString()} KES</span>
+                            <span>{priceRange[1].toLocaleString()} KES</span>
+                        </div>
+                    </div>
+                </AccordionContent>
+            </AccordionItem>
             <AccordionItem value="brands">
                 <AccordionTrigger className="text-lg font-semibold text-primary">Brands</AccordionTrigger>
                 <AccordionContent>
@@ -108,10 +133,17 @@ export default function ShopClient({ products, searchParams }: { products: Produ
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const uniqueBrands = useMemo(() => {
-    const brands = new Set(products.map(p => p.brand));
-    return Array.from(brands);
+  const maxPrice = useMemo(() => {
+    if (products.length === 0) return 100000;
+    return Math.max(...products.map(p => p.price));
   }, [products]);
+
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, maxPrice]);
+
+  useEffect(() => {
+    setPriceRange([0, maxPrice]);
+  }, [maxPrice]);
+
 
   const createQueryString = (params: Record<string, string | null>) => {
     const newParams = new URLSearchParams(currentSearchParams.toString());
@@ -160,7 +192,8 @@ export default function ShopClient({ products, searchParams }: { products: Produ
       const categoryMatch = activeCategory === 'All' ? true : product.category === activeCategory;
       const searchMatch = searchTerm ? product.name.toLowerCase().includes(searchTerm.toLowerCase()) : true;
       const brandMatch = selectedBrands.length > 0 ? selectedBrands.includes(product.brand) : true;
-      return categoryMatch && searchMatch && brandMatch;
+      const priceMatch = product.price >= priceRange[0] && product.price <= priceRange[1];
+      return categoryMatch && searchMatch && brandMatch && priceMatch;
     });
 
     switch (sortBy) {
@@ -179,7 +212,7 @@ export default function ShopClient({ products, searchParams }: { products: Produ
     }
 
     return filtered;
-  }, [products, activeCategory, searchTerm, sortBy, selectedBrands]);
+  }, [products, activeCategory, searchTerm, sortBy, selectedBrands, priceRange]);
 
   return (
     <div className="container mx-auto">
@@ -192,9 +225,12 @@ export default function ShopClient({ products, searchParams }: { products: Produ
             clearSearch={clearSearch}
             handleSortChange={handleSortChange}
             currentSort={sortBy}
-            brands={uniqueBrands}
+            brands={useMemo(() => Array.from(new Set(products.map(p => p.brand))), [products])}
             selectedBrands={selectedBrands}
             toggleBrand={toggleBrand}
+            priceRange={priceRange}
+            setPriceRange={setPriceRange}
+            maxPrice={maxPrice}
            />
         </div>
 
@@ -239,9 +275,9 @@ export default function ShopClient({ products, searchParams }: { products: Produ
                         </Button>
                     </SheetTrigger>
                     <SheetContent className="w-[320px] sm:w-[400px] p-0 border-primary/20 bg-background">
-                        <SheetHeader className="p-6 pb-0">
-                            <SheetTitle>Filters</SheetTitle>
-                        </SheetHeader>
+                         <SheetHeader className="p-6 pb-0">
+                           <SheetTitle>Filters</SheetTitle>
+                         </SheetHeader>
                         <FilterPanel 
                             searchTerm={searchTerm}
                             setSearchTerm={setSearchTerm}
@@ -249,9 +285,12 @@ export default function ShopClient({ products, searchParams }: { products: Produ
                             clearSearch={clearSearch}
                             handleSortChange={handleSortChange}
                             currentSort={sortBy}
-                            brands={uniqueBrands}
+                            brands={useMemo(() => Array.from(new Set(products.map(p => p.brand))), [products])}
                             selectedBrands={selectedBrands}
                             toggleBrand={toggleBrand}
+                            priceRange={priceRange}
+                            setPriceRange={setPriceRange}
+                            maxPrice={maxPrice}
                         />
                     </SheetContent>
                 </Sheet>

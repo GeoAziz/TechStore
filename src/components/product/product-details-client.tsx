@@ -8,12 +8,19 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import type { Product } from '@/lib/types';
 import AiEnhancer from './ai-enhancer';
-import { Star, ShoppingCart, Heart } from 'lucide-react';
+import { Star, ShoppingCart, Heart, ShieldCheck, Truck } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { addToCart, toggleWishlist } from '@/lib/firestore-service';
 import { useState } from 'react';
+
+const mockReviews = [
+  { id: 1, author: "Cyber-Explorer", rating: 5, text: "Incredible performance, the AI co-processor is a game changer. Blazing fast delivery to Neo-Sector 7." },
+  { id: 2, author: "Data-Weaver", rating: 4, text: "Solid piece of hardware. Runs complex simulations without breaking a sweat. The chassis could be more durable." },
+  { id: 3, author: "Grid-Runner", rating: 5, text: "Exceeded all my expectations. The holographic display is crisp and the neural interface is seamless. A must-have for any serious net-runner." },
+];
+
 
 export default function ProductDetailsClient({ product }: { product: Product }) {
   const { user } = useAuth();
@@ -41,6 +48,22 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
     setIsAdding(false);
   };
   
+  const handleBuyNow = async () => {
+    if (!user) {
+        toast({ variant: "destructive", title: "Authentication Required", description: "Please log in to buy items." });
+        router.push('/login');
+        return;
+    }
+    setIsAdding(true);
+    const result = await addToCart(user.uid, product.id);
+    if (result.success) {
+        router.push('/checkout');
+    } else {
+        toast({ variant: "destructive", title: "Error", description: result.message });
+        setIsAdding(false);
+    }
+  };
+
   const handleToggleWishlist = async () => {
     if (!user) {
       toast({
@@ -74,6 +97,16 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
               data-ai-hint={`${product.category.toLowerCase()} device`}
             />
           </Card>
+           <div className="mt-4 grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+             <div className="flex items-center gap-2">
+                <Truck className="w-5 h-5 text-primary" />
+                <span>Est. Delivery: 3-5 Working Days</span>
+             </div>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-primary" />
+                <span>1-Year Warranty</span>
+             </div>
+           </div>
         </div>
         
         <div>
@@ -92,7 +125,7 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
           <p className="text-muted-foreground mb-6">{product.description}</p>
 
           <Card className="bg-card/50 backdrop-blur-sm border-primary/10 mb-6">
-            <CardContent className="p-4">
+            <CardContent className="p-4 space-y-4">
                <div className="flex gap-4">
                 <Button size="lg" className="flex-1 bg-primary/90 hover:bg-primary text-primary-foreground" onClick={handleAddToCart} disabled={isAdding}>
                   <ShoppingCart className="w-5 h-5 mr-2"/>
@@ -102,12 +135,38 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
                   <Heart className="w-6 h-6"/>
                 </Button>
               </div>
+              <Button size="lg" variant="outline" className="w-full" onClick={handleBuyNow} disabled={isAdding}>
+                Buy Now
+              </Button>
             </CardContent>
           </Card>
 
           <Separator className="my-6" />
 
           <AiEnhancer productDescription={product.description} />
+        </div>
+      </div>
+
+      <Separator className="my-12" />
+
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold mb-6 glow-primary">Customer Reviews</h2>
+        <div className="space-y-6">
+          {mockReviews.map(review => (
+            <Card key={review.id} className="bg-card/50 backdrop-blur-sm">
+                <CardContent className="p-6">
+                    <div className="flex items-center mb-2">
+                        <div className="flex items-center">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-primary fill-primary' : 'text-muted-foreground'}`} />
+                            ))}
+                        </div>
+                        <p className="ml-4 font-bold text-primary">{review.author}</p>
+                    </div>
+                    <p className="text-muted-foreground">{review.text}</p>
+                </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
 
