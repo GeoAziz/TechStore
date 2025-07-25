@@ -1,27 +1,29 @@
-
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Product } from '@/lib/types';
 import { categories } from '@/lib/mock-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Search, SlidersHorizontal, X, List, LayoutGrid } from 'lucide-react';
 import ProductCard from './product-card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// Extracted FilterPanel component
 const FilterPanel = ({ 
   searchTerm, 
   setSearchTerm, 
   handleSearch, 
   clearSearch, 
   handleSortChange,
-  currentSort 
+  currentSort,
+  brands,
+  selectedBrands,
+  toggleBrand
 }: {
   searchTerm: string;
   setSearchTerm: (value: string) => void;
@@ -29,11 +31,14 @@ const FilterPanel = ({
   clearSearch: () => void;
   handleSortChange: (value: string) => void;
   currentSort?: string;
+  brands: string[];
+  selectedBrands: string[];
+  toggleBrand: (brand: string) => void;
 }) => (
   <aside className="lg:h-screen lg:sticky top-16 bg-card/30 backdrop-blur-sm p-6 lg:w-80 border-r border-primary/10">
      <h2 className="text-2xl font-bold mb-6 glow-primary">Filters</h2>
-     <form onSubmit={handleSearch} className="space-y-8">
-         <div>
+     <div className="space-y-8">
+        <div>
            <h3 className="text-lg font-semibold mb-3 text-primary">Search</h3>
            <div className="relative">
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -49,8 +54,8 @@ const FilterPanel = ({
                  </Button>
              )}
            </div>
-         </div>
-         <div>
+        </div>
+        <div>
            <h3 className="text-lg font-semibold mb-3 text-primary">Sort By</h3>
            <Select onValueChange={handleSortChange} defaultValue={currentSort}>
              <SelectTrigger>
@@ -63,8 +68,31 @@ const FilterPanel = ({
                <SelectItem value="rating">Rating</SelectItem>
              </SelectContent>
            </Select>
-         </div>
-     </form>
+        </div>
+        <Accordion type="multiple" defaultValue={['brands']} className="w-full">
+            <AccordionItem value="brands">
+                <AccordionTrigger className="text-lg font-semibold text-primary">Brands</AccordionTrigger>
+                <AccordionContent>
+                    <div className="space-y-2 pt-2">
+                        {brands.map(brand => (
+                            <div key={brand} className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id={`brand-${brand}`}
+                                    checked={selectedBrands.includes(brand)}
+                                    onChange={() => toggleBrand(brand)}
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                                <label htmlFor={`brand-${brand}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    {brand}
+                                </label>
+                            </div>
+                        ))}
+                    </div>
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
+     </div>
   </aside>
 );
 
@@ -75,44 +103,67 @@ export default function ShopClient({ products, searchParams }: { products: Produ
   const currentSearchParams = useSearchParams();
 
   const [searchTerm, setSearchTerm] = useState(searchParams.search || '');
+  const [activeCategory, setActiveCategory] = useState(searchParams.category || 'All');
+  const [sortBy, setSortBy] = useState(searchParams.sort || 'relevance');
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const createQueryString = (name: string, value: string) => {
-    const params = new URLSearchParams(currentSearchParams.toString());
-    if (value) {
-      params.set(name, value);
-    } else {
-      params.delete(name);
+  const uniqueBrands = useMemo(() => {
+    const brands = new Set(products.map(p => p.brand));
+    return Array.from(brands);
+  }, [products]);
+
+  const createQueryString = (params: Record<string, string | null>) => {
+    const newParams = new URLSearchParams(currentSearchParams.toString());
+    for (const [name, value] of Object.entries(params)) {
+        if (value) {
+            newParams.set(name, value);
+        } else {
+            newParams.delete(name);
+        }
     }
-    return params.toString();
+    return newParams.toString();
+  };
+
+  const updateURL = (newParams: Record<string, string | null>) => {
+      router.push(pathname + '?' + createQueryString(newParams), { scroll: false });
   };
 
   const handleCategoryChange = (category: string) => {
-    const newCategory = category === 'All' ? '' : category;
-    router.push(pathname + '?' + createQueryString('category', newCategory));
+    setActiveCategory(category);
+    updateURL({ category: category === 'All' ? null : category });
   };
   
   const handleSortChange = (sortValue: string) => {
-    router.push(pathname + '?' + createQueryString('sort', sortValue));
+    setSortBy(sortValue);
+    updateURL({ sort: sortValue });
   };
   
   const handleSearch = (e: React.FormEvent) => {
      e.preventDefault();
-     router.push(pathname + '?' + createQueryString('search', searchTerm));
+     updateURL({ search: searchTerm });
   }
 
   const clearSearch = () => {
     setSearchTerm('');
-    router.push(pathname + '?' + createQueryString('search', ''));
+    updateURL({ search: null });
+  }
+
+  const toggleBrand = (brand: string) => {
+    setSelectedBrands(prev => 
+        prev.includes(brand) ? prev.filter(b => b !== brand) : [...prev, brand]
+    );
   }
 
   const filteredAndSortedProducts = useMemo(() => {
     let filtered = products.filter(product => {
-      const categoryMatch = searchParams.category ? product.category === searchParams.category : true;
-      const searchMatch = searchParams.search ? product.name.toLowerCase().includes(searchParams.search.toLowerCase()) : true;
-      return categoryMatch && searchMatch;
+      const categoryMatch = activeCategory === 'All' ? true : product.category === activeCategory;
+      const searchMatch = searchTerm ? product.name.toLowerCase().includes(searchTerm.toLowerCase()) : true;
+      const brandMatch = selectedBrands.length > 0 ? selectedBrands.includes(product.brand) : true;
+      return categoryMatch && searchMatch && brandMatch;
     });
 
-    switch (searchParams.sort) {
+    switch (sortBy) {
         case 'price-asc':
             filtered.sort((a, b) => a.price - b.price);
             break;
@@ -128,12 +179,11 @@ export default function ShopClient({ products, searchParams }: { products: Produ
     }
 
     return filtered;
-  }, [products, searchParams]);
+  }, [products, activeCategory, searchTerm, sortBy, selectedBrands]);
 
   return (
     <div className="container mx-auto">
       <div className="lg:flex">
-        {/* Desktop Filter Panel */}
         <div className="hidden lg:block">
            <FilterPanel 
             searchTerm={searchTerm}
@@ -141,7 +191,10 @@ export default function ShopClient({ products, searchParams }: { products: Produ
             handleSearch={handleSearch}
             clearSearch={clearSearch}
             handleSortChange={handleSortChange}
-            currentSort={searchParams.sort}
+            currentSort={sortBy}
+            brands={uniqueBrands}
+            selectedBrands={selectedBrands}
+            toggleBrand={toggleBrand}
            />
         </div>
 
@@ -151,60 +204,78 @@ export default function ShopClient({ products, searchParams }: { products: Produ
             <p className="text-muted-foreground">Browse all products or filter by category.</p>
           </header>
 
-          {/* Category Tabs */}
            <div className="mb-8">
-            <Tabs defaultValue={searchParams.category || "All"} onValueChange={handleCategoryChange}>
-              <TabsList className="bg-transparent p-0">
-                  <TabsTrigger value="All" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">All</TabsTrigger>
-                {categories.map(category => (
-                  <TabsTrigger key={category.name} value={category.name} className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    {category.name}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+            <Tabs defaultValue={activeCategory} onValueChange={handleCategoryChange}>
+                <ScrollArea className="w-full whitespace-nowrap">
+                    <TabsList className="bg-transparent p-0">
+                        <TabsTrigger value="All" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">All</TabsTrigger>
+                        {categories.map(category => (
+                        <TabsTrigger key={category.name} value={category.name} className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                            {category.name}
+                        </TabsTrigger>
+                        ))}
+                    </TabsList>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
             </Tabs>
            </div>
           
-           {/* Mobile Filter Button */}
-           <div className="flex justify-between items-center mb-6 lg:hidden">
+           <div className="flex justify-between items-center mb-6">
              <p className="text-muted-foreground">{filteredAndSortedProducts.length} transmissions found</p>
-             <Sheet>
-                <SheetTrigger asChild>
-                    <Button variant="outline">
-                        <SlidersHorizontal className="mr-2 h-4 w-4" />
-                        Filters & Sort
+             <div className='flex items-center gap-2'>
+                <div className="hidden md:flex items-center gap-2">
+                    <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('grid')}>
+                        <LayoutGrid className="w-5 h-5" />
                     </Button>
-                </SheetTrigger>
-                <SheetContent className="w-[320px] sm:w-[400px] p-0 border-primary/20 bg-background">
-                   <SheetHeader className="p-6 pb-0">
-                     <SheetTitle>Filters</SheetTitle>
-                   </SheetHeader>
-                   <FilterPanel 
-                      searchTerm={searchTerm}
-                      setSearchTerm={setSearchTerm}
-                      handleSearch={handleSearch}
-                      clearSearch={clearSearch}
-                      handleSortChange={handleSortChange}
-                      currentSort={searchParams.sort}
-                    />
-                </SheetContent>
-             </Sheet>
-           </div>
-
-
-           <div className="hidden lg:flex justify-end items-center mb-6">
-             <p className="text-muted-foreground mr-4">{filteredAndSortedProducts.length} transmissions found</p>
+                     <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('list')}>
+                        <List className="w-5 h-5" />
+                    </Button>
+                </div>
+                <Sheet>
+                    <SheetTrigger asChild>
+                        <Button variant="outline" className="lg:hidden">
+                            <SlidersHorizontal className="mr-2 h-4 w-4" />
+                            Filters
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent className="w-[320px] sm:w-[400px] p-0 border-primary/20 bg-background">
+                        <SheetHeader className="p-6 pb-0">
+                            <SheetTitle>Filters</SheetTitle>
+                        </SheetHeader>
+                        <FilterPanel 
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
+                            handleSearch={handleSearch}
+                            clearSearch={clearSearch}
+                            handleSortChange={handleSortChange}
+                            currentSort={sortBy}
+                            brands={uniqueBrands}
+                            selectedBrands={selectedBrands}
+                            toggleBrand={toggleBrand}
+                        />
+                    </SheetContent>
+                </Sheet>
+             </div>
            </div>
 
           <motion.div 
             layout 
-            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8"
+            className={`grid gap-6 lg:gap-8 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'}`}
           >
-            {filteredAndSortedProducts.map(product => (
-              <motion.div layout key={product.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <ProductCard product={product} />
-              </motion.div>
-            ))}
+            <AnimatePresence>
+                {filteredAndSortedProducts.map(product => (
+                  <motion.div 
+                    layout 
+                    key={product.id} 
+                    initial={{ opacity: 0, y: 20 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                      <ProductCard product={product} viewMode={viewMode} />
+                  </motion.div>
+                ))}
+            </AnimatePresence>
           </motion.div>
           {filteredAndSortedProducts.length === 0 && (
              <div className="text-center col-span-full py-16">
@@ -217,3 +288,6 @@ export default function ShopClient({ products, searchParams }: { products: Produ
     </div>
   );
 }
+
+// Re-add ScrollArea and ScrollBar to be used in the component
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
