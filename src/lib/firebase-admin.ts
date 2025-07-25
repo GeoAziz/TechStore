@@ -6,16 +6,25 @@ let app: App;
 let db: Firestore;
 
 const getServiceAccount = (): ServiceAccount => {
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
+  
+  // In a production/deployment environment (like Vercel), the service account must be set as an environment variable.
+  if (process.env.NODE_ENV === 'production') {
+    if (!serviceAccountString) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is not set for production build.');
+    }
+    return JSON.parse(serviceAccountString);
   } else {
-    // This is for local development, you would need to have the serviceAccountKey.json file
-    // In production, the environment variable should be used.
-    // Make sure to add the `with { type: 'json' }` for local dev if you haven't already.
-    return require('../../serviceAccountKey.json');
+    // For local development, we can use the environment variable if it's set, 
+    // otherwise, we fall back to the local JSON file.
+    if (serviceAccountString) {
+      return JSON.parse(serviceAccountString);
+    } else {
+      // This require should only be executed in a local development environment.
+      return require('../../serviceAccountKey.json');
+    }
   }
 };
-
 
 if (!getApps().length) {
   app = initializeApp({
