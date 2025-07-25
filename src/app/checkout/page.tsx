@@ -216,7 +216,7 @@ export default function CheckoutPage() {
                 <div className="space-y-4">
                   {cartItems.map(item => (
                     <div key={item.id} className="flex items-center gap-4">
-                      <Image src={item.image} alt={item.name} width={64} height={64} className="rounded-md border border-border" />
+                      <Image src={item.imageUrl} alt={item.name} width={64} height={64} className="rounded-md border border-border" />
                       <div className="flex-1">
                         <p className="font-semibold">{item.name}</p>
                         <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
