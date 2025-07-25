@@ -8,25 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Search, SlidersHorizontal, X, List, LayoutGrid, Filter } from 'lucide-react';
+import { Search, SlidersHorizontal, X, List, LayoutGrid } from 'lucide-react';
 import ProductCard from './product-card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Slider } from '@/components/ui/slider';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
-import { useIsMobile } from "@/hooks/use-mobile";
-
-// --- Sticky Search/Sort/Toggle Bar ---
-import SearchBar from '@/components/search/search-bar';
-// Make sure this file exists at src/components/shop/filter-panel.tsx
 import FilterPanel from './filter-panel';
 
-// Removed duplicate ShopClient implementation. See below for the correct export.
-// ...existing code...
 
 const PRODUCTS_PER_PAGE = 12;
 
@@ -50,7 +40,7 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
 
   const [priceRange, setPriceRange] = useState<[number, number]>([0, maxPrice]);
   
-  const updateURL = useCallback((newParams: Record<string, string | null | string[]>) => {
+  const updateURL = useCallback((newParams: Record<string, string | null | (string[] | number)[]>) => {
       const current = new URLSearchParams(Array.from(searchParams.entries()));
       
       for (const [key, value] of Object.entries(newParams)) {
@@ -58,9 +48,9 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
               current.delete(key);
           } else if (Array.isArray(value)) {
               current.delete(key);
-              value.forEach(v => current.append(key, v));
+              value.forEach(v => current.append(key, String(v)));
           } else {
-              current.set(key, value);
+              current.set(key, String(value));
           }
       }
       
@@ -84,7 +74,7 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
   const handleCategoryChange = (category: ProductCategory) => {
     setActiveCategory(category);
     setActiveSubcategory('All');
-    updateURL({ category, subcategory: null });
+    updateURL({ category, subcategory: null, brands: null });
   };
 
   const handleSubcategoryChange = (subcategory: string) => {
@@ -97,9 +87,16 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
     updateURL({ sort: sortValue });
   };
 
+  const debouncedUpdateURL = useCallback((term: string) => {
+     const handler = setTimeout(() => {
+        updateURL({ search: term || null });
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [updateURL]);
+
   const handleSearchTermChange = (term: string) => {
     setSearchTerm(term);
-    updateURL({ search: term || null });
+    debouncedUpdateURL(term);
   };
 
   const toggleBrand = (brand: string) => {
@@ -116,11 +113,9 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
   };
 
   const clearFilters = () => {
-    setSearchTerm('');
     setSelectedBrands([]);
     setPriceRange([0, maxPrice]);
-    setSortBy('relevance');
-    updateURL({ search: null, brands: null, minPrice: null, maxPrice: null, sort: null });
+    updateURL({ brands: null, minPrice: null, maxPrice: null });
   };
 
   const filteredAndSortedProducts = useMemo(() => {
@@ -155,15 +150,15 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
   }, [filteredAndSortedProducts]);
 
   const activeFilterChips = useMemo(() => {
-    const chips = [];
-    if(searchTerm) chips.push({type: 'search', value: searchTerm});
-    selectedBrands.forEach(b => chips.push({type: 'brand', value: b}));
-    if(priceRange[0] > 0 || priceRange[1] < maxPrice) chips.push({type: 'price', value: `${priceRange[0]}-${priceRange[1]}`});
+    const chips: { type: string, value: string, display: string }[] = [];
+    selectedBrands.forEach(b => chips.push({ type: 'brand', value: b, display: b }));
+    if (priceRange[0] > 0 || priceRange[1] < maxPrice) {
+      chips.push({ type: 'price', value: 'price', display: `KES ${priceRange[0].toLocaleString()} - ${priceRange[1].toLocaleString()}` });
+    }
     return chips;
-  }, [searchTerm, selectedBrands, priceRange, maxPrice]);
+  }, [selectedBrands, priceRange, maxPrice]);
   
   const removeFilter = (chip: {type: string, value: string}) => {
-    if(chip.type === 'search') handleSearchTermChange('');
     if(chip.type === 'brand') toggleBrand(chip.value);
     if(chip.type === 'price') handlePriceChange([0, maxPrice]);
   }
@@ -184,30 +179,33 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
   }, [filteredAndSortedProducts, visibleCount]);
 
   return (
-    <div className="container mx-auto">
-      <div className="lg:flex">
-        <div className="hidden lg:block">
-           <FilterPanel 
-            searchTerm={searchTerm}
-            setSearchTerm={handleSearchTermChange}
-            handleSortChange={handleSortChange}
-            currentSort={sortBy}
-            brands={allBrands}
-            selectedBrands={selectedBrands}
-            toggleBrand={toggleBrand}
-            priceRange={priceRange}
-            setPriceRange={handlePriceChange}
-            maxPrice={maxPrice}
-            clearFilters={clearFilters}
-           />
-        </div>
+    <div className="container mx-auto py-8">
+      <div className="flex flex-col lg:flex-row gap-8">
+        
+        {/* -- Filters Sidebar (Desktop) -- */}
+        <aside className="hidden lg:block w-full lg:w-1/4 xl:w-1/5 sticky top-24 h-fit">
+           <div className="p-4 bg-card/50 backdrop-blur-sm border border-primary/20 rounded-lg">
+             <h3 className="text-xl font-bold mb-4 glow-primary">Filters</h3>
+             <FilterPanel 
+              brands={allBrands}
+              selectedBrands={selectedBrands}
+              toggleBrand={toggleBrand}
+              priceRange={priceRange}
+              setPriceRange={handlePriceChange}
+              maxPrice={maxPrice}
+              clearFilters={clearFilters}
+             />
+           </div>
+        </aside>
 
-        <main className="flex-1 py-8 lg:py-12 px-4 lg:px-8 border-l border-border">
+        {/* -- Main Content -- */}
+        <main className="flex-1">
           <header className="mb-8">
             <h1 className="text-4xl font-bold tracking-tighter mb-2 glow-primary">Product Marketplace</h1>
             <p className="text-muted-foreground">Browse all products or filter by category.</p>
           </header>
 
+          {/* -- Main Category Tabs -- */}
            <div className="mb-4">
             <Tabs value={activeCategory} onValueChange={(val) => handleCategoryChange(val as ProductCategory)}>
                 <ScrollArea className="w-full whitespace-nowrap">
@@ -223,14 +221,15 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
             </Tabs>
            </div>
           
+           {/* -- Subcategory Tabs -- */}
            {subcategories.length > 0 && (
-             <div className="mb-8">
+             <div className="mb-6">
                 <Tabs value={activeSubcategory} onValueChange={handleSubcategoryChange}>
                     <ScrollArea className="w-full whitespace-nowrap">
-                        <TabsList className="bg-transparent p-0">
-                            <TabsTrigger value="All" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">All {activeCategory}</TabsTrigger>
+                        <TabsList className="bg-transparent p-0 gap-2">
+                            <TabsTrigger value="All" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground rounded-full">All {activeCategory}</TabsTrigger>
                             {subcategories.map(sub => (
-                            <TabsTrigger key={sub} value={sub} className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
+                            <TabsTrigger key={sub} value={sub} className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground rounded-full">
                                 {sub}
                             </TabsTrigger>
                             ))}
@@ -241,18 +240,32 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
             </div>
            )}
           
-           <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-             <div className="flex items-center gap-2 flex-wrap">
-                {activeFilterChips.length > 0 && activeFilterChips.map(chip => (
-                  <Badge key={chip.value} variant="secondary" className="text-sm flex gap-2 items-center">
-                    {chip.value}
-                    <button title="Remove filter" onClick={() => removeFilter(chip)}><X className="w-3 h-3"/></button>
-                  </Badge>
-                ))}
-             </div>
-             <div className='flex items-center gap-2'>
-                <p className="text-muted-foreground hidden sm:block">{filteredAndSortedProducts.length} results</p>
-                <div className="hidden md:flex items-center gap-2">
+          {/* -- Utility Bar: Search, Sort, View Toggle -- */}
+           <div className="sticky top-16 bg-background/80 backdrop-blur-sm z-40 py-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between rounded-lg px-4 border border-border">
+              <div className="relative w-full md:w-auto md:flex-grow max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input 
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => handleSearchTermChange(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              <div className="flex items-center gap-4 w-full md:w-auto">
+                 <Select value={sortBy} onValueChange={handleSortChange}>
+                    <SelectTrigger className="w-full md:w-[180px]">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="relevance">Relevance</SelectItem>
+                      <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                      <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                      <SelectItem value="rating">Top Rated</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                <div className="hidden md:flex items-center gap-2 p-1 bg-muted rounded-md">
                     <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('grid')}>
                         <LayoutGrid className="w-5 h-5" />
                     </Button>
@@ -260,6 +273,8 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
                         <List className="w-5 h-5" />
                     </Button>
                 </div>
+                
+                 {/* -- Mobile Filter Trigger -- */}
                 <Sheet>
                     <SheetTrigger asChild>
                         <Button variant="outline" className="lg:hidden">
@@ -268,14 +283,10 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
                         </Button>
                     </SheetTrigger>
                     <SheetContent className="w-[320px] sm:w-[400px] p-0 border-primary/20 bg-background">
-                         <SheetHeader className="p-6 pb-0">
-                           <SheetTitle>Filters</SheetTitle>
+                         <SheetHeader className="p-4 pb-0">
+                           <SheetTitle className="glow-primary">Filters</SheetTitle>
                          </SheetHeader>
                         <FilterPanel 
-                            searchTerm={searchTerm}
-                            setSearchTerm={handleSearchTermChange}
-                            handleSortChange={handleSortChange}
-                            currentSort={sortBy}
                             brands={allBrands}
                             selectedBrands={selectedBrands}
                             toggleBrand={toggleBrand}
@@ -286,9 +297,36 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
                         />
                     </SheetContent>
                 </Sheet>
-             </div>
+              </div>
            </div>
 
+           {/* -- Active Filter Chips -- */}
+           <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+             <div className="flex items-center gap-2 flex-wrap">
+                <AnimatePresence>
+                  {activeFilterChips.length > 0 && activeFilterChips.map(chip => (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                      key={chip.value}
+                    >
+                      <Badge variant="secondary" className="text-sm flex gap-2 items-center pl-3 pr-2 py-1 rounded-full">
+                        {chip.display}
+                        <button title={`Remove ${chip.display} filter`} onClick={() => removeFilter(chip)} className="bg-background/50 hover:bg-background rounded-full w-5 h-5 flex items-center justify-center">
+                          <X className="w-3 h-3"/>
+                        </button>
+                      </Badge>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+             </div>
+             <p className="text-muted-foreground text-sm">{filteredAndSortedProducts.length} results found</p>
+           </div>
+          
+          {/* -- Product Grid -- */}
           <motion.div 
             layout 
             className={`grid gap-6 lg:gap-8 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'}`}
@@ -308,13 +346,17 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
                 ))}
             </AnimatePresence>
           </motion.div>
+
+          {/* -- Load More Button -- */}
           {visibleCount < filteredAndSortedProducts.length && (
             <div className="flex justify-center mt-8">
-              <Button onClick={loadMoreProducts} variant="outline">
-                Load More
+              <Button onClick={loadMoreProducts} variant="outline" size="lg">
+                Load More Products
               </Button>
             </div>
           )}
+
+          {/* -- No Results -- */}
           {filteredAndSortedProducts.length === 0 && (
              <div className="text-center col-span-full py-16">
                 <h2 className="text-2xl font-bold">No Transmissions Found</h2>
