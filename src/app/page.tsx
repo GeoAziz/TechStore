@@ -93,15 +93,18 @@ export default async function Home() {
 
         <section className="py-16">
           <div className="container">
-             <div className="flex justify-between items-center mb-10">
+             <div className="text-center mb-12">
                 <h2 className="text-3xl font-bold glow-primary">
                   <span className="text-accent">{'//'}</span> 🔥 Featured Deals
                 </h2>
-                 <Button asChild variant="outline">
-                  <Link href="/deals">
-                    View All <View className="w-4 h-4 ml-2"/>
-                  </Link>
-                </Button>
+                 <p className="text-muted-foreground mt-2 max-w-xl mx-auto">Discover the hottest tech in the galaxy, hand-picked by our specialists.</p>
+                 <div className="mt-6">
+                    <Button asChild variant="outline">
+                    <Link href="/deals">
+                        View All Deals <View className="w-4 h-4 ml-2"/>
+                    </Link>
+                    </Button>
+                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {featuredProducts.map((product) => (
@@ -142,4 +145,5 @@ export default async function Home() {
     </div>
   );
 }
+
 
