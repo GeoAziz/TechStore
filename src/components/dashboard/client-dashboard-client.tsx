@@ -12,14 +12,23 @@ import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { Order } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+import {
+  getWishlist,
+  toggleWishlist as serverToggleWishlist,
+  updateUserProfile,
+  cancelOrder as serverCancelOrder,
+  reorder as serverReorder,
+} from '@/lib/firestore-service';
 
 const sidebarNav = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { title: "My Orders", icon: Package, href: "/dashboard/client", active: true },
-  { title: "Settings", icon: Settings, href: "#" },
+  { title: "Settings", icon: "#" },
 ];
 
 export default function ClientDashboardClient({ orders }: { orders: Order[] }) {
+  const { toast } = useToast();
   // Lazy loading state
   const [visibleOrders, setVisibleOrders] = useState<number>(10);
   const handleLoadMore = () => setVisibleOrders((v: number) => v + 10);
@@ -44,14 +53,6 @@ export default function ClientDashboardClient({ orders }: { orders: Order[] }) {
     await auth.signOut();
     router.push('/');
   };
-
-  if (loading || !user) {
-    return (
-      <div className="container py-8 text-center">
-        <p>Loading user data...</p>
-      </div>
-    );
-  }
   
   // New: Modal state for order details
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -61,76 +62,64 @@ export default function ClientDashboardClient({ orders }: { orders: Order[] }) {
   // Wishlist state and actions
   const [wishlist, setWishlist] = useState<string[]>([]);
   useEffect(() => {
-    // Fetch wishlist from backend
     async function fetchWishlist() {
       if (!user) return;
-      const userDoc = await import('@/lib/firebase-admin').then(mod => mod.db.collection('users').doc(user.uid).get());
-      setWishlist(userDoc.data()?.wishlist || []);
+      const fetchedWishlist = await getWishlist(user.uid);
+      setWishlist(fetchedWishlist);
     }
     fetchWishlist();
   }, [user]);
 
-  const handleAddToWishlist = async (productId: string) => {
+  const handleToggleWishlist = async (productId: string) => {
     if (!user) return;
-    const { toggleWishlist } = await import('@/lib/firestore-service');
-    const result = await toggleWishlist(user.uid, productId);
+    const result = await serverToggleWishlist(user.uid, productId);
     if (result.success) {
-      setWishlist((prev: string[]) => [...prev, productId]);
-    }
-  };
-  const handleRemoveFromWishlist = async (productId: string) => {
-    if (!user) return;
-    const { toggleWishlist } = await import('@/lib/firestore-service');
-    const result = await toggleWishlist(user.uid, productId);
-    if (result.success) {
-      setWishlist((prev: string[]) => prev.filter((p: string) => p !== productId));
+      setWishlist(result.wishlist || []);
+      toast({ title: 'Success', description: result.message });
+      router.refresh();
+    } else {
+      toast({ variant: 'destructive', title: 'Error', description: result.message });
     }
   };
 
   // Profile state and actions
   const [profile, setProfile] = useState<{ name: string; email: string; address: string }>({ name: user?.displayName || '', email: user?.email || '', address: '' });
   const [editingProfile, setEditingProfile] = useState<boolean>(false);
+  
   const handleProfileSave = async () => {
-    setEditingProfile(false);
     if (!user) return;
-    const userRef = await import('@/lib/firebase-admin').then(mod => mod.db.collection('users').doc(user.uid));
-    await userRef.update({
-      displayName: profile.name,
-      email: profile.email,
-      address: profile.address,
-    });
-    // Optionally update Firebase Auth profile
-    if (auth.currentUser) {
-      // @ts-ignore
-      await auth.currentUser.updateProfile({ displayName: profile.name });
-      // Update email using Firebase Auth API
-      if (profile.email !== user.email && auth.currentUser) {
-        const { updateEmail } = await import('firebase/auth');
-        await updateEmail(auth.currentUser, profile.email);
-      }
+    setEditingProfile(false);
+    const result = await updateUserProfile(user.uid, { displayName: profile.name, address: profile.address });
+    if(result.success) {
+      toast({ title: "Profile Updated", description: "Your details have been saved." });
+      router.refresh();
+    } else {
+      toast({ variant: 'destructive', title: 'Error', description: result.message });
     }
   };
 
   // Cancel order action
   const handleCancelOrder = async (orderId: string) => {
-    const { db } = await import('@/lib/firebase-admin');
-    await db.collection('orders').doc(orderId).update({ status: 'Cancelled' });
-    setShowDetails(false);
+    const result = await serverCancelOrder(orderId);
+    if (result.success) {
+      toast({ title: "Order Cancelled" });
+      setShowDetails(false);
+      router.refresh();
+    } else {
+      toast({ variant: 'destructive', title: 'Error', description: result.message });
+    }
   };
 
   // Reorder action
   const handleReorder = async (orderId: string) => {
-    const { db } = await import('@/lib/firebase-admin');
-    const orderDoc = await db.collection('orders').doc(orderId).get();
-    const order = orderDoc.data();
-    if (!order) return;
-    // Create new order with same product/user
-    await db.collection('orders').add({
-      ...order,
-      status: 'Processing',
-      timestamp: new Date().toISOString(),
-    });
-    setShowDetails(false);
+    const result = await serverReorder(orderId);
+    if(result.success) {
+      toast({ title: "Reordered!", description: `New order ${result.newOrderId} has been created.`});
+      setShowDetails(false);
+      router.refresh();
+    } else {
+      toast({ variant: 'destructive', title: 'Error', description: result.message });
+    }
   };
 
   // Invoice download action (simulate PDF)
@@ -142,6 +131,14 @@ export default function ClientDashboardClient({ orders }: { orders: Order[] }) {
       setDownloading(false);
     }, 1200);
   };
+  
+  if (loading || !user) {
+    return (
+      <div className="container py-8 text-center">
+        <p>Loading user data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-8 relative">
@@ -178,11 +175,10 @@ export default function ClientDashboardClient({ orders }: { orders: Order[] }) {
                   {wishlist.length === 0 ? <li className="text-muted-foreground">No items in wishlist.</li> : wishlist.map((item: string) => (
                     <li key={item} className="flex justify-between items-center mb-1">
                       <span>{item}</span>
-                      <Button size="sm" variant="destructive" onClick={() => handleRemoveFromWishlist(item)}>Remove</Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleToggleWishlist(item)}>Remove</Button>
                     </li>
                   ))}
                 </ul>
-                <Button size="sm" variant="outline" onClick={() => handleAddToWishlist('Sample Product')}>Add Sample Product</Button>
               </div>
               {/* Profile Settings */}
               <div className="mt-8">
@@ -190,7 +186,6 @@ export default function ClientDashboardClient({ orders }: { orders: Order[] }) {
                 {editingProfile ? (
                   <form onSubmit={e => { e.preventDefault(); handleProfileSave(); }} className="flex flex-col gap-2">
                     <input type="text" value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value })} className="px-2 py-1 rounded" placeholder="Name" />
-                    <input type="email" value={profile.email} onChange={e => setProfile({ ...profile, email: e.target.value })} className="px-2 py-1 rounded" placeholder="Email" />
                     <input type="text" value={profile.address} onChange={e => setProfile({ ...profile, address: e.target.value })} className="px-2 py-1 rounded" placeholder="Address" />
                     <Button type="submit" size="sm" variant="secondary">Save</Button>
                   </form>
@@ -237,13 +232,13 @@ export default function ClientDashboardClient({ orders }: { orders: Order[] }) {
                           {order.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{order.timestamp}</TableCell>
+                      <TableCell>{new Date(order.timestamp).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
-                      <TableCell>
+                      <TableCell className="flex gap-1">
                         <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(order); setShowDetails(true); }}>Details</Button>
                         {order.status === 'Processing' && <Button size="sm" variant="destructive" onClick={() => handleCancelOrder(order.id)}>Cancel</Button>}
                         <Button size="sm" variant="secondary" onClick={() => handleReorder(order.id)}>Reorder</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleDownloadInvoice(order.id)} disabled={downloading}>{downloading ? 'Downloading...' : 'Invoice'}</Button>
+                        <Button size="sm" variant="outline" onClick={() => handleDownloadInvoice(order.id)} disabled={downloading}>{downloading ? '...' : 'Invoice'}</Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -264,7 +259,7 @@ export default function ClientDashboardClient({ orders }: { orders: Order[] }) {
                     <div className="mb-2">Product: {selectedOrder.productName}</div>
                     <div className="mb-2">Status: {selectedOrder.status}</div>
                     <div className="mb-2">Total: KES {selectedOrder.total}</div>
-                    <div className="mb-2">Date: {selectedOrder.timestamp}</div>
+                    <div className="mb-2">Date: {new Date(selectedOrder.timestamp).toLocaleString()}</div>
                     <div className="mb-2">Shipping: <span className="text-muted-foreground">Tracking info coming soon</span></div>
                     <div className="flex gap-2 mt-4">
                       {selectedOrder.status === 'Processing' && <Button size="sm" variant="destructive" onClick={() => handleCancelOrder(selectedOrder.id)}>Cancel Order</Button>}

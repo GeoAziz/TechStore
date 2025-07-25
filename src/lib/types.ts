@@ -17,11 +17,13 @@ export interface Product {
   promoTag?: string; // e.g., '10% OFF', 'New Arrival'
 }
 
+export type OrderStatus = 'Delivered' | 'Processing' | 'Failed' | 'Cancelled';
+
 export interface Order {
   id: string;
   productName: string;
-  status: 'Delivered' | 'Processing' | 'Failed';
-  timestamp: string;
+  status: OrderStatus;
+  timestamp: string; // ISO string date format
   total: number;
   user: string;
 }

@@ -12,6 +12,8 @@ import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import type { Order, Product } from '@/lib/types';
+import { updateOrderStatus, updateProduct, addProduct, deleteProduct, deleteUser } from '@/lib/firestore-service';
+import { useToast } from '@/hooks/use-toast';
 
 const sidebarNav = [
   { title: "Overview", icon: LayoutDashboard, href: "/dashboard/admin", active: true },
@@ -24,6 +26,7 @@ const sidebarNav = [
 export default function AdminDashboardClient({ orders, products }: { orders: Order[]; products: Product[] }) {
   const { user, loading, role } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!loading && (!user || role !== 'admin')) {
@@ -39,35 +42,15 @@ export default function AdminDashboardClient({ orders, products }: { orders: Ord
 
   // Update order status
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
-    const { db } = await import('@/lib/firebase-admin');
-    await db.collection('orders').doc(orderId).update({ status });
+    const result = await updateOrderStatus(orderId, status);
+    if (result.success) {
+      toast({ title: "Success", description: "Order status updated." });
+      // Here you might want to re-fetch or optimistically update the UI
+      router.refresh();
+    } else {
+      toast({ variant: "destructive", title: "Error", description: result.message });
+    }
   };
-
-  // Edit product
-  const handleEditProduct = async (productId: string, updates: Partial<Product>) => {
-    const { db } = await import('@/lib/firebase-admin');
-    await db.collection('products').doc(productId).update(updates);
-  };
-
-  // Add product
-  const handleAddProduct = async (product: Product) => {
-    const { db } = await import('@/lib/firebase-admin');
-    await db.collection('products').add(product);
-  };
-
-  // Delete product
-  const handleDeleteProduct = async (productId: string) => {
-    const { db } = await import('@/lib/firebase-admin');
-    await db.collection('products').doc(productId).delete();
-  };
-
-  // User management
-  const handleDeleteUser = async (userId: string) => {
-    const { db } = await import('@/lib/firebase-admin');
-    await db.collection('users').doc(userId).delete();
-  };
-
-  // Analytics, logs, notifications, bulk actions can be similarly structured
 
   if (loading || !user) {
     return (

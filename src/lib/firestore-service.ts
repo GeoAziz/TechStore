@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from './firebase-admin';
-import type { Product, Order, CartItem, Review } from './types';
+import type { Product, Order, CartItem, Review, OrderStatus } from './types';
 import { FieldValue } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 
@@ -56,7 +56,14 @@ export async function getProductsByVendor(brandName: string): Promise<Product[]>
 export async function getOrders(): Promise<Order[]> {
   const ordersCol = db.collection('orders');
   const snapshot = await ordersCol.orderBy('timestamp', 'desc').get();
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return { 
+      id: doc.id, 
+      ...data,
+      timestamp: data.timestamp.toDate().toISOString(),
+    } as Order
+  });
 }
 
 /**
@@ -67,7 +74,14 @@ export async function getOrders(): Promise<Order[]> {
 export async function getOrdersByUser(userEmail: string): Promise<Order[]> {
     const ordersCol = db.collection('orders');
     const snapshot = await ordersCol.where('user', '==', userEmail).orderBy('timestamp', 'desc').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return { 
+        id: doc.id, 
+        ...data,
+        timestamp: data.timestamp.toDate().toISOString(),
+      } as Order
+    });
 }
 
 
@@ -77,7 +91,6 @@ export async function getOrdersByUser(userEmail: string): Promise<Order[]> {
  * @returns {Promise<Order[]>} A promise that resolves to an array of orders for that vendor.
  */
 export async function getOrdersByVendor(brandName: string): Promise<Order[]> {
-  // First, get the names of the products sold by the vendor.
   const vendorProducts = await getProductsByVendor(brandName);
   const vendorProductNames = vendorProducts.map(p => p.name);
 
@@ -85,16 +98,21 @@ export async function getOrdersByVendor(brandName: string): Promise<Order[]> {
     return [];
   }
 
-  // Then, fetch orders where the productName is one of the vendor's products.
-  // Firestore 'in' queries are limited to 30 items. For more, you'd need multiple queries.
   const ordersCol = db.collection('orders');
   const snapshot = await ordersCol.where('productName', 'in', vendorProductNames).orderBy('timestamp', 'desc').get();
   
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+  return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return { 
+        id: doc.id, 
+        ...data,
+        timestamp: data.timestamp.toDate().toISOString(),
+      } as Order
+    });
 }
 
 
-// --- User Interaction Functions (Cart, Wishlist, Reviews) ---
+// --- User Interaction Functions (Cart, Wishlist, Reviews, Profile) ---
 
 /**
  * Adds a product to a user's cart.
@@ -118,11 +136,11 @@ export async function addToCart(userId: string, productId: string) {
   try {
     await cartRef.set({
       productId: product.id,
-      quantity: 1, // For now, default to 1. Could be updated to increment.
+      quantity: 1, 
       name: product.name,
       price: product.price,
       imageUrl: product.imageUrl,
-    }, { merge: true }); // Use merge to not overwrite if item already exists
+    }, { merge: true });
 
     revalidatePath('/product/[id]', 'page');
     revalidatePath('/');
@@ -134,10 +152,10 @@ export async function addToCart(userId: string, productId: string) {
 }
 
 /**
- * Adds a product to a user's wishlist.
+ * Toggles a product in a user's wishlist.
  * @param {string} userId - The ID of the user.
- * @param {string} productId - The ID of the product to add.
- * @returns {Promise<{success: boolean, message: string}>}
+ * @param {string} productId - The ID of the product to toggle.
+ * @returns {Promise<{success: boolean, message: string, wishlist?: string[]}>}
  */
 export async function toggleWishlist(userId: string, productId: string) {
   if (!userId) {
@@ -148,26 +166,24 @@ export async function toggleWishlist(userId: string, productId: string) {
   
   try {
     const userDoc = await userRef.get();
-    const wishlist = userDoc.data()?.wishlist || [];
+    const currentWishlist = userDoc.data()?.wishlist || [];
+    let newWishlist: string[];
     let message = '';
 
-    if (wishlist.includes(productId)) {
-      // Remove from wishlist
-      await userRef.update({
-        wishlist: FieldValue.arrayRemove(productId)
-      });
+    if (currentWishlist.includes(productId)) {
+      await userRef.update({ wishlist: FieldValue.arrayRemove(productId) });
+      newWishlist = currentWishlist.filter((id: string) => id !== productId);
       message = 'Removed from wishlist.';
     } else {
-      // Add to wishlist
-      await userRef.update({
-        wishlist: FieldValue.arrayUnion(productId)
-      });
+      await userRef.update({ wishlist: FieldValue.arrayUnion(productId) });
+      newWishlist = [...currentWishlist, productId];
       message = 'Added to wishlist.';
     }
     
     revalidatePath('/product/[id]', 'page');
     revalidatePath('/');
-    return { success: true, message };
+    revalidatePath('/dashboard/client');
+    return { success: true, message, wishlist: newWishlist };
   } catch (error) {
     console.error("Error updating wishlist:", error);
     return { success: false, message: "Failed to update wishlist." };
@@ -235,8 +251,137 @@ export async function getReviewsByProductId(productId: string): Promise<Review[]
     return {
       id: doc.id,
       ...data,
-      // Convert Firestore Timestamp to a serializable string
       timestamp: data.timestamp.toDate().toISOString(),
     } as Review;
   });
+}
+
+/**
+ * Gets the current wishlist for a user.
+ * @param {string} userId - The ID of the user.
+ * @returns {Promise<string[]>}
+ */
+export async function getWishlist(userId: string): Promise<string[]> {
+    if (!userId) return [];
+    const userDoc = await db.collection('users').doc(userId).get();
+    return userDoc.data()?.wishlist || [];
+}
+
+/**
+ * Updates a user's profile information.
+ * @param userId The user's ID.
+ * @param profileData The data to update.
+ */
+export async function updateUserProfile(userId: string, profileData: { displayName: string, address: string }) {
+    if (!userId) return { success: false, message: "User not authenticated." };
+    try {
+        await db.collection('users').doc(userId).set({
+            displayName: profileData.displayName,
+            address: profileData.address,
+        }, { merge: true });
+        revalidatePath('/dashboard/client');
+        return { success: true, message: "Profile updated." };
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        return { success: false, message: "Failed to update profile." };
+    }
+}
+
+/**
+ * Cancels an order.
+ * @param orderId The ID of the order to cancel.
+ */
+export async function cancelOrder(orderId: string) {
+    try {
+        await db.collection('orders').doc(orderId).update({ status: 'Cancelled' });
+        revalidatePath('/dashboard/client');
+        return { success: true, message: "Order cancelled." };
+    } catch (error) {
+        console.error("Error cancelling order:", error);
+        return { success: false, message: "Failed to cancel order." };
+    }
+}
+
+/**
+ * Creates a new order based on an existing one.
+ * @param orderId The ID of the order to reorder.
+ */
+export async function reorder(orderId: string) {
+    try {
+        const orderDoc = await db.collection('orders').doc(orderId).get();
+        const order = orderDoc.data();
+        if (!order) return { success: false, message: "Order not found." };
+        
+        const newOrder = {
+            ...order,
+            status: 'Processing',
+            timestamp: FieldValue.serverTimestamp(),
+        };
+        const newOrderRef = await db.collection('orders').add(newOrder);
+        revalidatePath('/dashboard/client');
+        return { success: true, message: "Reorder successful.", newOrderId: newOrderRef.id };
+    } catch (error) {
+        console.error("Error reordering:", error);
+        return { success: false, message: "Failed to reorder." };
+    }
+}
+
+/**
+ * Updates an order's status (Admin).
+ * @param orderId The ID of the order.
+ * @param status The new status.
+ */
+export async function updateOrderStatus(orderId: string, status: string) {
+    try {
+        await db.collection('orders').doc(orderId).update({ status: status as OrderStatus });
+        revalidatePath('/dashboard/admin');
+        return { success: true, message: "Order status updated." };
+    } catch (error) {
+        console.error("Error updating order status:", error);
+        return { success: false, message: "Failed to update status." };
+    }
+}
+
+
+// --- Admin Product Management ---
+
+export async function addProduct(product: Omit<Product, 'id'>) {
+    try {
+        const newProductRef = await db.collection('products').add(product);
+        revalidatePath('/dashboard/admin');
+        return { success: true, message: "Product added.", productId: newProductRef.id };
+    } catch (error) {
+        return { success: false, message: "Failed to add product." };
+    }
+}
+
+export async function updateProduct(productId: string, updates: Partial<Product>) {
+    try {
+        await db.collection('products').doc(productId).update(updates);
+        revalidatePath('/dashboard/admin');
+        return { success: true, message: "Product updated." };
+    } catch (error) {
+        return { success: false, message: "Failed to update product." };
+    }
+}
+
+export async function deleteProduct(productId: string) {
+    try {
+        await db.collection('products').doc(productId).delete();
+        revalidatePath('/dashboard/admin');
+        return { success: true, message: "Product deleted." };
+    } catch (error) {
+        return { success: false, message: "Failed to delete product." };
+    }
+}
+
+export async function deleteUser(userId: string) {
+    try {
+        await db.collection('users').doc(userId).delete();
+        // Note: This does not delete the Firebase Auth user.
+        revalidatePath('/dashboard/admin');
+        return { success: true, message: "User data deleted." };
+    } catch (error) {
+        return { success: false, message: "Failed to delete user data." };
+    }
 }
