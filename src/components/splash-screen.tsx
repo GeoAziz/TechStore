@@ -1,14 +1,20 @@
-
 import Logo from "@/components/layout/logo";
+import { motion } from "framer-motion";
 
 export default function SplashScreen() {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background">
+    <motion.div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-[#2F4F4F] via-[#7DF9FF]/30 to-[#9F00FF]/40"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 1.5 }}
+    >
       <style jsx>{`
         .glitch-text {
           animation: glitch 1.5s linear infinite;
+          text-shadow: 0 0 8px #7DF9FF, 0 0 16px #9F00FF;
         }
-
         @keyframes glitch {
           0%, 20%, 22%, 25%, 53%, 55%, 100% {
             opacity: 1;
@@ -19,60 +25,25 @@ export default function SplashScreen() {
             transform: scaleX(1.05) scaleY(0.95) skewX(5deg);
           }
         }
-        
-        .line-animation {
-          position: relative;
-          display: inline-block;
-          animation: reveal 2s forwards;
-          opacity: 0;
-        }
-
-        .line-animation::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          right: 0;
-          width: 0;
-          height: 100%;
-          background: hsl(var(--primary));
-          animation: typing 2s steps(22) forwards;
-        }
-
-        @keyframes typing {
-          from { width: 100% }
-          to { width: 0 }
-        }
-
-        @keyframes reveal {
-          from { opacity: 0 }
-          to { opacity: 1 }
-        }
-
-        .fade-in {
-          animation: fadeIn 2s ease-in-out forwards;
-          opacity: 0;
-          animation-delay: 2s;
-        }
-        @keyframes fadeIn {
-          to { opacity: 1; }
-        }
       `}</style>
-      
-      <div className="relative mb-8">
-        <Logo className="h-12 w-auto glitch-text" />
-        <div className="absolute -inset-2 border-2 border-primary/50 rounded-lg animate-pulse"></div>
-      </div>
-      
-      <div className="font-code text-primary">
-        <p className="line-animation">Protocol Initiated: Client Interface Link Activated</p>
-      </div>
-
-      <div className="absolute bottom-10 text-center text-muted-foreground fade-in">
-        <p>Zizo_OrderVerse initializing...</p>
-        <div className="w-48 h-1 bg-muted rounded-full overflow-hidden mt-2">
-           <div className="w-full h-full bg-primary animate-pulse"></div>
-        </div>
-      </div>
-    </div>
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 1.2, type: "spring" }}
+        className="flex flex-col items-center"
+      >
+        <Logo className="w-64 h-16 mb-6 drop-shadow-[0_0_16px_#7DF9FF]" />
+        <span className="glitch-text text-2xl font-space-mono tracking-widest animate-pulse glow-primary">Welcome to Zizo OrderVerse</span>
+        <span className="mt-2 text-sm text-accent/80 font-space-mono">A Sci-Fi Marketplace Experience</span>
+      </motion.div>
+      <motion.div
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-xs text-white/60 font-space-mono"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.2, duration: 0.8 }}
+      >
+        Initializing quantum systems...
+      </motion.div>
+    </motion.div>
   );
 }

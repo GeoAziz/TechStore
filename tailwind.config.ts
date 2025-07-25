@@ -10,9 +10,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['"Inter"', 'sans-serif'],
-        headline: ['"Space Grotesk"', 'sans-serif'],
-        code: ['"Space Mono"', 'monospace'],
+        body: ['Inter', 'sans-serif'],
+        headline: ['Space Mono', 'monospace'],
+        code: ['Space Mono', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -26,20 +26,20 @@ export default {
           foreground: 'hsl(var(--popover-foreground))',
         },
         primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
+          DEFAULT: '#7DF9FF', // Electric Blue
+          foreground: '#2F4F4F', // Dark Slate Gray
         },
         secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
+          DEFAULT: '#9F00FF', // Neon Violet
+          foreground: '#fff',
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',
         },
         accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
+          DEFAULT: '#2F4F4F',
+          foreground: '#7DF9FF',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',

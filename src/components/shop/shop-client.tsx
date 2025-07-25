@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
@@ -16,7 +15,9 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const FilterPanel = ({ 
   searchTerm, 
@@ -42,83 +43,95 @@ const FilterPanel = ({
   setPriceRange: (value: [number, number]) => void;
   maxPrice: number;
   clearFilters: () => void;
-}) => (
-  <aside className="lg:h-screen lg:sticky top-16 bg-transparent p-6 lg:w-80 space-y-8">
-     <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold glow-primary flex items-center gap-2"><Filter className="w-6 h-6"/> Filters</h2>
-        <Button variant="ghost" size="sm" onClick={clearFilters}>Clear all</Button>
-     </div>
-     <div className="space-y-8">
-        <div>
-           <h3 className="text-lg font-semibold mb-3 text-primary">Search</h3>
-           <div className="relative">
-             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-             <Input 
-               placeholder="Find your gear..." 
-               className="pl-10" 
-               value={searchTerm}
-               onChange={(e) => setSearchTerm(e.target.value)}
-             />
-           </div>
-        </div>
-        <div>
-           <h3 className="text-lg font-semibold mb-3 text-primary">Sort By</h3>
-           <Select onValueChange={handleSortChange} defaultValue={currentSort}>
-             <SelectTrigger>
-               <SelectValue placeholder="Relevance" />
-             </SelectTrigger>
-             <SelectContent>
-               <SelectItem value="relevance">Relevance</SelectItem>
-               <SelectItem value="price-asc">Price: Low to High</SelectItem>
-               <SelectItem value="price-desc">Price: High to Low</SelectItem>
-               <SelectItem value="rating">Rating</SelectItem>
-             </SelectContent>
-           </Select>
-        </div>
-        <Accordion type="multiple" defaultValue={['price', 'brands']} className="w-full">
-            <AccordionItem value="price">
-                <AccordionTrigger className="text-lg font-semibold text-primary">Price Range</AccordionTrigger>
-                <AccordionContent>
-                    <div className="pt-4 px-1">
-                       <Slider
-                          min={0}
-                          max={maxPrice}
-                          step={1000}
-                          value={priceRange}
-                          onValueChange={(value: number[]) => setPriceRange(value as [number, number])}
-                        />
-                        <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                            <span>{priceRange[0].toLocaleString()} KES</span>
-                            <span>{priceRange[1].toLocaleString()} KES</span>
-                        </div>
-                    </div>
-                </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="brands">
-                <AccordionTrigger className="text-lg font-semibold text-primary">Brands</AccordionTrigger>
-                <AccordionContent>
-                    <div className="space-y-2 pt-2 max-h-48 overflow-y-auto">
-                        {brands.map(brand => (
-                            <div key={brand} className="flex items-center space-x-2">
-                                <input
-                                    type="checkbox"
-                                    id={`brand-${brand}`}
-                                    checked={selectedBrands.includes(brand)}
-                                    onChange={() => toggleBrand(brand)}
-                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                />
-                                <label htmlFor={`brand-${brand}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                    {brand}
-                                </label>
-                            </div>
-                        ))}
-                    </div>
-                </AccordionContent>
-            </AccordionItem>
-        </Accordion>
-     </div>
-  </aside>
-);
+}) => {
+  const isMobile = useIsMobile();
+  return (
+    <div className="w-full flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <Input
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          placeholder="Search products..."
+          className="w-full max-w-xs bg-card/80 border-accent/30 text-accent"
+        />
+        <select
+          aria-label="Sort products"
+          value={currentSort}
+          onChange={e => handleSortChange(e.target.value)}
+          className="ml-2 px-2 py-1 rounded bg-card/80 border-accent/30 text-accent"
+        >
+          <option value="">Sort By</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+          <option value="rating">Rating</option>
+        </select>
+      </div>
+      <Collapsible>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full justify-between">
+            Filters
+            <span className="ml-2">{selectedBrands.length + (priceRange[0] > 0 || priceRange[1] < maxPrice ? 1 : 0)}</span>
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-2">
+          <div className="flex flex-wrap gap-2 mb-2">
+            {selectedBrands.map(brand => (
+              <Badge key={brand} variant="secondary" onClick={() => toggleBrand(brand)}>
+                {brand}
+              </Badge>
+            ))}
+            {(priceRange[0] > 0 || priceRange[1] < maxPrice) && (
+              <Badge variant="secondary" onClick={() => setPriceRange([0, maxPrice])}>
+                Price: {priceRange[0]} - {priceRange[1]}
+              </Badge>
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            <div>
+              <span className="font-space-mono text-xs text-accent">Brand</span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {brands.map(brand => (
+                  <Button
+                    key={brand}
+                    size="sm"
+                    variant={selectedBrands.includes(brand) ? "accent" : "ghost"}
+                    onClick={() => toggleBrand(brand)}
+                  >
+                    {brand}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <span className="font-space-mono text-xs text-accent">Price</span>
+              <Slider
+                value={priceRange}
+                min={0}
+                max={maxPrice}
+                step={1000}
+                onValueChange={setPriceRange}
+                className="mt-2"
+              />
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" className="mt-2" onClick={clearFilters}>
+            Clear Filters
+          </Button>
+        </CollapsibleContent>
+      </Collapsible>
+      {isMobile && (
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="accent" className="w-full mt-2">Open Filters</Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="bg-card/90 backdrop-blur-lg">
+            {/* Repeat filter UI for mobile */}
+          </SheetContent>
+        </Sheet>
+      )}
+    </div>
+  );
+}
 
 function ShopClientInternal({ products, searchParams: serverSearchParams }: { products: Product[], searchParams: { category?: string, search?: string, sort?: string, subcategory?: string } }) {
   const router = useRouter();
@@ -323,7 +336,7 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
                 {activeFilterChips.length > 0 && activeFilterChips.map(chip => (
                   <Badge key={chip.value} variant="secondary" className="text-sm flex gap-2 items-center">
                     {chip.value}
-                    <button onClick={() => removeFilter(chip)}><X className="w-3 h-3"/></button>
+                    <button title="Remove filter" onClick={() => removeFilter(chip)}><X className="w-3 h-3"/></button>
                   </Badge>
                 ))}
              </div>

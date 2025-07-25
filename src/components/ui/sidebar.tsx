@@ -140,6 +140,7 @@ const SidebarProvider = React.forwardRef<
                 ...style,
               } as React.CSSProperties
             }
+            // TODO: Move inline styles to external CSS file for best practices
             className={cn(
               "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
               className

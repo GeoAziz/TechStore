@@ -1,8 +1,10 @@
-
 import { getProductById, getProducts, getReviewsByProductId } from '@/lib/firestore-service';
 import { notFound } from 'next/navigation';
 import ProductDetailsClient from '@/components/product/product-details-client';
 import type { Product, Review } from '@/lib/types';
+import { motion } from 'framer-motion';
+import ParticlesBG from '@/components/particles/particles-bg';
+import { useState } from 'react';
 
 export async function generateStaticParams() {
   const products = await getProducts();
@@ -38,7 +40,6 @@ export default async function ProductPage({ params }: { params: { id: string } }
     subcategory: product.subcategory,
     promoTag: product.promoTag,
   };
-
 
   return <ProductDetailsClient product={productData} initialReviews={reviews as Review[]} />;
 }

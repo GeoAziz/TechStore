@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { Loader2 } from 'lucide-react';
+import ParticlesBG from '@/components/particles/particles-bg';
 
 export default function DashboardPage() {
   const { user, role, loading } = useAuth();
@@ -36,11 +37,17 @@ export default function DashboardPage() {
   }, [user, role, loading, router]);
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
-        <p className="text-muted-foreground">Authenticating and redirecting...</p>
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 to-black text-neon-blue p-8 relative">
+      <ParticlesBG />
+      <h1 className="text-4xl font-space-mono mb-4 neon-glow">Client Dashboard</h1>
+      <div className="glass-panel p-6 rounded-xl shadow-neon">
+        <p className="text-lg">Welcome to your dashboard. Order tracking and stats coming soon.</p>
+        <ul className="mt-4 text-neon-violet">
+          <li>🛒 Recent Orders</li>
+          <li>📦 Shipping Status</li>
+          <li>💳 Payment Methods</li>
+        </ul>
       </div>
-    </div>
+    </main>
   );
 }
