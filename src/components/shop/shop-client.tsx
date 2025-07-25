@@ -14,6 +14,61 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 
+// Extracted FilterPanel component
+const FilterPanel = ({ 
+  searchTerm, 
+  setSearchTerm, 
+  handleSearch, 
+  clearSearch, 
+  handleSortChange,
+  currentSort 
+}: {
+  searchTerm: string;
+  setSearchTerm: (value: string) => void;
+  handleSearch: (e: React.FormEvent) => void;
+  clearSearch: () => void;
+  handleSortChange: (value: string) => void;
+  currentSort?: string;
+}) => (
+  <aside className="lg:h-screen lg:sticky top-16 bg-card/30 backdrop-blur-sm p-6 lg:w-80 border-r border-primary/10">
+     <h2 className="text-2xl font-bold mb-6 glow-primary">Filters</h2>
+     <form onSubmit={handleSearch} className="space-y-8">
+         <div>
+           <h3 className="text-lg font-semibold mb-3 text-primary">Search</h3>
+           <div className="relative">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+             <Input 
+               placeholder="Find your gear..." 
+               className="pl-10" 
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+             />
+             {searchTerm && (
+                 <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={clearSearch}>
+                     <X className="h-4 w-4" />
+                 </Button>
+             )}
+           </div>
+         </div>
+         <div>
+           <h3 className="text-lg font-semibold mb-3 text-primary">Sort By</h3>
+           <Select onValueChange={handleSortChange} defaultValue={currentSort}>
+             <SelectTrigger>
+               <SelectValue placeholder="Relevance" />
+             </SelectTrigger>
+             <SelectContent>
+               <SelectItem value="relevance">Relevance</SelectItem>
+               <SelectItem value="price-asc">Price: Low to High</SelectItem>
+               <SelectItem value="price-desc">Price: High to Low</SelectItem>
+               <SelectItem value="rating">Rating</SelectItem>
+             </SelectContent>
+           </Select>
+         </div>
+     </form>
+  </aside>
+);
+
+
 export default function ShopClient({ products, searchParams }: { products: Product[], searchParams: { category?: string, search?: string, sort?: string } }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -75,52 +130,19 @@ export default function ShopClient({ products, searchParams }: { products: Produ
     return filtered;
   }, [products, searchParams]);
 
-  const FilterPanel = () => (
-     <aside className="lg:h-screen lg:sticky top-16 bg-card/30 backdrop-blur-sm p-6 lg:w-80 border-r border-primary/10">
-        <h2 className="text-2xl font-bold mb-6 glow-primary">Filters</h2>
-        <form onSubmit={handleSearch} className="space-y-8">
-            <div>
-              <h3 className="text-lg font-semibold mb-3 text-primary">Search</h3>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Find your gear..." 
-                  className="pl-10" 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                {searchTerm && (
-                    <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={clearSearch}>
-                        <X className="h-4 w-4" />
-                    </Button>
-                )}
-              </div>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-3 text-primary">Sort By</h3>
-              <Select onValueChange={handleSortChange} defaultValue={searchParams.sort}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Relevance" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="relevance">Relevance</SelectItem>
-                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                  <SelectItem value="rating">Rating</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Future filter options like price range, brand, etc. can go here */}
-        </form>
-     </aside>
-  );
-
   return (
     <div className="container mx-auto">
       <div className="lg:flex">
         {/* Desktop Filter Panel */}
         <div className="hidden lg:block">
-           <FilterPanel />
+           <FilterPanel 
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            handleSearch={handleSearch}
+            clearSearch={clearSearch}
+            handleSortChange={handleSortChange}
+            currentSort={searchParams.sort}
+           />
         </div>
 
         <main className="flex-1 py-8 lg:py-12 px-4 lg:px-8">
@@ -155,9 +177,16 @@ export default function ShopClient({ products, searchParams }: { products: Produ
                 </SheetTrigger>
                 <SheetContent className="w-[320px] sm:w-[400px] p-0 border-primary/20 bg-background">
                    <SheetHeader className="p-6 pb-0">
-                     <SheetTitle className="sr-only">Filters</SheetTitle>
+                     <SheetTitle>Filters</SheetTitle>
                    </SheetHeader>
-                   <FilterPanel />
+                   <FilterPanel 
+                      searchTerm={searchTerm}
+                      setSearchTerm={setSearchTerm}
+                      handleSearch={handleSearch}
+                      clearSearch={clearSearch}
+                      handleSortChange={handleSortChange}
+                      currentSort={searchParams.sort}
+                    />
                 </SheetContent>
              </Sheet>
            </div>
