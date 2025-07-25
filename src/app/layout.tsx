@@ -3,6 +3,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import AppWrapper from '@/components/layout/app-wrapper';
+import AiAssistantOverlay from '@/components/ai-assistant';
 import { AuthProvider } from '@/context/auth-context';
 import { Inter, Space_Grotesk, Space_Mono } from 'next/font/google';
 import { CompareProvider } from '@/context/compare-context';
@@ -29,6 +30,7 @@ export default function RootLayout({
           <CompareProvider>
             <AppWrapper>
               {children}
+              <AiAssistantOverlay />
             </AppWrapper>
           </CompareProvider>
         </AuthProvider>

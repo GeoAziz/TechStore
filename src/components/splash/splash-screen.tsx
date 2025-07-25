@@ -1,70 +1,79 @@
 
 'use client';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import Logo from '../layout/logo';
 
-const TypewriterText = ({ text, delay = 0, onComplete }: { text: string; delay?: number; onComplete?: () => void }) => {
-  const characters = Array.from(text);
-  const container = {
-    hidden: { opacity: 0 },
-    visible: (i = 1) => ({
-      opacity: 1,
-      transition: { 
-        staggerChildren: 0.05, 
-        delayChildren: delay + i * 0.05,
-        when: "afterChildren",
-      },
-    }),
-  };
-  const child = {
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        type: 'spring',
-        damping: 12,
-        stiffness: 100,
-      },
-    },
-    hidden: {
-      opacity: 0,
-      y: 20,
-    },
-  };
-
+// Simple particle field background
+function ParticleField() {
+  const particles = Array.from({ length: 36 });
   return (
-    <motion.div
-      className="flex overflow-hidden text-lg"
-      variants={container}
-      initial="hidden"
-      animate="visible"
-      onAnimationComplete={onComplete}
-    >
-      {characters.map((char, index) => (
-        <motion.span variants={child} key={index}>
-          {char === ' ' ? '\u00A0' : char}
-        </motion.span>
+    <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+      {particles.map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full bg-cyan-400/10 shadow-lg"
+          style={{
+            width: `${Math.random() * 6 + 2}px`,
+            height: `${Math.random() * 6 + 2}px`,
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            filter: 'blur(1.5px)'
+          }}
+          animate={{
+            y: [0, Math.random() * 40 - 20, 0],
+            opacity: [0.5, 1, 0.5],
+          }}
+          transition={{
+            duration: Math.random() * 3 + 2,
+            repeat: Infinity,
+            repeatType: 'mirror',
+            delay: Math.random() * 2
+          }}
+        />
       ))}
-    </motion.div>
+    </div>
+  );
+}
+
+
+const TypewriterText = ({ text, delay = 0, onComplete, className = "" }: { text: string; delay?: number; onComplete?: () => void; className?: string }) => {
+  const [displayed, setDisplayed] = useState("");
+  useEffect(() => {
+    setDisplayed("");
+    let i = 0;
+    const timeout = setTimeout(function type() {
+      setDisplayed(text.slice(0, i + 1));
+      if (i < text.length - 1) {
+        i++;
+        setTimeout(type, 22 + Math.random() * 30);
+      } else if (onComplete) {
+        setTimeout(onComplete, 200);
+      }
+    }, delay);
+    return () => clearTimeout(timeout);
+  }, [text, delay, onComplete]);
+  return (
+    <span className={`font-mono tracking-wide ${className}`}>{displayed}<span className="animate-pulse">█</span></span>
   );
 };
+
 
 
 export default function SplashScreen({ onFinished }: { onFinished: () => void }) {
   const [step, setStep] = useState(0);
 
+  // Sequence: ["Initializing Tech Store Systems…", "Loading Inventory Engine…", "Welcome, Commander."]
   useEffect(() => {
     const sequence = [
-      () => setStep(1), // Booting...
-      () => setStep(2), // Connecting...
-      () => setStep(3), // Welcome!
-      () => onFinished(), // Tell parent to fade out
+      () => setStep(1),
+      () => setStep(2),
+      () => setStep(3),
+      () => onFinished(),
     ];
-    
     let currentIndex = 0;
-    const timeouts = [800, 800, 1000, 500]; // Delays for each step
-
+    const timeouts = [1400, 1400, 1200, 500];
     function runSequence() {
       if (currentIndex < sequence.length) {
         sequence[currentIndex]();
@@ -72,9 +81,7 @@ export default function SplashScreen({ onFinished }: { onFinished: () => void })
         currentIndex++;
       }
     }
-    
-    const startTimeout = setTimeout(runSequence, 500);
-
+    const startTimeout = setTimeout(runSequence, 400);
     return () => clearTimeout(startTimeout);
   }, [onFinished]);
 
@@ -82,33 +89,56 @@ export default function SplashScreen({ onFinished }: { onFinished: () => void })
     <AnimatePresence>
       {step < 4 && (
         <motion.div
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0c0c1e] text-cyan-300 font-mono"
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-br from-[#0c0c1e] via-[#10102a] to-[#0c0c1e] text-cyan-300 font-mono select-none"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.5 } }}
         >
+          <ParticleField />
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 1, type: "spring" }}
-            className="relative flex items-center justify-center mb-8"
+            className="relative flex items-center justify-center mb-8 z-10"
           >
-            <Logo className="w-48 h-auto" />
             <motion.div
-              className="absolute w-[150%] h-[150%] border-2 border-primary rounded-full"
-              initial={{ opacity: 0, scale: 0.5, rotate: 0 }}
-              animate={{ opacity: [0.5, 1, 0.5], scale: 1.1, rotate: 360 }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "linear", delay: 0.2 }}
+              className="absolute w-[220px] h-[220px] flex items-center justify-center"
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: [1, 1.08, 1], boxShadow: [
+                '0 0 0px #00fff7',
+                '0 0 32px #00fff7, 0 0 64px #00fff7',
+                '0 0 0px #00fff7'
+              ] }}
+              transition={{ duration: 2.2, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
+              style={{ borderRadius: '50%' }}
+            />
+            <Logo className="w-44 h-auto drop-shadow-[0_0_16px_#00fff7]" />
+            {/* Scanner ring */}
+            <motion.div
+              className="absolute w-[260px] h-[260px] border-2 border-cyan-400/60 rounded-full pointer-events-none"
+              initial={{ opacity: 0, scale: 0.7, rotate: 0 }}
+              animate={{ opacity: [0.4, 0.8, 0.4], scale: 1.1, rotate: 360 }}
+              transition={{ duration: 2.8, repeat: Infinity, ease: "linear", delay: 0.2 }}
+            />
+            {/* Light scan */}
+            <motion.div
+              className="absolute w-[260px] h-[260px] rounded-full pointer-events-none"
+              style={{
+                background: 'conic-gradient(from 90deg at 50% 50%, #00fff7bb 0deg, transparent 120deg, transparent 360deg)'
+              }}
+              initial={{ rotate: 0, opacity: 0.18 }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }}
             />
           </motion.div>
-          
-          <div className="h-16 text-cyan-500/80 flex items-center">
+
+          <div className="h-16 text-cyan-400/90 flex items-center z-10 font-[Orbitron,Space Grotesk,monospace] text-lg md:text-xl">
             <AnimatePresence mode="wait">
               {step === 1 && (
                 <motion.div
                   key="step1"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
                 >
-                  <TypewriterText text="Booting Zizo_OrderVerse Systems..." />
+                  <TypewriterText text="Initializing Tech Store Systems…" />
                 </motion.div>
               )}
               {step === 2 && (
@@ -116,18 +146,18 @@ export default function SplashScreen({ onFinished }: { onFinished: () => void })
                   key="step2"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
                 >
-                   <TypewriterText text="Connecting to Neural Grid..." />
+                  <TypewriterText text="Loading Inventory Engine…" />
                 </motion.div>
               )}
               {step === 3 && (
-                 <motion.div
+                <motion.div
                   key="step3"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1, transition: {delay: 0.2} }}
                   exit={{ opacity: 0 }}
-                  className="text-xl text-primary glow-primary"
+                  className="text-xl text-cyan-200 glow-primary"
                 >
-                  <TypewriterText text="Welcome, Commander." />
+                  <TypewriterText text="Welcome, Commander." className="text-cyan-200" />
                 </motion.div>
               )}
             </AnimatePresence>

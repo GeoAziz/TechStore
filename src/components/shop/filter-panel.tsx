@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Filter, BadgeDollarSign } from 'lucide-react';
 
 interface FilterPanelProps {
   brands: string[];
@@ -28,12 +29,14 @@ export default function FilterPanel({
 }: FilterPanelProps) {
 
   return (
-    <div className="w-full p-4 space-y-6">
+    <div className="w-full p-4 space-y-6 bg-[#10102a]/70 rounded-xl border border-cyan-400/20 shadow-[0_0_24px_#00fff733]">
       <Accordion type="multiple" defaultValue={["brand", "price"]} className="w-full">
-        
         <AccordionItem value="brand">
-          <AccordionTrigger className="text-base font-semibold text-primary">Brand</AccordionTrigger>
-          <AccordionContent>
+          <AccordionTrigger className="text-base font-semibold text-cyan-300 hover:text-cyan-200 transition-all flex items-center gap-2 [&[data-state=open]]:glow-primary">
+            <Filter className="w-4 h-4 mr-1 text-cyan-400/80" />
+            <span className="glow-primary">Brand</span>
+          </AccordionTrigger>
+          <AccordionContent asChild>
             <div className="flex flex-wrap gap-2 pt-2">
               {brands.map(brand => (
                 <Button
@@ -41,7 +44,7 @@ export default function FilterPanel({
                   size="sm"
                   variant={selectedBrands.includes(brand) ? "secondary" : "outline"}
                   onClick={() => toggleBrand(brand)}
-                  className="rounded-full"
+                  className={`rounded-full font-[Orbitron,Space Grotesk,monospace] border-cyan-400/40 text-cyan-200 bg-[#18182c]/80 hover:bg-cyan-400/10 transition-all ${selectedBrands.includes(brand) ? 'ring-2 ring-cyan-400/80 shadow-[0_0_8px_#00fff7]' : ''}`}
                 >
                   {brand}
                 </Button>
@@ -51,25 +54,36 @@ export default function FilterPanel({
         </AccordionItem>
 
         <AccordionItem value="price">
-          <AccordionTrigger className="text-base font-semibold text-primary">Price Range</AccordionTrigger>
-          <AccordionContent className="pt-4">
-             <Slider
+          <AccordionTrigger className="text-base font-semibold text-cyan-300 hover:text-cyan-200 transition-all flex items-center gap-2 [&[data-state=open]]:glow-primary">
+            <BadgeDollarSign className="w-4 h-4 mr-1 text-cyan-400/80" />
+            <span className="glow-primary">Price Range</span>
+          </AccordionTrigger>
+          <AccordionContent asChild className="pt-4">
+            <div>
+              <Slider
                 value={priceRange}
                 min={0}
                 max={maxPrice}
                 step={1000}
                 onValueChange={(value) => setPriceRange(value as [number, number])}
+                className="[&_.range-track]:bg-cyan-400/30 [&_.range-thumb]:bg-cyan-400"
               />
-              <div className="flex justify-between text-muted-foreground text-sm mt-2">
+              <div className="flex justify-between text-cyan-400/80 text-sm mt-2 font-mono">
                 <span>KES {priceRange[0].toLocaleString()}</span>
                 <span>KES {priceRange[1].toLocaleString()}</span>
               </div>
+            </div>
           </AccordionContent>
         </AccordionItem>
-        
       </Accordion>
-      
-      <Button variant="ghost" onClick={clearFilters} className="w-full">Clear All Filters</Button>
+
+      <Button
+        variant="secondary"
+        onClick={clearFilters}
+        className="w-full mt-2 border border-cyan-400/60 text-cyan-100 bg-cyan-400/10 hover:bg-cyan-400/20 transition-all font-[Orbitron,Space Grotesk,monospace] shadow-[0_0_16px_#00fff7] animate-pulse"
+      >
+        Clear All Filters
+      </Button>
     </div>
   );
 }
