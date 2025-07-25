@@ -7,7 +7,7 @@ import { categories } from '@/lib/mock-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import ProductCard from './product-card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -154,6 +154,9 @@ export default function ShopClient({ products, searchParams }: { products: Produ
                     </Button>
                 </SheetTrigger>
                 <SheetContent className="w-[320px] sm:w-[400px] p-0 border-primary/20 bg-background">
+                   <SheetHeader className="p-6 pb-0">
+                     <SheetTitle className="sr-only">Filters</SheetTitle>
+                   </SheetHeader>
                    <FilterPanel />
                 </SheetContent>
              </Sheet>
