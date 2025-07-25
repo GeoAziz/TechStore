@@ -7,6 +7,7 @@ import { categories } from '@/lib/mock-data';
 import ProductCard from '@/components/shop/product-card';
 import { getProducts } from '@/lib/firestore-service';
 import type { Product } from '@/lib/types';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const iconMap: { [key: string]: React.ElementType } = {
   Laptops: Laptop,
@@ -28,7 +29,7 @@ const iconMap: { [key: string]: React.ElementType } = {
 export default async function Home() {
   const allProducts = await getProducts();
   const featuredProducts = allProducts.filter(p => p.featured).slice(0, 4);
-  const displayedCategories = categories.slice(0, 7);
+  const displayedCategories = categories.slice(0, 5);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -64,20 +65,25 @@ export default async function Home() {
                 </Link>
               </Button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-              {displayedCategories.map((category) => {
-                const Icon = iconMap[category.name];
-                return (
-                  <Link href={category.href} key={category.name}>
-                    <Card className="bg-card/50 backdrop-blur-sm border-primary/20 hover:border-primary transition-all duration-300 card-glow group h-full">
-                      <CardContent className="p-4 text-center flex flex-col items-center justify-center h-full">
-                        {Icon && <Icon className="w-10 h-10 mb-2 text-primary transition-transform group-hover:scale-110" />}
-                        <h3 className="text-sm font-bold">{category.name}</h3>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}
+            <div className="relative">
+               <ScrollArea className="w-full whitespace-nowrap">
+                <div className="flex space-x-4 pb-4">
+                  {displayedCategories.map((category) => {
+                    const Icon = iconMap[category.name];
+                    return (
+                      <Link href={category.href} key={category.name} className="inline-block">
+                        <Card className="bg-card/50 backdrop-blur-sm border-primary/20 hover:border-primary transition-all duration-300 card-glow group w-40 h-40">
+                          <CardContent className="p-4 text-center flex flex-col items-center justify-center h-full">
+                            {Icon && <Icon className="w-10 h-10 mb-2 text-primary transition-transform group-hover:scale-110" />}
+                            <h3 className="text-sm font-bold whitespace-normal">{category.name}</h3>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    );
+                  })}
+                </div>
+                 <ScrollBar orientation="horizontal" />
+              </ScrollArea>
             </div>
           </div>
         </section>
