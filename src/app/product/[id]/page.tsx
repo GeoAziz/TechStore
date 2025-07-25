@@ -1,8 +1,8 @@
 
-import { getProductById, getProducts } from '@/lib/firestore-service';
+import { getProductById, getProducts, getReviewsByProductId } from '@/lib/firestore-service';
 import { notFound } from 'next/navigation';
 import ProductDetailsClient from '@/components/product/product-details-client';
-import type { Product } from '@/lib/types';
+import type { Product, Review } from '@/lib/types';
 
 export async function generateStaticParams() {
   const products = await getProducts();
@@ -12,7 +12,11 @@ export async function generateStaticParams() {
 }
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
-  const product = await getProductById(params.id);
+  const productPromise = getProductById(params.id);
+  const reviewsPromise = getReviewsByProductId(params.id);
+  
+  const [product, reviews] = await Promise.all([productPromise, reviewsPromise]);
+
 
   if (!product) {
     notFound();
@@ -36,5 +40,5 @@ export default async function ProductPage({ params }: { params: { id: string } }
   };
 
 
-  return <ProductDetailsClient product={productData} />;
+  return <ProductDetailsClient product={productData} initialReviews={reviews as Review[]} />;
 }

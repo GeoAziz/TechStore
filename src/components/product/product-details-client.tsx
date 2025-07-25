@@ -3,30 +3,42 @@
 
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import type { Product } from '@/lib/types';
+import type { Product, Review } from '@/lib/types';
 import AiEnhancer from './ai-enhancer';
-import { Star, ShoppingCart, Heart, ShieldCheck, Truck, CheckCircle } from 'lucide-react';
+import { Star, ShoppingCart, Heart, ShieldCheck, Truck, CheckCircle, Scale, Send } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { addToCart, toggleWishlist } from '@/lib/firestore-service';
-import { useState } from 'react';
+import { addToCart, toggleWishlist, addReview, getReviewsByProductId } from '@/lib/firestore-service';
+import { useEffect, useState } from 'react';
+import { useCompare } from '@/context/compare-context';
+import { Textarea } from '../ui/textarea';
 
-const mockReviews = [
-  { id: 1, author: "Cyber-Explorer", rating: 5, text: "Incredible performance, the AI co-processor is a game changer. Blazing fast delivery to Neo-Sector 7." },
-  { id: 2, author: "Data-Weaver", rating: 4, text: "Solid piece of hardware. Runs complex simulations without breaking a sweat. The chassis could be more durable." },
-  { id: 3, author: "Grid-Runner", rating: 5, text: "Exceeded all my expectations. The holographic display is crisp and the neural interface is seamless. A must-have for any serious net-runner." },
-];
-
-
-export default function ProductDetailsClient({ product }: { product: Product }) {
+export default function ProductDetailsClient({ product, initialReviews }: { product: Product, initialReviews: Review[] }) {
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
+  const { compareItems, addToCompare, removeFromCompare } = useCompare();
+  const [reviews, setReviews] = useState(initialReviews);
+  const [newReviewText, setNewReviewText] = useState('');
+  const [newReviewRating, setNewReviewRating] = useState(0);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  const isProductInCompare = compareItems.some(item => item.id === product.id);
+
+  const handleToggleCompare = () => {
+    if (isProductInCompare) {
+      removeFromCompare(product.id);
+      toast({ title: 'Removed from Compare', description: `${product.name} has been removed from the comparison list.` });
+    } else {
+      addToCompare(product);
+      toast({ title: 'Added to Compare', description: `${product.name} has been added to the comparison list.` });
+    }
+  };
 
   const handleAddToCart = async () => {
     if (!user) {
@@ -82,6 +94,42 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
     }
   };
 
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+       toast({ variant: "destructive", title: "Authentication Required", description: "You must be logged in to post a review." });
+       return;
+    }
+    if (newReviewRating === 0 || !newReviewText.trim()) {
+       toast({ variant: "destructive", title: "Incomplete Review", description: "Please provide a rating and a comment." });
+       return;
+    }
+    
+    setIsSubmittingReview(true);
+    try {
+      const reviewData = {
+        userId: user.uid,
+        userName: user.displayName || user.email || 'Anonymous',
+        rating: newReviewRating,
+        text: newReviewText,
+      };
+      const result = await addReview(product.id, reviewData);
+      if (result.success) {
+        // Optimistically update UI, or refetch
+        const updatedReviews = await getReviewsByProductId(product.id);
+        setReviews(updatedReviews as Review[]);
+        setNewReviewText('');
+        setNewReviewRating(0);
+        toast({ title: "Review Submitted", description: "Thank you for your feedback!" });
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+       toast({ variant: "destructive", title: "Submission Failed", description: error instanceof Error ? error.message : "An unknown error occurred." });
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   return (
     <div className="container py-12">
@@ -118,7 +166,7 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
                 <Star key={i} className={`w-5 h-5 ${i < product.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
               ))}
             </div>
-            <span className="text-muted-foreground">({product.rating} stars)</span>
+            <span className="text-muted-foreground">({product.rating} stars / {reviews.length} reviews)</span>
           </div>
 
           <p className="text-3xl font-bold text-primary mb-4">{product.price.toLocaleString()} {product.currency}</p>
@@ -138,6 +186,9 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
                 <Button size="icon" variant="outline" className="h-auto px-3" onClick={handleToggleWishlist}>
                   <Heart className="w-6 h-6"/>
                 </Button>
+                 <Button size="icon" variant={isProductInCompare ? "secondary" : "outline"} className="h-auto px-3" onClick={handleToggleCompare}>
+                  <Scale className="w-6 h-6"/>
+                </Button>
               </div>
               <Button size="lg" variant="outline" className="w-full border-accent text-accent hover:bg-accent hover:text-accent-foreground" onClick={handleBuyNow} disabled={isAdding}>
                 Buy Now
@@ -155,22 +206,60 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
 
       <div className="mt-12">
         <h2 className="text-2xl font-bold mb-6 glow-primary">Customer Reviews & Feedback</h2>
-        <div className="space-y-6">
-          {mockReviews.map(review => (
-            <Card key={review.id} className="glass-panel">
-                <CardContent className="p-6">
-                    <div className="flex items-center mb-2">
-                        <div className="flex items-center">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                                <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
-                            ))}
-                        </div>
-                        <p className="ml-4 font-bold text-primary">{review.author}</p>
-                    </div>
-                    <p className="text-muted-foreground">{review.text}</p>
-                </CardContent>
-            </Card>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-6">
+                {reviews.length > 0 ? reviews.map(review => (
+                    <Card key={review.id} className="glass-panel">
+                        <CardContent className="p-6">
+                            <div className="flex items-center mb-2">
+                                <div className="flex items-center">
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                        <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
+                                    ))}
+                                </div>
+                                <p className="ml-4 font-bold text-primary">{review.userName}</p>
+                                <p className="ml-auto text-xs text-muted-foreground">{new Date(review.timestamp).toLocaleDateString()}</p>
+                            </div>
+                            <p className="text-muted-foreground">{review.text}</p>
+                        </CardContent>
+                    </Card>
+                )) : (
+                    <p className="text-muted-foreground">No reviews yet. Be the first to write one!</p>
+                )}
+            </div>
+            <div>
+                <Card className="glass-panel sticky top-24">
+                    <CardHeader>
+                        <CardTitle>Write a Review</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleReviewSubmit} className="space-y-4">
+                             <div>
+                                <label className="mb-2 block font-medium">Your Rating</label>
+                                <div className="flex items-center gap-1">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <Star 
+                                        key={i} 
+                                        className={`w-6 h-6 cursor-pointer transition-colors ${i < newReviewRating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground hover:text-yellow-300'}`}
+                                        onClick={() => setNewReviewRating(i + 1)}
+                                    />
+                                ))}
+                                </div>
+                             </div>
+                            <Textarea 
+                                placeholder="Share your thoughts on this product..."
+                                value={newReviewText}
+                                onChange={(e) => setNewReviewText(e.target.value)}
+                                rows={4}
+                            />
+                            <Button type="submit" className="w-full" disabled={isSubmittingReview}>
+                                <Send className="w-4 h-4 mr-2" />
+                                {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
       </div>
 

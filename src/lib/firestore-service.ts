@@ -2,12 +2,12 @@
 'use server';
 
 import { db } from './firebase-admin';
-import type { Product, Order, CartItem } from './types';
+import type { Product, Order, CartItem, Review } from './types';
 import { FieldValue } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 
 // Re-export types for convenience
-export type { Product, Order, CartItem };
+export type { Product, Order, CartItem, Review };
 
 // --- Product Functions ---
 
@@ -94,7 +94,7 @@ export async function getOrdersByVendor(brandName: string): Promise<Order[]> {
 }
 
 
-// --- User Interaction Functions (Cart, Wishlist) ---
+// --- User Interaction Functions (Cart, Wishlist, Reviews) ---
 
 /**
  * Adds a product to a user's cart.
@@ -186,4 +186,57 @@ export async function getCart(userId: string): Promise<CartItem[]> {
     return [];
   }
   return cartSnapshot.docs.map(doc => doc.data() as CartItem);
+}
+
+
+/**
+ * Adds a review to a product.
+ * @param {string} productId - The ID of the product being reviewed.
+ * @param {Omit<Review, 'id' | 'timestamp'>} reviewData - The review data.
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function addReview(productId: string, reviewData: Omit<Review, 'id' | 'timestamp'>) {
+  if (!reviewData.userId) {
+    return { success: false, message: "User not authenticated." };
+  }
+
+  const reviewWithTimestamp = {
+    ...reviewData,
+    timestamp: FieldValue.serverTimestamp(),
+  };
+
+  try {
+    const reviewsCol = db.collection('products').doc(productId).collection('reviews');
+    await reviewsCol.add(reviewWithTimestamp);
+    
+    revalidatePath(`/product/${productId}`);
+    return { success: true, message: "Review added successfully." };
+  } catch (error) {
+    console.error("Error adding review:", error);
+    return { success: false, message: "Failed to add review." };
+  }
+}
+
+/**
+ * Fetches all reviews for a specific product.
+ * @param {string} productId - The ID of the product.
+ * @returns {Promise<Review[]>}
+ */
+export async function getReviewsByProductId(productId: string): Promise<Review[]> {
+  const reviewsCol = db.collection('products').doc(productId).collection('reviews');
+  const snapshot = await reviewsCol.orderBy('timestamp', 'desc').get();
+  
+  if (snapshot.empty) {
+    return [];
+  }
+
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      // Convert Firestore Timestamp to a serializable string
+      timestamp: data.timestamp.toDate().toISOString(),
+    } as Review;
+  });
 }

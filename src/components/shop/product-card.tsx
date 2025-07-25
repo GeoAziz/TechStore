@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -6,19 +7,34 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { Product } from '@/lib/types';
-import { ShoppingCart, Heart, Eye, Star } from 'lucide-react';
+import { ShoppingCart, Heart, Eye, Star, Scale } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { addToCart, toggleWishlist } from '@/lib/firestore-service';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useCompare } from '@/context/compare-context';
 
 export default function ProductCard({ product, viewMode = 'grid' }: { product: Product, viewMode?: 'grid' | 'list' }) {
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
+  const { compareItems, addToCompare, removeFromCompare } = useCompare();
+
+  const isProductInCompare = compareItems.some(item => item.id === product.id);
+
+  const handleToggleCompare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isProductInCompare) {
+      removeFromCompare(product.id);
+      toast({ title: 'Removed from Compare' });
+    } else {
+      addToCompare(product);
+      toast({ title: 'Added to Compare' });
+    }
+  };
   
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault(); 
@@ -97,10 +113,13 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
                         <p className="text-xl font-bold text-primary">{product.price.toLocaleString()} <span className="text-sm font-normal">{product.currency}</span></p>
                         <div className="flex items-center gap-2">
                              <Button variant="outline" size="sm" onClick={handleToggleWishlist}>
-                                <Heart className="w-4 h-4 mr-2" /> Wishlist
+                                <Heart className="w-4 h-4" />
                              </Button>
+                             <Button variant={isProductInCompare ? "secondary" : "outline"} size="sm" onClick={handleToggleCompare}>
+                                <Scale className="w-4 h-4" />
+                            </Button>
                              <Button size="sm" className="bg-primary/80 hover:bg-primary text-primary-foreground" onClick={handleAddToCart} disabled={isAdding}>
-                                <ShoppingCart className="w-4 h-4 mr-2" /> Add to Cart
+                                <ShoppingCart className="w-4 h-4 mr-2" /> Cart
                              </Button>
                         </div>
                     </div>
@@ -124,9 +143,14 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
               data-ai-hint={`${product.category.toLowerCase()} electronics`}
             />
             {product.promoTag && <Badge className="absolute top-2 left-2 bg-accent text-accent-foreground">{product.promoTag}</Badge>}
-            <Button size="icon" variant="ghost" className="absolute top-2 right-2 bg-background/50 backdrop-blur-sm hover:bg-primary/20 hover:text-primary rounded-full" onClick={handleToggleWishlist}>
-                <Heart className="w-5 h-5" />
-            </Button>
+            <div className="absolute top-2 right-2 flex flex-col gap-2">
+              <Button size="icon" variant="ghost" className="bg-background/50 backdrop-blur-sm hover:bg-primary/20 hover:text-primary rounded-full h-8 w-8" onClick={handleToggleWishlist}>
+                  <Heart className="w-4 h-4" />
+              </Button>
+              <Button size="icon" variant={isProductInCompare ? "secondary" : "ghost"} className="bg-background/50 backdrop-blur-sm hover:bg-primary/20 hover:text-primary rounded-full h-8 w-8" onClick={handleToggleCompare}>
+                <Scale className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
           <CardContent className="p-4 flex flex-col flex-grow">
             <div className='flex-grow'>

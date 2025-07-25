@@ -36,3 +36,12 @@ export interface CartItem {
   price: number;
   imageUrl: string;
 }
+
+export interface Review {
+  id: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  text: string;
+  timestamp: string; // ISO string date format
+}
