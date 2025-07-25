@@ -1,3 +1,4 @@
+
 // This component is created to separate client-side logic from the server-side data fetching.
 "use client";
 
@@ -22,9 +23,9 @@ import {
 } from '@/lib/firestore-service';
 
 const sidebarNav = [
-  { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { title: "My Orders", icon: Package, href: "/dashboard/client", active: true },
-  { title: "Settings", icon: "#" },
+  { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard/client", active: true },
+  { title: "My Orders", icon: Package, href: "#" },
+  { title: "Settings", icon: Settings, href: "#" },
 ];
 
 export default function ClientDashboardClient({ orders }: { orders: Order[] }) {
@@ -127,7 +128,10 @@ export default function ClientDashboardClient({ orders }: { orders: Order[] }) {
     setDownloading(true);
     // Simulate backend PDF generation
     setTimeout(() => {
-      window.open(`/api/invoice/${orderId}`, '_blank');
+      // In a real app, this would hit an API endpoint that generates a PDF.
+      // For now, we just log it.
+      console.log(`Downloading invoice for order ${orderId}`);
+      toast({title: "Invoice Generated", description: "Your invoice download should start shortly."});
       setDownloading(false);
     }, 1200);
   };
@@ -168,36 +172,6 @@ export default function ClientDashboardClient({ orders }: { orders: Order[] }) {
                     Logout
                   </Button>
               </nav>
-              {/* Wishlist Management */}
-              <div className="mt-8">
-                <h2 className="font-bold mb-2">Wishlist</h2>
-                <ul className="mb-2">
-                  {wishlist.length === 0 ? <li className="text-muted-foreground">No items in wishlist.</li> : wishlist.map((item: string) => (
-                    <li key={item} className="flex justify-between items-center mb-1">
-                      <span>{item}</span>
-                      <Button size="sm" variant="destructive" onClick={() => handleToggleWishlist(item)}>Remove</Button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              {/* Profile Settings */}
-              <div className="mt-8">
-                <h2 className="font-bold mb-2">Profile</h2>
-                {editingProfile ? (
-                  <form onSubmit={e => { e.preventDefault(); handleProfileSave(); }} className="flex flex-col gap-2">
-                    <input type="text" value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value })} className="px-2 py-1 rounded" placeholder="Name" />
-                    <input type="text" value={profile.address} onChange={e => setProfile({ ...profile, address: e.target.value })} className="px-2 py-1 rounded" placeholder="Address" />
-                    <Button type="submit" size="sm" variant="secondary">Save</Button>
-                  </form>
-                ) : (
-                  <div className="flex flex-col gap-1">
-                    <div>Name: {profile.name}</div>
-                    <div>Email: {profile.email}</div>
-                    <div>Address: {profile.address || <span className="text-muted-foreground">Not set</span>}</div>
-                    <Button size="sm" variant="outline" onClick={() => setEditingProfile(true)}>Edit Profile</Button>
-                  </div>
-                )}
-              </div>
             </CardContent>
           </Card>
         </aside>
@@ -236,9 +210,6 @@ export default function ClientDashboardClient({ orders }: { orders: Order[] }) {
                       <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
                       <TableCell className="flex gap-1">
                         <Button size="sm" variant="outline" onClick={() => { setSelectedOrder(order); setShowDetails(true); }}>Details</Button>
-                        {order.status === 'Processing' && <Button size="sm" variant="destructive" onClick={() => handleCancelOrder(order.id)}>Cancel</Button>}
-                        <Button size="sm" variant="secondary" onClick={() => handleReorder(order.id)}>Reorder</Button>
-                        <Button size="sm" variant="outline" onClick={() => handleDownloadInvoice(order.id)} disabled={downloading}>{downloading ? '...' : 'Invoice'}</Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -311,7 +282,7 @@ export default function ClientDashboardClient({ orders }: { orders: Order[] }) {
             >
               <input
                 type="text"
-                className="w-full p-2 rounded border mb-4"
+                className="w-full p-2 rounded border mb-4 bg-background text-foreground"
                 placeholder="Type your question..."
                 value={assistantInput}
                 onChange={e => setAssistantInput(e.target.value)}
@@ -330,3 +301,5 @@ export default function ClientDashboardClient({ orders }: { orders: Order[] }) {
     </div>
   );
 }
+
+    

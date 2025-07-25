@@ -313,3 +313,5 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
     </div>
   );
 }
+
+    

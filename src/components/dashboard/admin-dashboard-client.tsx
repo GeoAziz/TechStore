@@ -1,3 +1,4 @@
+
 // This component is created to separate client-side logic from the server-side data fetching.
 "use client";
 
@@ -171,3 +172,5 @@ export default function AdminDashboardClient({ orders, products }: { orders: Ord
     </div>
   );
 }
+
+    
