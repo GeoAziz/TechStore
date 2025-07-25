@@ -40,7 +40,7 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
 
   const [priceRange, setPriceRange] = useState<[number, number]>([0, maxPrice]);
   
-  const updateURL = useCallback((newParams: Record<string, string | null | (string[] | number)[]>) => {
+  const updateURL = useCallback((newParams: Record<string, string | string[] | number | null>) => {
       const current = new URLSearchParams(Array.from(searchParams.entries()));
       
       for (const [key, value] of Object.entries(newParams)) {
@@ -223,82 +223,123 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
           
            {/* -- Subcategory Tabs -- */}
            {subcategories.length > 0 && (
-             <div className="mb-6">
+             <motion.div
+               className="mb-6"
+               initial={{ opacity: 0, y: 12 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ type: 'spring', stiffness: 120, damping: 18 }}
+             >
                 <Tabs value={activeSubcategory} onValueChange={handleSubcategoryChange}>
                     <ScrollArea className="w-full whitespace-nowrap">
                         <TabsList className="bg-transparent p-0 gap-2">
-                            <TabsTrigger value="All" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground rounded-full">All {activeCategory}</TabsTrigger>
-                            {subcategories.map(sub => (
-                            <TabsTrigger key={sub} value={sub} className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground rounded-full">
-                                {sub}
+                            <TabsTrigger
+                              value="All"
+                              className="rounded-full font-[Orbitron,Space Grotesk,monospace] px-5 py-2 text-cyan-200 border border-cyan-400/20 bg-[#18182c]/70 data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-100 data-[state=active]:shadow-[0_0_8px_#00fff7] transition-all"
+                            >
+                              All {activeCategory}
                             </TabsTrigger>
+                            {subcategories.map(sub => (
+                              <motion.div
+                                key={sub}
+                                whileHover={{ scale: 1.08 }}
+                                transition={{ type: 'spring', stiffness: 300 }}
+                                className="inline-block"
+                              >
+                                <TabsTrigger
+                                  value={sub}
+                                  className="rounded-full font-[Orbitron,Space Grotesk,monospace] px-5 py-2 text-cyan-200 border border-cyan-400/20 bg-[#18182c]/70 data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-100 data-[state=active]:shadow-[0_0_8px_#00fff7] transition-all"
+                                >
+                                  {sub}
+                                </TabsTrigger>
+                              </motion.div>
                             ))}
                         </TabsList>
                         <ScrollBar orientation="horizontal" />
                     </ScrollArea>
                 </Tabs>
-            </div>
+            </motion.div>
            )}
           
           {/* -- Utility Bar: Search, Sort, View Toggle -- */}
-           <div className="sticky top-16 bg-background/80 backdrop-blur-sm z-40 py-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between rounded-lg px-4 border border-border">
-              <div className="relative w-full md:w-auto md:flex-grow max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input 
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearchTermChange(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+           <motion.div
+             layout
+             className="sticky top-0 left-0 w-full z-50 mb-6"
+             initial={{ y: -32, opacity: 0 }}
+             animate={{ y: 0, opacity: 1 }}
+             transition={{ type: 'spring', stiffness: 120, damping: 18 }}
+           >
+             <div
+               className="flex flex-col md:flex-row gap-4 items-center justify-between px-4 py-4 rounded-xl border border-cyan-400/20 bg-gradient-to-r from-[#10102a]/80 via-[#0c0c1e]/80 to-[#10102a]/80 shadow-[0_2px_32px_#00fff733] backdrop-blur-md"
+               style={{ boxShadow: '0 0 24px #00fff733, 0 0 2px #00fff7' }}
+             >
+               <div className="relative w-full md:w-auto md:flex-grow max-w-sm">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-cyan-400/80" />
+                 <Input
+                   placeholder="Search products..."
+                   value={searchTerm}
+                   onChange={(e) => handleSearchTermChange(e.target.value)}
+                   className="pl-10 font-[Orbitron,Space Grotesk,monospace] bg-[#18182c]/80 border-cyan-400/30 focus:border-cyan-400 text-cyan-100 placeholder:text-cyan-400/40 shadow-[0_0_8px_#00fff733]"
+                 />
+               </div>
 
-              <div className="flex items-center gap-4 w-full md:w-auto">
+               <div className="flex items-center gap-4 w-full md:w-auto">
                  <Select value={sortBy} onValueChange={handleSortChange}>
-                    <SelectTrigger className="w-full md:w-[180px]">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="relevance">Relevance</SelectItem>
-                      <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                      <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                      <SelectItem value="rating">Top Rated</SelectItem>
-                    </SelectContent>
-                  </Select>
+                   <SelectTrigger className="w-full md:w-[180px] font-[Orbitron,Space Grotesk,monospace] bg-[#18182c]/80 border-cyan-400/30 focus:border-cyan-400 text-cyan-100">
+                     <SelectValue placeholder="Sort by" />
+                   </SelectTrigger>
+                   <SelectContent className="bg-[#18182c] border-cyan-400/30 text-cyan-100">
+                     <SelectItem value="relevance">Relevance</SelectItem>
+                     <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                     <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                     <SelectItem value="rating">Top Rated</SelectItem>
+                   </SelectContent>
+                 </Select>
 
-                <div className="hidden md:flex items-center gap-2 p-1 bg-muted rounded-md">
-                    <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('grid')}>
-                        <LayoutGrid className="w-5 h-5" />
-                    </Button>
-                     <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('list')}>
-                        <List className="w-5 h-5" />
-                    </Button>
-                </div>
-                
+                 <div className="hidden md:flex items-center gap-2 p-1 bg-[#18182c]/80 rounded-md border border-cyan-400/20 shadow-[0_0_8px_#00fff733]">
+                   <Button
+                     variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                     size="icon"
+                     onClick={() => setViewMode('grid')}
+                     className={`transition-all ${viewMode === 'grid' ? 'ring-2 ring-cyan-400/80' : ''}`}
+                   >
+                     <LayoutGrid className="w-5 h-5 text-cyan-300" />
+                   </Button>
+                   <Button
+                     variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                     size="icon"
+                     onClick={() => setViewMode('list')}
+                     className={`transition-all ${viewMode === 'list' ? 'ring-2 ring-cyan-400/80' : ''}`}
+                   >
+                     <List className="w-5 h-5 text-cyan-300" />
+                   </Button>
+                 </div>
+
                  {/* -- Mobile Filter Trigger -- */}
-                <Sheet>
-                    <SheetTrigger asChild>
-                        <Button variant="outline" className="lg:hidden">
-                            <SlidersHorizontal className="mr-2 h-4 w-4" />
-                            Filters
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent className="w-[320px] sm:w-[400px] p-0 border-primary/20 bg-background">
-                         <SheetHeader className="p-4 pb-0">
-                           <SheetTitle className="glow-primary">Filters</SheetTitle>
-                         </SheetHeader>
-                        <FilterPanel 
-                            brands={allBrands}
-                            selectedBrands={selectedBrands}
-                            toggleBrand={toggleBrand}
-                            priceRange={priceRange}
-                            setPriceRange={handlePriceChange}
-                            maxPrice={maxPrice}
-                            clearFilters={clearFilters}
-                        />
-                    </SheetContent>
-                </Sheet>
-              </div>
-           </div>
+                 <Sheet>
+                   <SheetTrigger asChild>
+                     <Button variant="outline" className="lg:hidden border-cyan-400/40 text-cyan-200 bg-[#18182c]/80 hover:bg-[#18182c]/90">
+                       <SlidersHorizontal className="mr-2 h-4 w-4 text-cyan-400" />
+                       Filters
+                     </Button>
+                   </SheetTrigger>
+                   <SheetContent className="w-[320px] sm:w-[400px] p-0 border-cyan-400/20 bg-[#10102a]">
+                     <SheetHeader className="p-4 pb-0">
+                       <SheetTitle className="glow-primary">Filters</SheetTitle>
+                     </SheetHeader>
+                     <FilterPanel
+                       brands={allBrands}
+                       selectedBrands={selectedBrands}
+                       toggleBrand={toggleBrand}
+                       priceRange={priceRange}
+                       setPriceRange={handlePriceChange}
+                       maxPrice={maxPrice}
+                       clearFilters={clearFilters}
+                     />
+                   </SheetContent>
+                 </Sheet>
+               </div>
+             </div>
+           </motion.div>
 
            {/* -- Active Filter Chips -- */}
            <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
