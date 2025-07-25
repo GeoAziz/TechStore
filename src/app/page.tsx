@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Cpu, Laptop, Mouse, MemoryStick, ChevronRight, Monitor, Keyboard, Headphones, Camera, HardDrive, CircuitBoard, Power, Wind, View } from 'lucide-react';
 import Image from 'next/image';
-import { categories } from '@/lib/mock-data';
+import { categoryData } from '@/lib/mock-data';
 import ProductCard from '@/components/shop/product-card';
 import { getProducts } from '@/lib/firestore-service';
 import type { Product } from '@/lib/types';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { motion } from 'framer-motion';
 
 const iconMap: { [key: string]: React.ElementType } = {
   Laptops: Laptop,
@@ -30,7 +31,7 @@ const iconMap: { [key: string]: React.ElementType } = {
 export default async function Home() {
   const allProducts = await getProducts();
   const featuredProducts = allProducts.filter(p => p.featured).slice(0, 4);
-  const displayedCategories = categories.slice(0, 5);
+  const displayedCategories = categoryData.slice(0, 5);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -68,7 +69,7 @@ export default async function Home() {
                         const Icon = iconMap[category.name];
                         return (
                         <Link href={category.href} key={category.name}>
-                            <Card className="bg-card/50 backdrop-blur-sm border-primary/20 hover:border-primary transition-all duration-300 card-glow group w-40 h-40">
+                            <Card className="glass-panel hover:border-primary transition-all duration-300 card-glow group w-40 h-40">
                             <CardContent className="p-4 text-center flex flex-col items-center justify-center h-full">
                                 {Icon && <Icon className="w-10 h-10 mb-2 text-primary transition-transform group-hover:scale-110" />}
                                 <h3 className="text-sm font-bold whitespace-normal">{category.name}</h3>
@@ -78,7 +79,7 @@ export default async function Home() {
                         );
                     })}
                     <Link href="/categories">
-                        <Card className="bg-card/50 backdrop-blur-sm border-primary/20 hover:border-primary transition-all duration-300 card-glow group w-40 h-40">
+                        <Card className="glass-panel hover:border-primary transition-all duration-300 card-glow group w-40 h-40">
                         <CardContent className="p-4 text-center flex flex-col items-center justify-center h-full">
                             <View className="w-10 h-10 mb-2 text-primary transition-transform group-hover:scale-110" />
                             <h3 className="text-sm font-bold whitespace-normal">View All</h3>
@@ -116,9 +117,9 @@ export default async function Home() {
 
         <section className="py-16">
           <div className="container">
-            <Card className="bg-card/50 backdrop-blur-sm border-accent/20 p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
+            <Card className="glass-panel p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
               <div className="flex-1">
-                <h2 className="text-3xl font-bold mb-4">Build Your Dream Rig</h2>
+                <h2 className="text-3xl font-bold mb-4 glow-accent">Build Your Dream Rig</h2>
                 <p className="text-muted-foreground mb-6">
                   Use our interactive PC builder to configure your ultimate machine. Mix and match components for peak performance.
                 </p>
@@ -134,7 +135,7 @@ export default async function Home() {
                   alt="Custom PC Build"
                   width={400}
                   height={300}
-                  className="rounded-lg"
+                  className="rounded-lg shadow-2xl shadow-accent/20"
                   data-ai-hint="custom pc"
                 />
               </div>

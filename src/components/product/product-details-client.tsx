@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import type { Product } from '@/lib/types';
 import AiEnhancer from './ai-enhancer';
-import { Star, ShoppingCart, Heart, ShieldCheck, Truck } from 'lucide-react';
+import { Star, ShoppingCart, Heart, ShieldCheck, Truck, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -87,7 +87,7 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
     <div className="container py-12">
       <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
         <div>
-          <Card className="overflow-hidden border-primary/20">
+          <Card className="overflow-hidden glass-panel">
             <Image
               src={product.imageUrl}
               alt={product.name}
@@ -115,16 +115,20 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
           <div className="flex items-center gap-2 mb-4">
             <div className="flex items-center">
               {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className={`w-5 h-5 ${i < product.rating ? 'text-primary fill-primary' : 'text-muted-foreground'}`} />
+                <Star key={i} className={`w-5 h-5 ${i < product.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
               ))}
             </div>
-            <span className="text-muted-foreground">({product.rating})</span>
+            <span className="text-muted-foreground">({product.rating} stars)</span>
           </div>
 
-          <p className="text-2xl font-bold text-primary mb-4">{product.price.toLocaleString()} {product.currency}</p>
+          <p className="text-3xl font-bold text-primary mb-4">{product.price.toLocaleString()} {product.currency}</p>
           <p className="text-muted-foreground mb-6">{product.description}</p>
+          
+          {product.stock < 10 && (
+            <p className="text-accent font-bold mb-4">Only {product.stock} left in stock!</p>
+          )}
 
-          <Card className="bg-card/50 backdrop-blur-sm border-primary/10 mb-6">
+          <Card className="glass-panel mb-6">
             <CardContent className="p-4 space-y-4">
                <div className="flex gap-4">
                 <Button size="lg" className="flex-1 bg-primary/90 hover:bg-primary text-primary-foreground" onClick={handleAddToCart} disabled={isAdding}>
@@ -135,7 +139,7 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
                   <Heart className="w-6 h-6"/>
                 </Button>
               </div>
-              <Button size="lg" variant="outline" className="w-full" onClick={handleBuyNow} disabled={isAdding}>
+              <Button size="lg" variant="outline" className="w-full border-accent text-accent hover:bg-accent hover:text-accent-foreground" onClick={handleBuyNow} disabled={isAdding}>
                 Buy Now
               </Button>
             </CardContent>
@@ -150,15 +154,15 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
       <Separator className="my-12" />
 
       <div className="mt-12">
-        <h2 className="text-2xl font-bold mb-6 glow-primary">Customer Reviews</h2>
+        <h2 className="text-2xl font-bold mb-6 glow-primary">Customer Reviews & Feedback</h2>
         <div className="space-y-6">
           {mockReviews.map(review => (
-            <Card key={review.id} className="bg-card/50 backdrop-blur-sm">
+            <Card key={review.id} className="glass-panel">
                 <CardContent className="p-6">
                     <div className="flex items-center mb-2">
                         <div className="flex items-center">
                             {Array.from({ length: 5 }).map((_, i) => (
-                                <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-primary fill-primary' : 'text-muted-foreground'}`} />
+                                <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
                             ))}
                         </div>
                         <p className="ml-4 font-bold text-primary">{review.author}</p>
@@ -171,8 +175,19 @@ export default function ProductDetailsClient({ product }: { product: Product }) 
       </div>
 
       <div className="mt-12">
-        <h2 className="text-2xl font-bold mb-4">Product Details from {product.brand}</h2>
-        <p className="text-muted-foreground whitespace-pre-line">{product.description}</p>
+        <h2 className="text-2xl font-bold mb-4 glow-primary">Technical Specifications</h2>
+        <Card className="glass-panel">
+          <CardContent className="p-6">
+            <ul className="space-y-2 text-muted-foreground">
+              <li className="flex justify-between"><span>Brand:</span> <strong>{product.brand}</strong></li>
+              <li className="flex justify-between"><span>Category:</span> <strong>{product.category}</strong></li>
+              {product.subcategory && <li className="flex justify-between"><span>Sub-Category:</span> <strong>{product.subcategory}</strong></li>}
+              <li className="flex justify-between"><span>In Stock:</span> <strong className="text-primary">{product.stock > 0 ? 'Yes' : 'No'}</strong></li>
+            </ul>
+             <Separator className="my-4"/>
+            <p className="whitespace-pre-line">{product.description}</p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

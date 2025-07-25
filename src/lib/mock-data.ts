@@ -1,11 +1,11 @@
-
-import type { Product, Order } from './types';
+import type { Product, Order, ProductCategory } from './types';
 
 export const products: Product[] = [
   {
     id: 'hp-pavilion-15',
     name: 'HP Pavilion 15 i5 11th Gen',
     category: 'Laptops',
+    subcategory: 'Business',
     brand: 'HP',
     price: 74999,
     currency: 'KES',
@@ -14,6 +14,7 @@ export const products: Product[] = [
     imageUrl: 'https://placehold.co/600x600.png',
     featured: true,
     rating: 4.6,
+    promoTag: 'Top Rated'
   },
   {
     id: 'mx-master-3s',
@@ -32,6 +33,7 @@ export const products: Product[] = [
     id: 'acer-nitro-5',
     name: 'Acer Nitro 5 Gaming Laptop Ryzen 5',
     category: 'Laptops',
+    subcategory: 'Gaming',
     brand: 'Acer',
     price: 109999,
     currency: 'KES',
@@ -40,6 +42,7 @@ export const products: Product[] = [
     imageUrl: 'https://placehold.co/600x600.png',
     featured: true,
     rating: 4.7,
+    promoTag: '15% OFF'
   },
   {
     id: 'aoc-24-monitor',
@@ -71,6 +74,7 @@ export const products: Product[] = [
     id: 'seagate-1tb-hdd',
     name: 'Seagate 1TB External HDD USB 3.0',
     category: 'Storage Drives',
+    subcategory: 'External',
     brand: 'Seagate',
     price: 5299,
     currency: 'KES',
@@ -149,6 +153,7 @@ export const products: Product[] = [
     id: 'samsung-980-pro-1tb',
     name: 'Samsung 980 Pro 1TB NVMe SSD',
     category: 'Storage Drives',
+    subcategory: 'Internal',
     brand: 'Samsung',
     price: 17500,
     currency: 'KES',
@@ -157,6 +162,7 @@ export const products: Product[] = [
     imageUrl: 'https://placehold.co/600x600.png',
     featured: true,
     rating: 4.9,
+    promoTag: 'Ships in 24h'
   },
   {
     id: 'jbl-quantum-400',
@@ -201,6 +207,7 @@ export const products: Product[] = [
     id: 'lenovo-ideapad-3',
     name: 'Lenovo IdeaPad 3 Celeron',
     category: 'Laptops',
+    subcategory: 'Budget',
     brand: 'Lenovo',
     price: 32500,
     currency: 'KES',
@@ -300,19 +307,21 @@ export const orders: Order[] = [
   },
 ];
 
-export const categories = [
-    { name: 'Laptops', href: '/shop?category=Laptops', icon: 'Laptop' },
-    { name: 'Desktops', href: '/shop?category=Desktops', icon: 'Monitor' },
-    { name: 'Monitors', href: '/shop?category=Monitors', icon: 'Monitor' },
-    { name: 'Keyboards', href: '/shop?category=Keyboards', icon: 'Keyboard' },
-    { name: 'Mice', href: '/shop?category=Mice', icon: 'Mouse' },
-    { name: 'Headphones', href: '/shop?category=Headphones', icon: 'Headphones' },
-    { name: 'Webcams', href: '/shop?category=Webcams', icon: 'Camera' },
-    { name: 'Storage Drives', href: '/shop?category=Storage Drives', icon: 'HardDrive' },
-    { name: 'Graphic Cards', href: '/shop?category=Graphic Cards', icon: 'MemoryStick' },
-    { name: 'Processors', href: '/shop?category=Processors', icon: 'Cpu' },
-    { name: 'RAM Modules', href: '/shop?category=RAM Modules', icon: 'MemoryStick' },
-    { name: 'Motherboards', href: '/shop?category=Motherboards', icon: 'CircuitBoard' },
-    { name: 'Power Supplies', href: '/shop?category=Power Supplies', icon: 'Power' },
-    { name: 'Coolers/Fans', href: '/shop?category=Coolers/Fans', icon: 'Wind' },
+export const categoryData: { name: ProductCategory; href: string; subcategories?: string[] }[] = [
+    { name: 'Laptops', href: '/shop?category=Laptops', subcategories: ['Gaming', 'Ultrabooks', 'Business', 'Budget'] },
+    { name: 'Desktops', href: '/shop?category=Desktops' },
+    { name: 'Monitors', href: '/shop?category=Monitors' },
+    { name: 'Keyboards', href: '/shop?category=Keyboards' },
+    { name: 'Mice', href: '/shop?category=Mice' },
+    { name: 'Headphones', href: '/shop?category=Headphones' },
+    { name: 'Webcams', href: '/shop?category=Webcams' },
+    { name: 'Storage Drives', href: '/shop?category=Storage Drives', subcategories: ['Internal', 'External'] },
+    { name: 'Graphic Cards', href: '/shop?category=Graphic Cards' },
+    { name: 'Processors', href: '/shop?category=Processors' },
+    { name: 'RAM Modules', href: '/shop?category=RAM Modules' },
+    { name: 'Motherboards', href: '/shop?category=Motherboards' },
+    { name: 'Power Supplies', href: '/shop?category=Power Supplies' },
+    { name: 'Coolers/Fans', href: '/shop?category=Coolers/Fans' },
 ];
+
+export const categories = categoryData.map(c => ({ name: c.name, href: c.href }));

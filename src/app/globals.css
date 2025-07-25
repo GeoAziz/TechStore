@@ -4,17 +4,17 @@
 
 @layer base {
   :root {
-    --background: 222 84% 4%;
+    --background: 228 56% 8%; /* Deep Space Blue */
     --foreground: 210 40% 98%;
 
-    --card: 222 84% 7%;
+    --card: 228 50% 12%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222 84% 4%;
+    --popover: 228 56% 8%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 182 99% 74%; /* Electric Blue */
-    --primary-foreground: 222 47% 11%;
+    --primary: 178 100% 50%; /* Neon Cyan */
+    --primary-foreground: 228 56% 4%;
 
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
@@ -22,31 +22,31 @@
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 278 100% 50%; /* Neon Violet */
+    --accent: 330 100% 50%; /* Plasma Pink */
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 182 99% 74%;
+    --border: 178 100% 50% / 0.2;
+    --input: 228 50% 12%;
+    --ring: 178 100% 50%;
 
     --radius: 0.8rem;
   }
  
   .dark {
-    --background: 222 84% 4%;
+    --background: 228 56% 8%;
     --foreground: 210 40% 98%;
 
-    --card: 222 84% 7%;
+    --card: 228 50% 12%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222 84% 4%;
+    --popover: 228 56% 8%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 182 99% 74%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 178 100% 50%;
+    --primary-foreground: 228 56% 4%;
 
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
@@ -54,15 +54,15 @@
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 278 100% 50%;
+    --accent: 330 100% 50%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 182 99% 74%;
+    --border: 178 100% 50% / 0.2;
+    --input: 228 50% 12%;
+    --ring: 178 100% 50%;
   }
 }
  
@@ -96,5 +96,8 @@
   .card-glow:hover {
     transform: translateY(-4px);
     box-shadow: 0 0 20px hsl(var(--primary) / 0.2), 0 0 40px hsl(var(--primary) / 0.1);
+  }
+  .glass-panel {
+    @apply bg-card/50 backdrop-blur-sm border border-primary/20 rounded-lg;
   }
 }

@@ -63,7 +63,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
   if (viewMode === 'list') {
     return (
         <motion.div whileHover={{ y: -5, scale: 1.01 }} className="h-full">
-            <Card className="bg-card/50 backdrop-blur-sm border-primary/10 overflow-hidden group card-glow flex flex-col sm:flex-row h-full">
+            <Card className="glass-panel overflow-hidden group card-glow flex flex-col sm:flex-row h-full">
                 <Link href={`/product/${product.id}`} className="block sm:w-1/3">
                      <div className="relative h-full">
                         <Image
@@ -74,7 +74,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         data-ai-hint={`${product.category.toLowerCase()} electronics`}
                         />
-                        {product.featured && <Badge className="absolute top-2 left-2 bg-accent text-accent-foreground">Featured</Badge>}
+                         {product.promoTag && <Badge className="absolute top-2 left-2 bg-accent text-accent-foreground">{product.promoTag}</Badge>}
                     </div>
                 </Link>
                 <CardContent className="p-4 flex flex-col flex-grow sm:w-2/3">
@@ -86,7 +86,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
                         <div className="flex items-center gap-2 my-2">
                             <div className="flex items-center">
                             {Array.from({ length: 5 }).map((_, i) => (
-                                <Star key={i} className={`w-4 h-4 ${i < product.rating ? 'text-primary fill-primary' : 'text-muted-foreground'}`} />
+                                <Star key={i} className={`w-4 h-4 ${i < product.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
                             ))}
                             </div>
                             <span className="text-muted-foreground text-sm">({product.rating})</span>
@@ -112,7 +112,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
 
   return (
     <motion.div whileHover={{ y: -5, scale: 1.02 }} className="h-full">
-      <Card className="bg-card/50 backdrop-blur-sm border-primary/10 overflow-hidden group card-glow flex flex-col h-full relative">
+      <Card className="glass-panel overflow-hidden group card-glow flex flex-col h-full relative">
         <Link href={`/product/${product.id}`} className="block">
            <div className="relative">
             <Image
@@ -123,7 +123,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
               className="w-full h-56 object-cover transition-transform duration-300 group-hover:scale-105"
               data-ai-hint={`${product.category.toLowerCase()} electronics`}
             />
-            {product.featured && <Badge className="absolute top-2 left-2 bg-accent text-accent-foreground">Featured</Badge>}
+            {product.promoTag && <Badge className="absolute top-2 left-2 bg-accent text-accent-foreground">{product.promoTag}</Badge>}
             <Button size="icon" variant="ghost" className="absolute top-2 right-2 bg-background/50 backdrop-blur-sm hover:bg-primary/20 hover:text-primary rounded-full" onClick={handleToggleWishlist}>
                 <Heart className="w-5 h-5" />
             </Button>
@@ -131,7 +131,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
           <CardContent className="p-4 flex flex-col flex-grow">
             <div className='flex-grow'>
               <p className="text-xs text-muted-foreground">{product.category}</p>
-              <h3 className="text-lg font-bold truncate h-14 group-hover:text-primary transition-colors">
+              <h3 className="font-headline text-lg font-bold h-14 group-hover:text-primary transition-colors">
                 {product.name}
               </h3>
             </div>

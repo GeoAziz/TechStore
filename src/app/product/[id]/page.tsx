@@ -18,8 +18,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
     notFound();
   }
 
-  // The component expects a Product type, but Firestore might return a DocumentData.
-  // We cast it here after checking for existence.
+  // Ensure all fields are present, providing defaults for optional ones
   const productData: Product = {
     id: product.id,
     name: product.name,
@@ -32,6 +31,8 @@ export default async function ProductPage({ params }: { params: { id: string } }
     imageUrl: product.imageUrl,
     featured: product.featured,
     rating: product.rating,
+    subcategory: product.subcategory,
+    promoTag: product.promoTag,
   };
 
 
