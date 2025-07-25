@@ -56,35 +56,38 @@ export default async function Home() {
 
         <section className="py-16">
           <div className="container">
-            <div className="text-center mb-10">
+            <div className="text-center mb-12">
               <h2 className="text-3xl font-bold glow-primary">
                 <span className="text-accent">{'//'}</span> Mission Modules
               </h2>
               <p className="text-muted-foreground mt-2 max-w-xl mx-auto">Browse the core components of the OrderVerse. See all available modules in our main database.</p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {displayedCategories.map((category) => {
-                const Icon = iconMap[category.name];
-                return (
-                  <Link href={category.href} key={category.name}>
-                    <Card className="bg-card/50 backdrop-blur-sm border-primary/20 hover:border-primary transition-all duration-300 card-glow group aspect-square">
-                      <CardContent className="p-4 text-center flex flex-col items-center justify-center h-full">
-                        {Icon && <Icon className="w-10 h-10 mb-2 text-primary transition-transform group-hover:scale-110" />}
-                        <h3 className="text-sm font-bold whitespace-normal">{category.name}</h3>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}
-                <Link href="/categories">
-                  <Card className="bg-card/50 backdrop-blur-sm border-primary/20 hover:border-primary transition-all duration-300 card-glow group aspect-square">
-                    <CardContent className="p-4 text-center flex flex-col items-center justify-center h-full">
-                      <View className="w-10 h-10 mb-2 text-primary transition-transform group-hover:scale-110" />
-                      <h3 className="text-sm font-bold whitespace-normal">View All</h3>
-                    </CardContent>
-                  </Card>
-                </Link>
-            </div>
+            <ScrollArea className="w-full whitespace-nowrap">
+                <div className="flex w-max space-x-4 p-4">
+                    {displayedCategories.map((category) => {
+                        const Icon = iconMap[category.name];
+                        return (
+                        <Link href={category.href} key={category.name}>
+                            <Card className="bg-card/50 backdrop-blur-sm border-primary/20 hover:border-primary transition-all duration-300 card-glow group w-40 h-40">
+                            <CardContent className="p-4 text-center flex flex-col items-center justify-center h-full">
+                                {Icon && <Icon className="w-10 h-10 mb-2 text-primary transition-transform group-hover:scale-110" />}
+                                <h3 className="text-sm font-bold whitespace-normal">{category.name}</h3>
+                            </CardContent>
+                            </Card>
+                        </Link>
+                        );
+                    })}
+                    <Link href="/categories">
+                        <Card className="bg-card/50 backdrop-blur-sm border-primary/20 hover:border-primary transition-all duration-300 card-glow group w-40 h-40">
+                        <CardContent className="p-4 text-center flex flex-col items-center justify-center h-full">
+                            <View className="w-10 h-10 mb-2 text-primary transition-transform group-hover:scale-110" />
+                            <h3 className="text-sm font-bold whitespace-normal">View All</h3>
+                        </CardContent>
+                        </Card>
+                    </Link>
+                </div>
+                <ScrollBar orientation="horizontal" />
+            </ScrollArea>
           </div>
         </section>
 
