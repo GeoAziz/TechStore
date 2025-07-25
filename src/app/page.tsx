@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -55,15 +56,11 @@ export default async function Home() {
 
         <section className="py-16">
           <div className="container">
-            <div className="flex justify-between items-center mb-10">
+            <div className="text-center mb-10">
               <h2 className="text-3xl font-bold glow-primary">
                 <span className="text-accent">{'//'}</span> Mission Modules
               </h2>
-               <Button asChild variant="outline">
-                <Link href="/categories">
-                  View All <View className="w-4 h-4 ml-2"/>
-                </Link>
-              </Button>
+              <p className="text-muted-foreground mt-2 max-w-xl mx-auto">Browse the core components of the OrderVerse. See all available modules in our main database.</p>
             </div>
             <div className="relative">
                <ScrollArea className="w-full whitespace-nowrap">
@@ -81,6 +78,12 @@ export default async function Home() {
                       </Link>
                     );
                   })}
+                   <Link href="/categories" className="inline-block align-middle">
+                      <Button variant="outline" className="h-40 w-40 flex-col gap-2">
+                         <View className="w-10 h-10" />
+                         <span>View All</span>
+                      </Button>
+                   </Link>
                 </div>
                  <ScrollBar orientation="horizontal" />
               </ScrollArea>
@@ -139,3 +142,4 @@ export default async function Home() {
     </div>
   );
 }
+
