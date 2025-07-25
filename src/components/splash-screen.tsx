@@ -1,3 +1,4 @@
+
 import Logo from "@/components/layout/logo";
 
 export default function SplashScreen() {
