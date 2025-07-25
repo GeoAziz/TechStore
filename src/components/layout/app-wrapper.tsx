@@ -8,15 +8,21 @@ import Header from './header';
 export default function AppWrapper({ children }: { children: React.ReactNode }) {
   const [showSplash, setShowSplash] = useState(true);
 
+  // This effect will be triggered once on component mount.
+  // The SplashScreen component will call onFinished when its animation is complete.
   useEffect(() => {
     // This is a failsafe in case the splash screen's internal logic doesn't hide it
-    const timer = setTimeout(() => setShowSplash(false), 4000); 
+    const timer = setTimeout(() => {
+        if (showSplash) {
+            setShowSplash(false);
+        }
+    }, 4000); // Hide after 4 seconds regardless
     return () => clearTimeout(timer);
-  }, []);
+  }, [showSplash]);
 
   return (
     <>
-      <SplashScreen onFinished={() => setShowSplash(false)} />
+      {showSplash && <SplashScreen onFinished={() => setShowSplash(false)} />}
       <div className={`flex flex-col min-h-screen transition-opacity duration-500 ${showSplash ? 'opacity-0' : 'opacity-100'}`}>
         <Header />
         <main className="flex-1">{children}</main>
