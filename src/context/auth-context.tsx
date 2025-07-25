@@ -1,3 +1,4 @@
+
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
@@ -27,7 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (user) {
-        // Simulate role assignment
+        // Simulate role assignment based on email
         if (user.email === 'admin@zizo.net') {
           setRole('admin');
         } else if (user.email === 'vendor@zizo.net') {
