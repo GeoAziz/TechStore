@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
 import type { Product, ProductCategory } from '@/lib/types';
 import { categoryData } from '@/lib/mock-data';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Search, SlidersHorizontal, X, List, LayoutGrid, DollarSign, Filter } from 'lucide-react';
+import { Search, SlidersHorizontal, X, List, LayoutGrid, Filter } from 'lucide-react';
 import ProductCard from './product-card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -119,14 +120,15 @@ const FilterPanel = ({
   </aside>
 );
 
-function ShopClientInternal({ products, searchParams }: { products: Product[], searchParams: { category?: string, search?: string, sort?: string, subcategory?: string } }) {
+function ShopClientInternal({ products, searchParams: serverSearchParams }: { products: Product[], searchParams: { category?: string, search?: string, sort?: string, subcategory?: string } }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const [searchTerm, setSearchTerm] = useState(searchParams.search || '');
-  const [activeCategory, setActiveCategory] = useState<ProductCategory>(searchParams.category as ProductCategory || 'Laptops');
-  const [activeSubcategory, setActiveSubcategory] = useState(searchParams.subcategory || 'All');
-  const [sortBy, setSortBy] = useState(searchParams.sort || 'relevance');
+  const [searchTerm, setSearchTerm] = useState(serverSearchParams.search || '');
+  const [activeCategory, setActiveCategory] = useState<ProductCategory>(serverSearchParams.category as ProductCategory || 'Laptops');
+  const [activeSubcategory, setActiveSubcategory] = useState(serverSearchParams.subcategory || 'All');
+  const [sortBy, setSortBy] = useState(serverSearchParams.sort || 'relevance');
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -136,13 +138,9 @@ function ShopClientInternal({ products, searchParams }: { products: Product[], s
   }, [products]);
 
   const [priceRange, setPriceRange] = useState<[number, number]>([0, maxPrice]);
-
-  useEffect(() => {
-    setPriceRange([0, maxPrice]);
-  }, [maxPrice]);
   
-  const updateURL = (newParams: Record<string, string | null | string[]>) => {
-      const current = new URLSearchParams(Array.from(useSearchParams().entries()));
+  const updateURL = useCallback((newParams: Record<string, string | null | string[]>) => {
+      const current = new URLSearchParams(Array.from(searchParams.entries()));
       
       for (const [key, value] of Object.entries(newParams)) {
           if (value === null || (Array.isArray(value) && value.length === 0)) {
@@ -158,19 +156,18 @@ function ShopClientInternal({ products, searchParams }: { products: Product[], s
       const search = current.toString();
       const query = search ? `?${search}` : "";
       router.push(`${pathname}${query}`, { scroll: false });
-  };
+  }, [searchParams, pathname, router]);
   
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setActiveCategory((params.get('category') as ProductCategory) || 'Laptops');
-    setActiveSubcategory(params.get('subcategory') || 'All');
-    setSortBy(params.get('sort') || 'relevance');
-    setSearchTerm(params.get('search') || '');
-    setSelectedBrands(params.getAll('brands'));
-    const minPrice = params.get('minPrice');
-    const maxPriceParam = params.get('maxPrice');
+    setActiveCategory((searchParams.get('category') as ProductCategory) || 'Laptops');
+    setActiveSubcategory(searchParams.get('subcategory') || 'All');
+    setSortBy(searchParams.get('sort') || 'relevance');
+    setSearchTerm(searchParams.get('search') || '');
+    setSelectedBrands(searchParams.getAll('brands'));
+    const minPrice = searchParams.get('minPrice');
+    const maxPriceParam = searchParams.get('maxPrice');
     setPriceRange([minPrice ? Number(minPrice) : 0, maxPriceParam ? Number(maxPriceParam) : maxPrice]);
-  }, [useSearchParams(), maxPrice]);
+  }, [searchParams, maxPrice]);
 
 
   const handleCategoryChange = (category: ProductCategory) => {
