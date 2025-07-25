@@ -58,10 +58,12 @@ export async function getOrders(): Promise<Order[]> {
   const snapshot = await ordersCol.orderBy('timestamp', 'desc').get();
   return snapshot.docs.map(doc => {
     const data = doc.data();
+    // Ensure timestamp is converted to a string right away
+    const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : data.timestamp;
     return { 
       id: doc.id, 
       ...data,
-      timestamp: data.timestamp.toDate().toISOString(),
+      timestamp,
     } as Order
   });
 }
@@ -76,10 +78,12 @@ export async function getOrdersByUser(userEmail: string): Promise<Order[]> {
     const snapshot = await ordersCol.where('user', '==', userEmail).orderBy('timestamp', 'desc').get();
     return snapshot.docs.map(doc => {
       const data = doc.data();
+      // Ensure timestamp is converted to a string right away
+      const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : data.timestamp;
       return { 
         id: doc.id, 
         ...data,
-        timestamp: data.timestamp.toDate().toISOString(),
+        timestamp,
       } as Order
     });
 }
@@ -103,10 +107,12 @@ export async function getOrdersByVendor(brandName: string): Promise<Order[]> {
   
   return snapshot.docs.map(doc => {
       const data = doc.data();
+      // Ensure timestamp is converted to a string right away
+      const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : data.timestamp;
       return { 
         id: doc.id, 
         ...data,
-        timestamp: data.timestamp.toDate().toISOString(),
+        timestamp,
       } as Order
     });
 }
@@ -248,10 +254,12 @@ export async function getReviewsByProductId(productId: string): Promise<Review[]
 
   return snapshot.docs.map(doc => {
     const data = doc.data();
+    // Ensure timestamp is converted to a string right away
+    const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : data.timestamp;
     return {
       id: doc.id,
       ...data,
-      timestamp: data.timestamp.toDate().toISOString(),
+      timestamp,
     } as Review;
   });
 }
@@ -385,3 +393,5 @@ export async function deleteUser(userId: string) {
         return { success: false, message: "Failed to delete user data." };
     }
 }
+
+    
