@@ -316,12 +316,17 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
 
                  {/* -- Mobile Filter Trigger -- */}
                  <Sheet>
-                   <SheetTrigger asChild>
-                     <Button variant="outline" className="lg:hidden border-cyan-400/40 text-cyan-200 bg-[#18182c]/80 hover:bg-[#18182c]/90">
-                       <SlidersHorizontal className="mr-2 h-4 w-4 text-cyan-400" />
-                       Filters
-                     </Button>
-                   </SheetTrigger>
+               <SheetTrigger asChild>
+                 <Button 
+                   variant="outline" 
+                   className="lg:hidden fixed bottom-6 right-6 z-[60] border-cyan-400/80 text-cyan-200 bg-[#18182c]/90 hover:bg-cyan-400/10 shadow-[0_0_24px_#00fff7] animate-pulse rounded-full w-16 h-16 flex flex-col items-center justify-center"
+                   style={{ boxShadow: '0 0 32px #00fff7, 0 0 64px #00fff7' }}
+                   aria-label="Open Filters"
+                 >
+                   <SlidersHorizontal className="h-7 w-7 text-cyan-400 mb-1" />
+                   <span className="text-xs font-[Orbitron,Space Grotesk,monospace]">Filters</span>
+                 </Button>
+               </SheetTrigger>
                    <SheetContent className="w-[320px] sm:w-[400px] p-0 border-cyan-400/20 bg-[#10102a]">
                      <SheetHeader className="p-4 pb-0">
                        <SheetTitle className="glow-primary">Filters</SheetTitle>
