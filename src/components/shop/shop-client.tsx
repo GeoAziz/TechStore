@@ -41,7 +41,7 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
   const [priceRange, setPriceRange] = useState<[number, number]>([0, maxPrice]);
   
   const updateURL = useCallback((newParams: Record<string, string | string[] | number | null>) => {
-      const current = new URLSearchParams(Array.from(searchParams.entries()));
+      const current = new URLSearchParams(Array.from((searchParams ?? new URLSearchParams()).entries()));
       
       for (const [key, value] of Object.entries(newParams)) {
           if (value === null || (Array.isArray(value) && value.length === 0)) {
@@ -60,13 +60,13 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
   }, [searchParams, pathname, router]);
   
   useEffect(() => {
-    setActiveCategory((searchParams.get('category') as ProductCategory) || 'Laptops');
-    setActiveSubcategory(searchParams.get('subcategory') || 'All');
-    setSortBy(searchParams.get('sort') || 'relevance');
-    setSearchTerm(searchParams.get('search') || '');
-    setSelectedBrands(searchParams.getAll('brands'));
-    const minPrice = searchParams.get('minPrice');
-    const maxPriceParam = searchParams.get('maxPrice');
+    setActiveCategory((searchParams && (searchParams.get('category') as ProductCategory)) || 'Laptops');
+    setActiveSubcategory(searchParams?.get('subcategory') || 'All');
+    setSortBy(searchParams?.get('sort') || 'relevance');
+    setSearchTerm(searchParams?.get('search') || '');
+    setSelectedBrands(searchParams?.getAll('brands') || []);
+    const minPrice = searchParams?.get('minPrice');
+    const maxPriceParam = searchParams?.get('maxPrice');
     setPriceRange([minPrice ? Number(minPrice) : 0, maxPriceParam ? Number(maxPriceParam) : maxPrice]);
   }, [searchParams, maxPrice]);
 

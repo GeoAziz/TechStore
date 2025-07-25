@@ -117,30 +117,40 @@ export default function Header() {
       </div>
 
       {isMenuOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setIsMenuOpen(false)}>
-          <div className="fixed left-0 top-0 h-full w-4/5 max-w-xs bg-background/90 border-r border-border/40 p-6" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm md:hidden flex" onClick={() => setIsMenuOpen(false)}>
+          <div
+            className="fixed left-0 top-0 h-full w-4/5 max-w-xs bg-gradient-to-br from-[#10102a]/95 via-[#18182c]/95 to-[#0c0c1e]/95 border-r border-cyan-400/20 p-6 shadow-2xl backdrop-blur-xl flex flex-col"
+            style={{ boxShadow: '0 0 48px #00fff7cc, 0 0 8px #00fff7' }}
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-8">
               <Link href="/">
                 <Logo className="h-6 w-auto" />
               </Link>
               <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(false)}>
-                <X className="h-6 w-6" />
+                <X className="h-6 w-6 text-cyan-300" />
               </Button>
             </div>
-            <nav className="flex flex-col space-y-4">
+            <nav className="flex flex-col space-y-4 mt-2">
               {allNavLinks.map(link => (
-                <Link key={link.href} href={link.href} className="text-lg font-medium transition-colors hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-lg font-bold tracking-wide font-[Orbitron,Space Grotesk,monospace] text-cyan-100 hover:text-cyan-400 transition-colors px-2 py-2 rounded-md hover:bg-cyan-400/10 focus:bg-cyan-400/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   {link.label}
                 </Link>
               ))}
             </nav>
-             {!loading && (
+            <div className="flex-1" />
+            {!loading && (
               user ? (
-                <Button className="w-full mt-8" onClick={() => { handleLogout(); setIsMenuOpen(false); }}>
+                <Button className="w-full mt-8 font-[Orbitron,Space Grotesk,monospace] bg-cyan-400/20 text-cyan-100 border-cyan-400/40 hover:bg-cyan-400/30" onClick={() => { handleLogout(); setIsMenuOpen(false); }}>
                   Logout
                 </Button>
               ) : (
-                <Button className="w-full mt-8" asChild>
+                <Button className="w-full mt-8 font-[Orbitron,Space Grotesk,monospace] bg-cyan-400/20 text-cyan-100 border-cyan-400/40 hover:bg-cyan-400/30" asChild>
                   <Link href="/login" onClick={() => setIsMenuOpen(false)}>Login</Link>
                 </Button>
               )
