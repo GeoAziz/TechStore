@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, Suspense, useCallback } from 'react';
@@ -18,6 +19,8 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+const PRODUCTS_PER_PAGE = 12;
 
 const FilterPanel = ({ 
   searchTerm, 
@@ -144,6 +147,7 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
   const [sortBy, setSortBy] = useState(serverSearchParams.sort || 'relevance');
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
 
   const maxPrice = useMemo(() => {
     if (products.length === 0) return 100000;
@@ -252,6 +256,10 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
     return filtered;
   }, [products, activeCategory, activeSubcategory, searchTerm, sortBy, selectedBrands, priceRange]);
   
+  useEffect(() => {
+    setVisibleCount(PRODUCTS_PER_PAGE);
+  }, [filteredAndSortedProducts]);
+
   const activeFilterChips = useMemo(() => {
     const chips = [];
     if(searchTerm) chips.push({type: 'search', value: searchTerm});
@@ -272,6 +280,14 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
   }, [activeCategory]);
 
   const allBrands = useMemo(() => Array.from(new Set(products.filter(p => p.category === activeCategory).map(p => p.brand))), [products, activeCategory]);
+
+  const loadMoreProducts = () => {
+    setVisibleCount(prevCount => prevCount + PRODUCTS_PER_PAGE);
+  };
+
+  const productsToShow = useMemo(() => {
+    return filteredAndSortedProducts.slice(0, visibleCount);
+  }, [filteredAndSortedProducts, visibleCount]);
 
   return (
     <div className="container mx-auto">
@@ -384,7 +400,7 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
             className={`grid gap-6 lg:gap-8 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'}`}
           >
             <AnimatePresence>
-                {filteredAndSortedProducts.map(product => (
+                {productsToShow.map(product => (
                   <motion.div 
                     layout 
                     key={product.id} 
@@ -398,6 +414,13 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
                 ))}
             </AnimatePresence>
           </motion.div>
+          {visibleCount < filteredAndSortedProducts.length && (
+            <div className="flex justify-center mt-8">
+              <Button onClick={loadMoreProducts} variant="outline">
+                Load More
+              </Button>
+            </div>
+          )}
           {filteredAndSortedProducts.length === 0 && (
              <div className="text-center col-span-full py-16">
                 <h2 className="text-2xl font-bold">No Transmissions Found</h2>
