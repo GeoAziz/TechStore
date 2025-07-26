@@ -27,7 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 
 export default function AdminPage() {
-  const { user, loading: authLoading, role } = useAuth();
+  const { user, loading: authLoading, role, isAddProductDialogOpen, setAddProductDialogOpen } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -36,7 +36,6 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
@@ -93,7 +92,7 @@ export default function AdminPage() {
             setIsEditDialogOpen(false);
             setEditingProduct(null);
         } else {
-            setIsAddDialogOpen(false);
+            setAddProductDialogOpen(false);
         }
     } else {
         toast({ variant: 'destructive', title: 'Error', description: result.message });
@@ -181,7 +180,7 @@ export default function AdminPage() {
             <Card className="glass-panel">
                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Manage Products</CardTitle>
-                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                    <Dialog open={isAddProductDialogOpen} onOpenChange={setAddProductDialogOpen}>
                         <DialogTrigger asChild>
                             <Button variant="outline" className="border-cyan-400/40 text-cyan-200 hover:bg-cyan-400/10">
                                 <PlusCircle className="w-4 h-4 mr-2" /> Add New Product

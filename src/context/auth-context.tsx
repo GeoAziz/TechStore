@@ -19,6 +19,9 @@ interface AuthContextType {
   isSidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   updateUserProfile: (data: { displayName?: string, photoURL?: string}) => Promise<void>;
+  isAddProductDialogOpen: boolean;
+  setAddProductDialogOpen: (open: boolean) => void;
+  handleAddProductClick: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -29,6 +32,9 @@ const AuthContext = createContext<AuthContextType>({
   isSidebarOpen: true,
   setSidebarOpen: () => {},
   updateUserProfile: async () => {},
+  isAddProductDialogOpen: false,
+  setAddProductDialogOpen: () => {},
+  handleAddProductClick: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -36,6 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<UserRole | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [isAddProductDialogOpen, setAddProductDialogOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -45,11 +52,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/login');
   };
   
+  const handleAddProductClick = () => {
+    setAddProductDialogOpen(true);
+  }
+
   const updateUserProfileInContext = async (data: { displayName?: string, photoURL?: string}) => {
     if (auth.currentUser) {
         await updateProfile(auth.currentUser, data);
         // To reflect changes immediately, we manually update the user state
-        setUser(currentUser => currentUser ? { ...currentUser, ...data } : null);
+        const updatedUser = { ...auth.currentUser, ...data, role: role as UserRole };
+        setUser(updatedUser);
         
         // Also update firestore
         const userDocRef = doc(db, 'users', auth.currentUser.uid);
@@ -106,7 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [pathname]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, role, handleLogout, isSidebarOpen, setSidebarOpen, updateUserProfile: updateUserProfileInContext }}>
+    <AuthContext.Provider value={{ user, loading, role, handleLogout, isSidebarOpen, setSidebarOpen, updateUserProfile: updateUserProfileInContext, isAddProductDialogOpen, setAddProductDialogOpen, handleAddProductClick }}>
       {children}
     </AuthContext.Provider>
   );
