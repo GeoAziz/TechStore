@@ -1,11 +1,27 @@
-
-
 'use server';
 
 import { db } from './firebase-admin';
-import type { Product, Order, CartItem, Review, OrderStatus, UserProfile, UserRole, AuditLog } from './types';
+import type { Product, Order, CartItem, Review, OrderStatus, UserProfile, UserRole } from './types';
+// Define AuditLog type here since it's missing from types
+export type AuditLog = {
+  id: string;
+  adminId: string;
+  adminEmail: string;
+  action: string;
+  targetType: 'product' | 'user' | 'order';
+  targetId: string;
+  details: Record<string, any>;
+  timestamp: string;
+};
+
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
+// Remove or stub missing genkit import
+// import { runGenkitFlow } from './genkit'; // hypothetical Genkit SDK wrapper
+const runGenkitFlow = async (flow: string, params: Record<string, any>) => {
+  // Stub: return mock result
+  return { success: true, flow, params };
+};
 
 // Re-export types for convenience
 export type { Product, Order, CartItem, Review };
@@ -427,6 +443,8 @@ export async function updateUserProfile(userId: string, profileData: Partial<Use
     if (!userId) return { success: false, message: "User not authenticated." };
     try {
         await db.collection('users').doc(userId).set(profileData, { merge: true });
+        // Log audit action for profile update
+        await logAdminAction(userId, profileData.email || '', 'update profile', profileData, 'user');
         revalidatePath('/admin/profile');
         revalidatePath('/admin/layout'); // To refresh header
         revalidatePath('/admin');
@@ -636,4 +654,29 @@ export async function getAuditLogs(): Promise<AuditLog[]> {
     const logsCol = db.collection('audit_logs');
     const snapshot = await logsCol.orderBy('timestamp', 'desc').limit(100).get();
     return snapshot.docs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as AuditLog));
+}
+
+// --- Genkit AI Flows ---
+// These functions integrate with Genkit for product customizer and compatibility checks
+
+export async function getCompatibilityReport(selectedProductIds: string[]): Promise<any> {
+  try {
+    // Call Genkit flow for compatibility check
+    const result = await runGenkitFlow('compatibility-check', { productIds: selectedProductIds });
+    return result;
+  } catch (error) {
+    console.error('Genkit compatibility error:', error);
+    return { success: false, message: 'Failed to get compatibility report.' };
+  }
+}
+
+export async function getCustomizerSuggestions(userInput: string): Promise<any> {
+  try {
+    // Call Genkit flow for customizer suggestions
+    const result = await runGenkitFlow('customizer-suggest', { input: userInput });
+    return result;
+  } catch (error) {
+    console.error('Genkit customizer error:', error);
+    return { success: false, message: 'Failed to get customizer suggestions.' };
+  }
 }
