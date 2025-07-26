@@ -23,6 +23,8 @@ import {
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import ProductForm from '@/components/admin/product-form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 export default function AdminPage() {
   const { user, loading: authLoading, role } = useAuth();
@@ -357,3 +359,4 @@ export default function AdminPage() {
   );
 }
 
+    
