@@ -129,36 +129,45 @@ function FeaturedCategories() {
     >
       <div className="container">
         <SectionHeading icon={View} title="Mission Modules" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {modules.map((mod, i) => (
-            <motion.div
-                key={mod.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-            >
-                <Link href={mod.href}>
-                  <div className="glass-panel card-glow flex flex-col items-center justify-center p-6 rounded-xl hover:bg-accent/10 transition-all h-full">
-                    <mod.icon className="w-10 h-10 mb-3 text-accent" />
-                    <span className="font-bold text-lg text-center">{mod.name}</span>
-                  </div>
-                </Link>
-            </motion.div>
-          ))}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-          >
-            <Link href="/categories">
-              <div className="glass-panel card-glow flex flex-col items-center justify-center p-6 rounded-xl hover:bg-primary/10 transition-all h-full border-dashed border-primary/40 hover:border-primary">
-                <ArrowRight className="w-10 h-10 mb-3 text-primary" />
-                <span className="font-bold text-lg text-center text-primary">View All</span>
-              </div>
-            </Link>
-          </motion.div>
+        <div className="relative">
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0c0c1e] to-transparent pointer-events-none z-10" />
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0c0c1e] to-transparent pointer-events-none z-10" />
+            <ScrollArea className="w-full whitespace-nowrap -m-2 p-2">
+                <div className="flex w-max space-x-6 py-4">
+                    {modules.map((mod, i) => (
+                        <motion.div
+                            key={mod.name}
+                            className="w-60 snap-center"
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5, delay: i * 0.1 }}
+                        >
+                            <Link href={mod.href}>
+                              <div className="glass-panel card-glow flex flex-col items-center justify-center p-6 rounded-xl hover:bg-accent/10 transition-all h-full">
+                                <mod.icon className="w-10 h-10 mb-3 text-accent" />
+                                <span className="font-bold text-lg text-center">{mod.name}</span>
+                              </div>
+                            </Link>
+                        </motion.div>
+                      ))}
+                      <motion.div
+                          className="w-60 snap-center"
+                          initial={{ opacity: 0, y: 20 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.5, delay: 0.4 }}
+                      >
+                        <Link href="/categories">
+                          <div className="glass-panel card-glow flex flex-col items-center justify-center p-6 rounded-xl hover:bg-primary/10 transition-all h-full border-dashed border-primary/40 hover:border-primary">
+                            <ArrowRight className="w-10 h-10 mb-3 text-primary" />
+                            <span className="font-bold text-lg text-center text-primary">View All</span>
+                          </div>
+                        </Link>
+                      </motion.div>
+                </div>
+                <ScrollBar orientation="horizontal" className="mt-4" />
+            </ScrollArea>
         </div>
       </div>
     </motion.section>
