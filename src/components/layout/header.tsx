@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -117,9 +116,12 @@ export default function Header() {
       </div>
 
       {isMenuOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm md:hidden flex" onClick={() => setIsMenuOpen(false)}>
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl md:hidden flex"
+          onClick={() => setIsMenuOpen(false)}
+        >
           <div
-            className="fixed left-0 top-0 h-full w-4/5 max-w-xs bg-gradient-to-br from-[#10102a]/95 via-[#18182c]/95 to-[#0c0c1e]/95 border-r border-cyan-400/20 p-6 shadow-2xl backdrop-blur-xl flex flex-col"
+            className="fixed left-0 top-0 h-full w-4/5 max-w-xs bg-[#10102a]/90 backdrop-blur-lg border-r border-cyan-400/20 p-6 shadow-2xl flex flex-col"
             style={{ boxShadow: '0 0 48px #00fff7cc, 0 0 8px #00fff7' }}
             onClick={e => e.stopPropagation()}
           >
