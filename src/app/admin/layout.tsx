@@ -303,7 +303,7 @@ function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   );
 }
 
-function AdminSidebar({isSidebarOpen, setSidebarOpen}) {
+function AdminSidebar({isSidebarOpen, setSidebarOpen}: { isSidebarOpen: boolean; setSidebarOpen: (open: boolean) => void }) {
   const pathname = usePathname();
   
   return (
