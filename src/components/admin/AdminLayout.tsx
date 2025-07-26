@@ -20,7 +20,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from '@/components/ui/badge';
 import Logo from '@/components/layout/logo';
-// import AiAssistantOverlay from '@/components/ai-assistant/ai-assistant-overlay';
+import AiAssistantOverlay from '@/components/ai-assistant/ai-assistant-overlay';
 import { Loader2 } from 'lucide-react';
 
 const navItems = [
@@ -61,16 +61,6 @@ function AdminSidebar({ isOpen }: { isOpen: boolean }) {
 function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const { user, handleLogout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [name, setName] = useState(user?.displayName || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [avatar, setAvatar] = useState(user?.photoURL || '');
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const notifications = [
-    { id: 1, text: 'New order received', time: '2m ago' },
-    { id: 2, text: 'Inventory low: RAM', time: '10m ago' },
-    { id: 3, text: 'User registered: vendor@demo.com', time: '1h ago' },
-  ];
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-primary/20 bg-background/80 px-4 backdrop-blur-sm md:px-6">
@@ -91,23 +81,9 @@ function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
       </div>
       <div className="flex-grow" />
       <div className="flex items-center gap-2 md:gap-4">
-        <DropdownMenu open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <Bell className="h-5 w-5 text-cyan-300 animate-pulse" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="bg-card/80 border-accent/40 shadow-neon-accent rounded-xl w-64">
-            <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {notifications.map(n => (
-              <DropdownMenuItem key={n.id} className="flex justify-between text-xs">
-                <span>{n.text}</span>
-                <span className="text-muted-foreground">{n.time}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button variant="ghost" size="icon" className="rounded-full">
+          <Bell className="h-5 w-5 text-cyan-300 animate-pulse" />
+        </Button>
         <Tooltip>
           <TooltipTrigger asChild>
             <motion.div whileHover={{ scale: 1.1 }}>
@@ -125,33 +101,17 @@ function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
             </DialogHeader>
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarImage src={avatar} />
-                  <AvatarFallback>{name.charAt(0)}</AvatarFallback>
-                </Avatar>
+                <UserCircle className="w-10 h-10 text-cyan-300" />
                 <div>
-                  {editMode ? (
-                    <>
-                      <input value={name} onChange={e => setName(e.target.value)} className="bg-background border rounded px-2 py-1 text-cyan-200" />
-                      <input value={email} onChange={e => setEmail(e.target.value)} className="bg-background border rounded px-2 py-1 text-cyan-200 mt-1" />
-                    </>
-                  ) : (
-                    <>
-                      <div className="font-bold text-cyan-200">{name}</div>
-                      <div className="text-muted-foreground text-xs">{email}</div>
-                    </>
-                  )}
+                  <div className="font-bold text-cyan-200">{user?.displayName || 'Admin User'}</div>
+                  <div className="text-muted-foreground text-xs">{user?.email}</div>
                 </div>
               </div>
-              {editMode ? (
-                <Button variant="outline" className="border-accent text-accent hover:bg-accent/10" onClick={() => setEditMode(false)}>Save</Button>
-              ) : (
-                <Button variant="outline" className="border-accent text-accent hover:bg-accent/10" onClick={() => setEditMode(true)}>Edit Profile</Button>
-              )}
+              <Button variant="outline" className="border-accent text-accent hover:bg-accent/10">Edit Profile</Button>
             </div>
           </DialogContent>
         </Dialog>
-        <Button variant="ghost" size="icon" className="rounded-full neon-glow" onClick={handleLogout} aria-label="Logout">
+        <Button variant="ghost" size="icon" className="rounded-full neon-glow" onClick={handleLogout}>
           <LogOut className="h-6 w-6 text-accent" />
         </Button>
       </div>
@@ -172,47 +132,6 @@ function FloatingActionButton({ onClick }: { onClick: () => void }) {
     >
       <Rocket className="w-7 h-7 animate-pulse" />
     </motion.button>
-  );
-}
-
-function LocalAiAssistantOverlay() {
-  const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { from: 'ai', text: 'How can I help you today, Commander?' }
-  ]);
-  const [input, setInput] = useState('');
-  return (
-    <>
-      <Button className="fixed bottom-8 left-8 z-[100] bg-accent/90 hover:bg-accent text-white rounded-full p-4 shadow-neon-accent border-2 border-accent flex items-center justify-center animate-pulse" onClick={() => setOpen(true)} aria-label="AI Assistant">
-        <Bot className="w-7 h-7" />
-      </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-card/80 border-accent/40 shadow-neon-accent rounded-2xl w-96">
-          <DialogHeader>
-            <DialogTitle className="glow-accent">AI Assistant</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-2 h-64 overflow-y-auto">
-            {messages.map((msg, i) => (
-              <div key={i} className={`text-sm ${msg.from === 'ai' ? 'text-accent' : 'text-primary'}`}>{msg.text}</div>
-            ))}
-          </div>
-          <form onSubmit={e => { e.preventDefault(); setMessages([...messages, { from: 'user', text: input }, { from: 'ai', text: 'Roger that!' }]); setInput(''); }}>
-            <input value={input} onChange={e => setInput(e.target.value)} className="w-full bg-background border rounded px-2 py-1 text-cyan-200" placeholder="Type your command..." aria-label="AI Command" />
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
-
-function ThemeSwitcher() {
-  const [theme, setTheme] = useState('dark');
-  return (
-    <div className="fixed top-8 right-8 z-[100]">
-      <Button variant="outline" className="border-accent text-accent" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Switch Theme">
-        {theme === 'dark' ? '🌑' : '🌕'} Theme
-      </Button>
-    </div>
   );
 }
 
@@ -267,9 +186,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </DialogContent>
           </Dialog>
         </div>
-        <LocalAiAssistantOverlay />
+        <AiAssistantOverlay />
       </div>
-      <ThemeSwitcher />
     </TooltipProvider>
   );
 }

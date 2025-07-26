@@ -2,20 +2,26 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { onAuthStateChanged, User, signOut } from 'firebase/auth';
+import { onAuthStateChanged, User, signOut, updateProfile } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter, usePathname } from 'next/navigation';
+import type { UserProfile } from '@/lib/types';
+
 
 export type UserRole = 'admin' | 'vendor' | 'client';
 
 interface AuthContextType {
-  user: User | null;
+  user: (User & { role?: UserRole, photoURL?: string | null }) | null;
   loading: boolean;
   role: UserRole | null;
   handleLogout: () => void;
   isSidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
+  updateUserProfile: (data: { displayName?: string, photoURL?: string}) => Promise<void>;
+  isAddProductDialogOpen: boolean;
+  setAddProductDialogOpen: (open: boolean) => void;
+  handleAddProductClick: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -25,13 +31,18 @@ const AuthContext = createContext<AuthContextType>({
   handleLogout: () => {},
   isSidebarOpen: true,
   setSidebarOpen: () => {},
+  updateUserProfile: async () => {},
+  isAddProductDialogOpen: false,
+  setAddProductDialogOpen: () => {},
+  handleAddProductClick: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthContextType['user']>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<UserRole | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [isAddProductDialogOpen, setAddProductDialogOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -40,23 +51,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await signOut(auth);
     router.push('/login');
   };
+  
+  const handleAddProductClick = () => {
+    setAddProductDialogOpen(true);
+  }
+
+  const updateUserProfileInContext = async (data: { displayName?: string, photoURL?: string}) => {
+    if (auth.currentUser) {
+        await updateProfile(auth.currentUser, data);
+        // To reflect changes immediately, we manually update the user state
+        const updatedUser = { ...auth.currentUser, ...data, role: role as UserRole };
+        setUser(updatedUser);
+        
+        // Also update firestore
+        const userDocRef = doc(db, 'users', auth.currentUser.uid);
+        await setDoc(userDocRef, { 
+            displayName: data.displayName || auth.currentUser.displayName,
+            photoURL: data.photoURL || auth.currentUser.photoURL
+        }, { merge: true });
+    }
+  }
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
       if (user) {
-        // Fetch user role from Firestore
+        // Fetch user role and other data from Firestore
         const userDocRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
+        
+        let userRole: UserRole = 'client'; // Default role
+        let userDataFromDb: Partial<UserProfile> = {};
+
         if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setRole(userData.role || 'client');
+          const dbData = userDoc.data() as UserProfile;
+          userRole = dbData.role || 'client';
+          userDataFromDb = dbData;
         } else {
-          // Default to client if no specific role is found
-          setRole('client');
+          // If user doc doesn't exist, create it
+           await setDoc(userDocRef, {
+                uid: user.uid,
+                email: user.email,
+                role: 'client',
+                displayName: user.displayName,
+                photoURL: user.photoURL
+            }, { merge: true });
         }
+        
+        setRole(userRole);
+        setUser({ ...user, ...userDataFromDb, role: userRole });
+
       } else {
         setRole(null);
+        setUser(null);
       }
       setLoading(false);
     });
@@ -72,7 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [pathname]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, role, handleLogout, isSidebarOpen, setSidebarOpen }}>
+    <AuthContext.Provider value={{ user, loading, role, handleLogout, isSidebarOpen, setSidebarOpen, updateUserProfile: updateUserProfileInContext, isAddProductDialogOpen, setAddProductDialogOpen, handleAddProductClick }}>
       {children}
     </AuthContext.Provider>
   );

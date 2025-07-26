@@ -24,10 +24,11 @@ import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import ProductForm from '@/components/admin/product-form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
 export default function AdminPage() {
-  const { user, loading: authLoading, role } = useAuth();
+  const { user, loading: authLoading, role, isAddProductDialogOpen, setAddProductDialogOpen } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -36,7 +37,6 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
@@ -93,7 +93,7 @@ export default function AdminPage() {
             setIsEditDialogOpen(false);
             setEditingProduct(null);
         } else {
-            setIsAddDialogOpen(false);
+            setAddProductDialogOpen(false);
         }
     } else {
         toast({ variant: 'destructive', title: 'Error', description: result.message });
@@ -181,7 +181,7 @@ export default function AdminPage() {
             <Card className="glass-panel">
                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Manage Products</CardTitle>
-                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                    <Dialog open={isAddProductDialogOpen} onOpenChange={setAddProductDialogOpen}>
                         <DialogTrigger asChild>
                             <Button variant="outline" className="border-cyan-400/40 text-cyan-200 hover:bg-cyan-400/10">
                                 <PlusCircle className="w-4 h-4 mr-2" /> Add New Product
@@ -236,7 +236,7 @@ export default function AdminPage() {
           </motion.div>
         </TabsContent>
 
-        <TabsContent value="orders">
+        <TabsContent value="orders" id="orders">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
              <Card className="glass-panel">
                <CardHeader className="flex flex-row items-center justify-between">
@@ -292,7 +292,7 @@ export default function AdminPage() {
           </motion.div>
         </TabsContent>
 
-        <TabsContent value="customers">
+        <TabsContent value="customers" id="customers">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
                  <Card className="glass-panel">
                     <CardHeader><CardTitle>Manage Customers</CardTitle></CardHeader>
@@ -310,7 +310,10 @@ export default function AdminPage() {
                              {users.map(user => (
                                <TableRow key={user.uid} className="hover:bg-primary/5">
                                  <TableCell className="font-medium flex items-center gap-2">
-                                    <UserCircle className="w-5 h-5 text-cyan-300" />
+                                    <Avatar className="h-8 w-8">
+                                      <AvatarImage src={user.photoURL || ''} alt={user.displayName} />
+                                      <AvatarFallback><UserCircle className="w-5 h-5 text-cyan-300" /></AvatarFallback>
+                                    </Avatar>
                                     {user.displayName || 'N/A'}
                                  </TableCell>
                                  <TableCell>{user.email}</TableCell>
@@ -331,7 +334,7 @@ export default function AdminPage() {
             </motion.div>
         </TabsContent>
 
-        <TabsContent value="logs">
+        <TabsContent value="logs" id="logs">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
                  <p className="text-muted-foreground text-center py-8">System log viewer coming soon.</p>
             </motion.div>
