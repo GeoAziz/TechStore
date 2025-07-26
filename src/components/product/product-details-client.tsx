@@ -243,10 +243,31 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
               </Button>
             </CardContent>
           </Card>
+        </div>
+      </div>
 
-          <Separator className="my-6" />
-
-          <AiEnhancer productDescription={product.description} />
+      <Separator className="my-8" />
+        
+      <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+        <div aria-label="Technical Specifications">
+          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
+            <h2 className="text-2xl font-bold mb-4 glow-primary" tabIndex={0}>Technical Specifications</h2>
+            <Card className="glass-panel">
+              <CardContent className="p-6">
+                <motion.ul initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.15 } } }} className="space-y-2 text-muted-foreground">
+                  <motion.li variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="flex justify-between"><span>Brand:</span> <strong>{product.brand}</strong></motion.li>
+                  <motion.li variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="flex justify-between"><span>Category:</span> <strong>{product.category}</strong></motion.li>
+                  {product.subcategory && <motion.li variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="flex justify-between"><span>Sub-Category:</span> <strong>{product.subcategory}</strong></motion.li>}
+                  <motion.li variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="flex justify-between"><span>In Stock:</span> <strong className="text-primary">{product.stock > 0 ? 'Yes' : 'No'}</strong></motion.li>
+                </motion.ul>
+                <Separator className="my-4"/>
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="whitespace-pre-line" aria-label="Product technical description">{product.description}</motion.p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+        <div>
+           <AiEnhancer productDescription={product.description} />
         </div>
       </div>
 
@@ -314,26 +335,6 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
             </div>
         </div>
       </div>
-
-      <div className="mt-12" aria-label="Technical Specifications">
-        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
-          <h2 className="text-2xl font-bold mb-4 glow-primary" tabIndex={0}>Technical Specifications</h2>
-          <Card className="glass-panel">
-            <CardContent className="p-6">
-              <motion.ul initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.15 } } }} className="space-y-2 text-muted-foreground">
-                <motion.li variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="flex justify-between"><span>Brand:</span> <strong>{product.brand}</strong></motion.li>
-                <motion.li variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="flex justify-between"><span>Category:</span> <strong>{product.category}</strong></motion.li>
-                {product.subcategory && <motion.li variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="flex justify-between"><span>Sub-Category:</span> <strong>{product.subcategory}</strong></motion.li>}
-                <motion.li variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }} className="flex justify-between"><span>In Stock:</span> <strong className="text-primary">{product.stock > 0 ? 'Yes' : 'No'}</strong></motion.li>
-              </motion.ul>
-              <Separator className="my-4"/>
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="whitespace-pre-line" aria-label="Product technical description">{product.description}</motion.p>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
     </div>
   );
 }
-
-    
