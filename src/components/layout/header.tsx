@@ -29,7 +29,11 @@ export default function Header() {
       // Cart count listener
       const cartRef = collection(db, 'users', user.uid, 'cart');
       const unsubscribeCart = onSnapshot(cartRef, (snapshot) => {
-        setCartCount(snapshot.size);
+        let count = 0;
+        snapshot.forEach(doc => {
+            count += doc.data().quantity || 1;
+        });
+        setCartCount(count);
       });
 
       // Wishlist count listener
@@ -96,11 +100,10 @@ export default function Header() {
               <span className="sr-only">Wishlist</span>
             </Link>
           </Button>
-          {/* Floating cart icon for mobile */}
-          <div className="md:relative fixed bottom-6 right-6 md:bottom-auto md:right-auto z-[60] md:z-auto">
-            <Button variant="ghost" size="icon" asChild className="relative bg-cyan-400/90 hover:bg-cyan-400 text-black md:bg-transparent md:text-cyan-300 shadow-[0_0_16px_#00fff7] md:shadow-none rounded-full md:rounded-none transition-all">
+          
+          <Button variant="ghost" size="icon" asChild className="relative hover:bg-cyan-400/10">
               <Link href="/checkout">
-                <ShoppingCart className="h-6 w-6" />
+                <ShoppingCart className="h-6 w-6 text-cyan-300" />
                 {cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-600 text-xs font-bold text-white animate-pulse shadow-[0_0_8px_#ff00c8]">
                     {cartCount}
@@ -108,8 +111,8 @@ export default function Header() {
                 )}
                 <span className="sr-only">Cart</span>
               </Link>
-            </Button>
-          </div>
+          </Button>
+
           {!loading && (
             user ? (
               <Button variant="outline" className="hidden md:inline-flex" onClick={handleLogout}>
