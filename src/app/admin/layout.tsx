@@ -3,7 +3,7 @@
 
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Loader2, Package, Users, Activity, Warehouse, PanelLeft, Bot, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -20,21 +20,18 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserCircle } from 'lucide-react';
+import AiAssistantOverlay from '@/components/ai-assistant/ai-assistant-overlay';
 
 
 const navItems = [
     { href: "/admin", icon: Warehouse, label: "Dashboard" },
     // The inventory, orders, etc are tabs inside the dashboard page for now
     // If they become separate pages, they can be added here.
-    // { href: "/admin/inventory", icon: Warehouse, label: "Inventory" },
-    // { href: "/admin/orders", icon: Package, label: "Orders" },
-    // { href: "/admin/customers", icon: Users, label: "Customers" },
-    // { href: "/admin/logs", icon: Activity, label: "System Logs" },
 ];
 
 
 function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
-    const { user, loading, role, handleLogout } = useAuth();
+    const { user, handleLogout } = useAuth();
 
     return (
         <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-primary/20 bg-background/80 px-4 backdrop-blur-sm md:px-6">
@@ -93,15 +90,15 @@ function AdminSidebar() {
     const pathname = usePathname();
     const { isSidebarOpen } = useAuth();
 
+    const sidebarVariants = {
+        open: { x: 0, transition: { type: 'spring', stiffness: 300, damping: 30 } },
+        closed: { x: '-100%', transition: { type: 'spring', stiffness: 300, damping: 30 } }
+    };
+
     return (
-         <AnimatePresence>
-         {isSidebarOpen && (
-        <motion.aside 
-            initial={{ x: '-100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed inset-y-0 left-0 z-40 w-64 border-r border-primary/20 bg-background/90 backdrop-blur-lg md:static md:block md:w-64"
+         <aside 
+            className="fixed inset-y-0 left-0 z-40 w-64 border-r border-primary/20 bg-background/90 backdrop-blur-lg md:static md:block md:w-64 transition-transform duration-300 ease-in-out md:translate-x-0"
+            style={{ transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)' }}
         >
             <div className="flex h-full max-h-screen flex-col gap-2">
                 <div className="flex h-16 items-center border-b border-primary/20 px-6">
@@ -125,9 +122,7 @@ function AdminSidebar() {
                      </Button>
                 </div>
             </div>
-        </motion.aside>
-         )}
-         </AnimatePresence>
+        </aside>
     );
 }
 
@@ -149,6 +144,14 @@ export default function AdminLayout({
       }
     }
   }, [user, loading, role, router]);
+  
+  // Close sidebar on mobile navigation
+  const pathname = usePathname();
+  useEffect(() => {
+      if(isSidebarOpen && window.innerWidth < 768) {
+        setSidebarOpen(false);
+      }
+  }, [pathname, isSidebarOpen, setSidebarOpen]);
 
   if (loading || !user || role !== 'admin') {
     return (
@@ -160,6 +163,7 @@ export default function AdminLayout({
 
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[256px_1fr]">
+        <div className={`fixed inset-0 z-40 bg-black/60 md:hidden ${isSidebarOpen ? 'block' : 'hidden'}`} onClick={() => setSidebarOpen(false)}></div>
         <AdminSidebar />
         <div className="flex flex-col">
             <AdminHeader onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
@@ -167,6 +171,7 @@ export default function AdminLayout({
                 {children}
             </main>
         </div>
+        <AiAssistantOverlay />
     </div>
   );
 }
