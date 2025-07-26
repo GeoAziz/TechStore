@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import SplashScreen from '@/components/splash/splash-screen';
 import Header from './header';
+import Footer from './footer';
 import { usePathname } from 'next/navigation';
 import AiAssistantOverlay from '@/components/ai-assistant';
 
@@ -36,6 +37,7 @@ export default function AppWrapper({ children }: { children: React.ReactNode }) 
           <div className="flex flex-col min-h-screen">
             <Header />
             <main className="flex-1">{children}</main>
+            <Footer />
             <AiAssistantOverlay />
           </div>
         )}
