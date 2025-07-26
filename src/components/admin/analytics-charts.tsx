@@ -1,7 +1,7 @@
 
 "use client"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell, Line, LineChart, ResponsiveContainer } from "recharts";
 import type { Product, Order, UserProfile } from "@/lib/types";
 import { useMemo } from "react";
@@ -56,6 +56,30 @@ export default function AnalyticsCharts({ products, orders, users }: { products:
     }, {} as Record<string, number>);
     return Object.entries(categoryCounts).map(([name, value]) => ({ name, value }));
   }, [products]);
+  
+  const chartConfig: ChartConfig = useMemo(() => {
+      const config: ChartConfig = {};
+      categoryData.forEach((item, index) => {
+          config[item.name] = {
+              label: item.name,
+              color: COLORS[index % COLORS.length]
+          };
+      });
+      return config;
+  }, [categoryData]);
+
+  const barChartConfig: ChartConfig = {
+      count: {
+          label: 'New Users',
+          color: 'hsl(var(--accent))',
+      },
+  };
+   const lineChartConfig: ChartConfig = {
+      total: {
+          label: 'Sales',
+          color: 'hsl(var(--primary))',
+      },
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -66,8 +90,8 @@ export default function AnalyticsCharts({ products, orders, users }: { products:
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-               <LineChart data={salesData}>
+             <ChartContainer config={lineChartConfig}>
+               <LineChart data={salesData} accessibilityLayer>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))' }} fontSize={12} />
                 <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} fontSize={12} tickFormatter={(value) => `KES ${Number(value) / 1000}k`}/>
@@ -77,7 +101,7 @@ export default function AnalyticsCharts({ products, orders, users }: { products:
                 />
                 <Line type="monotone" dataKey="total" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
               </LineChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </div>
         </CardContent>
       </Card>
@@ -89,8 +113,8 @@ export default function AnalyticsCharts({ products, orders, users }: { products:
         </CardHeader>
         <CardContent>
            <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+               <ChartContainer config={chartConfig}>
+                    <PieChart accessibilityLayer>
                         <Pie
                             data={categoryData}
                             cx="50%"
@@ -111,7 +135,7 @@ export default function AnalyticsCharts({ products, orders, users }: { products:
                             content={<ChartTooltipContent hideLabel />}
                         />
                     </PieChart>
-                </ResponsiveContainer>
+                </ChartContainer>
             </div>
         </CardContent>
       </Card>
@@ -123,8 +147,8 @@ export default function AnalyticsCharts({ products, orders, users }: { products:
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-               <BarChart data={newUsersData}>
+             <ChartContainer config={barChartConfig}>
+               <BarChart data={newUsersData} accessibilityLayer>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))' }} fontSize={12} />
                 <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} fontSize={12} allowDecimals={false}/>
@@ -134,7 +158,7 @@ export default function AnalyticsCharts({ products, orders, users }: { products:
                 />
                 <Bar dataKey="count" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </div>
         </CardContent>
       </Card>
