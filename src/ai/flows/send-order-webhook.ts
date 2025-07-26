@@ -9,7 +9,8 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { OrderInputSchema, type OrderInput } from '@/ai/schemas/order-schema';
-
+import { db } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export async function sendOrderToWebhook(input: OrderInput): Promise<{ success: boolean; message: string }> {
   return sendOrderWebhookFlow(input);
@@ -55,6 +56,16 @@ const sendOrderWebhookFlow = ai.defineFlow(
       
       const responseData = await response.json();
       console.log('Webhook response:', responseData);
+
+      // Create a notification for the admin
+      const notificationRef = db.collection('notifications').doc();
+      await notificationRef.set({
+        title: 'New Order Received',
+        message: `A new order was placed by ${order.contact.email} for a total of KES ${order.total.toLocaleString()}.`,
+        timestamp: FieldValue.serverTimestamp(),
+        read: false,
+        type: 'order',
+      });
 
       return {
         success: true,

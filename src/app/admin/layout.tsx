@@ -4,7 +4,7 @@
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
-import { Loader2, Warehouse, PanelLeft, Bot, Bell, Activity, Rocket, User, Settings, LogOut, UploadCloud, Save, UserCircle, PlusCircle, BarChart, Users as UsersIcon } from 'lucide-react';
+import { Loader2, Warehouse, PanelLeft, Bot, Bell, Activity, Rocket, User, Settings, LogOut, UploadCloud, Save, UserCircle, PlusCircle, BarChart, Users as UsersIcon, Package, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -27,7 +27,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { getOrders, getProducts, getUsers } from '@/lib/firestore-service';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc } from 'firebase/firestore';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { formatDistanceToNow } from 'date-fns';
 
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: {
+    seconds: number;
+    nanoseconds: number;
+  };
+  read: boolean;
+  type: string;
+}
 
 const navItems = [
     { href: "/admin", icon: Warehouse, label: "Dashboard" },
@@ -224,6 +240,31 @@ function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const { user, handleLogout } = useAuth();
   const router = useRouter();
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  useEffect(() => {
+    const q = query(collection(db, "notifications"), orderBy("timestamp", "desc"), limit(20));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const notifs: Notification[] = [];
+        querySnapshot.forEach((doc) => {
+            notifs.push({ id: doc.id, ...doc.data() } as Notification);
+        });
+        setNotifications(notifs);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const markAsRead = async (id: string) => {
+    const notifRef = doc(db, "notifications", id);
+    await updateDoc(notifRef, { read: true });
+  };
+  
+  const markAllAsRead = async () => {
+    const unreadNotifs = notifications.filter(n => !n.read);
+    const promises = unreadNotifs.map(n => markAsRead(n.id));
+    await Promise.all(promises);
+  };
   
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-primary/20 bg-background/80 px-4 backdrop-blur-sm md:px-6">
@@ -242,15 +283,68 @@ function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
       <div className="flex-grow"></div>
       
       <div className="flex items-center gap-2 md:gap-4">
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Bell className="h-5 w-5 text-cyan-300 animate-pulse" />
-                  <span className="sr-only">Toggle notifications</span>
-                </Button>
-            </TooltipTrigger>
-            <TooltipContent>Notifications</TooltipContent>
-        </Tooltip>
+        <Popover>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="rounded-full relative">
+                        <Bell className="h-5 w-5 text-cyan-300" />
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs font-bold text-white animate-pulse shadow-md">
+                                {unreadCount}
+                            </span>
+                        )}
+                        <span className="sr-only">Toggle notifications</span>
+                        </Button>
+                    </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Notifications</TooltipContent>
+            </Tooltip>
+            <PopoverContent className="w-80 p-0" align="end">
+                <div className="p-4 font-medium flex items-center justify-between border-b">
+                    <span>Notifications</span>
+                    {unreadCount > 0 && (
+                        <Button variant="link" size="sm" className="h-auto p-0 text-accent" onClick={markAllAsRead}>
+                            <CheckCheck className="w-4 h-4 mr-1"/>
+                            Mark all as read
+                        </Button>
+                    )}
+                </div>
+                <ScrollArea className="h-96">
+                {notifications.length > 0 ? (
+                    notifications.map(notif => (
+                    <div key={notif.id} className={`p-4 border-b last:border-b-0 ${!notif.read && 'bg-primary/10'}`}>
+                        <div className="flex items-start gap-3">
+                            <div className={`mt-1 h-2 w-2 rounded-full ${notif.read ? 'bg-muted-foreground/50' : 'bg-primary animate-pulse'}`}></div>
+                            <div className="flex-1">
+                                <p className="font-semibold text-sm">{notif.title}</p>
+                                <p className="text-xs text-muted-foreground">{notif.message}</p>
+                                <p className="text-xs text-muted-foreground/70 mt-1">
+                                    {formatDistanceToNow(new Date(notif.timestamp.seconds * 1000), { addSuffix: true })}
+                                </p>
+                            </div>
+                            {!notif.read && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button onClick={() => markAsRead(notif.id)} className="p-1 rounded-full hover:bg-muted">
+                                            <CheckCheck className="w-4 h-4 text-primary" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Mark as read</TooltipContent>
+                                </Tooltip>
+                            )}
+                        </div>
+                    </div>
+                    ))
+                ) : (
+                    <div className="p-8 text-center text-sm text-muted-foreground">
+                        <Package className="w-8 h-8 mx-auto mb-2"/>
+                        No new notifications.
+                    </div>
+                )}
+                </ScrollArea>
+            </PopoverContent>
+        </Popover>
        
         <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
             <DropdownMenu>
