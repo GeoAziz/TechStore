@@ -21,17 +21,16 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import Image from 'next/image';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import ProductForm from '@/components/admin/product-form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import AnalyticsCharts from '@/components/admin/analytics-charts';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
-import { DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import type { ProductCategory } from '@/lib/types';
 import { deleteMultipleProducts, updateOrderStatus, getAuditLogs } from '@/lib/firestore-service';
 import CustomerManagement from '@/components/admin/customer-management';
@@ -552,5 +551,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
