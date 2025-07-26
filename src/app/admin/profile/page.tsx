@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -16,8 +15,8 @@ import { Loader2, UserCircle, Pen, Shield, Trash2, KeyRound, LogOut, Save } from
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 
-// Placeholder for a component to upload images
-const ImageUploadModal = ({ onSave }) => (
+// Fix: Add types to modal props
+const ImageUploadModal = ({ onSave }: { onSave: () => void }) => (
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Change Avatar</DialogTitle>
@@ -36,7 +35,7 @@ const ImageUploadModal = ({ onSave }) => (
     </DialogContent>
 );
 
-const ChangePasswordModal = ({ open, onOpenChange }) => (
+const ChangePasswordModal = ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent>
       <DialogHeader>
@@ -94,119 +93,117 @@ export default function AdminProfilePage() {
     }
 
     return (
-        <div className="space-y-8">
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-                <h1 className="text-3xl font-bold tracking-tight glow-primary">Admin Profile</h1>
-                <p className="text-muted-foreground">Manage your account settings and security.</p>
+        <div className="space-y-8" role="main" aria-label="Admin Profile Main Content">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+            <h1 className="text-3xl font-bold tracking-tight glow-primary" tabIndex={0} aria-label="Admin Profile Heading">Admin Profile</h1>
+            <p className="text-muted-foreground" tabIndex={0}>Manage your account settings and security.</p>
+          </motion.div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Panel */}
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-1 space-y-6">
+              <Card className="glass-panel text-center" role="region" aria-label="Profile Card">
+                <CardHeader>
+                  <Dialog>
+                    <div className="relative w-32 h-32 mx-auto" tabIndex={0} aria-label="Profile Avatar">
+                      <Avatar className="w-32 h-32 border-4 border-primary shadow-neon-primary">
+                        <AvatarImage src={user?.photoURL || ''} alt="User Avatar" />
+                        <AvatarFallback><UserCircle className="w-24 h-24 text-primary" aria-label="Default User Icon" /></AvatarFallback>
+                      </Avatar>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="icon"
+                          aria-label="Change Avatar"
+                          className="absolute bottom-1 right-1 rounded-full w-8 h-8 bg-accent hover:bg-accent/80 focus:ring-2 focus:ring-accent"
+                        >
+                          <Pen className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                    </div>
+                    <ImageUploadModal onSave={handleAvatarSave} />
+                  </Dialog>
+                </CardHeader>
+                <CardContent>
+                  <h2 className="text-2xl font-bold glow-accent" tabIndex={0}>{user?.displayName || 'Admin User'}</h2>
+                  <p className="text-muted-foreground" tabIndex={0}>{user?.email}</p>
+                  <Badge variant="secondary" className="mt-4 bg-green-500/20 text-green-300 border-green-400/40" aria-label="Online Status">Online</Badge>
+                </CardContent>
+              </Card>
             </motion.div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Panel */}
-                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-1 space-y-6">
-                    <Card className="glass-panel text-center">
-                        <CardHeader>
-                            <Dialog>
-                                <div className="relative w-32 h-32 mx-auto">
-                                    <Avatar className="w-32 h-32 border-4 border-primary shadow-neon-primary">
-                                        <AvatarImage src={user?.photoURL || ''} />
-                                        <AvatarFallback><UserCircle className="w-24 h-24 text-primary" /></AvatarFallback>
-                                    </Avatar>
-                                    <DialogTrigger asChild>
-                                    <Button
-                                        size="icon"
-                                        aria-label="Change Avatar"
-                                        className="absolute bottom-1 right-1 rounded-full w-8 h-8 bg-accent hover:bg-accent/80"
-                                    >
-                                        <Pen className="w-4 h-4" />
-                                    </Button>
-                                    </DialogTrigger>
-                                </div>
-                                <ImageUploadModal onSave={handleAvatarSave} />
-                            </Dialog>
-                        </CardHeader>
-                        <CardContent>
-                            <h2 className="text-2xl font-bold glow-accent">{user?.displayName || 'Admin User'}</h2>
-                            <p className="text-muted-foreground">{user?.email}</p>
-                            <Badge variant="secondary" className="mt-4 bg-green-500/20 text-green-300 border-green-400/40">Online</Badge>
-                        </CardContent>
-                    </Card>
-                </motion.div>
-
-                {/* Right Panel */}
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-2 space-y-8">
-                    {/* Settings Form */}
-                    <Card className="glass-panel">
-                        <CardHeader>
-                            <CardTitle>Account Settings</CardTitle>
-                            <CardDescription>Update your personal information and preferences.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                             <div className="space-y-2">
-                                <Label htmlFor="displayName">Display Name</Label>
-                                <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-                             </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="email">Email Address</Label>
-                                <Input id="email" value={user?.email || ''} disabled />
-                             </div>
-                             <div className="flex items-center justify-between">
-                                <Label htmlFor="theme-switch">Interface Theme</Label>
-                                <div className="flex items-center gap-2">
-                                    <span>Light</span>
-                                    <Switch id="theme-switch" checked={isDarkTheme} onCheckedChange={setIsDarkTheme} aria-label="Toggle theme" />
-                                    <span>Dark</span>
-                                </div>
-                             </div>
-                             <div className="flex items-center justify-between">
-                                <Label htmlFor="notifications-switch">Push Notifications</Label>
-                                <Switch id="notifications-switch" defaultChecked aria-label="Toggle push notifications" />
-                             </div>
-                        </CardContent>
-                        <CardHeader>
-                            <Button onClick={handleProfileSave} className="w-full md:w-auto"><Save className="mr-2 h-4 w-4" /> Save Changes</Button>
-                        </CardHeader>
-                    </Card>
-
-                    {/* Security Panel */}
-                    <Card className="glass-panel border-accent/40">
-                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-accent glow-accent"><Shield /> Security</CardTitle>
-                            <CardDescription>Manage your account security settings.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <Button variant="outline" className="w-full justify-start gap-2" onClick={() => setIsPasswordModalOpen(true)}>
-                                <KeyRound className="w-4 h-4"/> Change Password
-                            </Button>
-                             <Button variant="outline" className="w-full justify-start gap-2">
-                                <LogOut className="w-4 h-4"/> Logout From All Devices
-                            </Button>
-                            <Separator />
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" className="w-full justify-start gap-2">
-                                        <Trash2 className="w-4 h-4"/> Delete Account
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This action cannot be undone. This will permanently delete your account and remove your data from our servers.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => toast({variant: 'destructive', title: "Action not implemented"})}>Delete Account</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </CardContent>
-                    </Card>
-                </motion.div>
-            </div>
-
-            {/* Modals */}
-            <ChangePasswordModal open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen} />
+            {/* Right Panel */}
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-2 space-y-8">
+              {/* Settings Form */}
+              <Card className="glass-panel" role="form" aria-label="Account Settings">
+                <CardHeader>
+                  <CardTitle tabIndex={0}>Account Settings</CardTitle>
+                  <CardDescription tabIndex={0}>Update your personal information and preferences.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="displayName">Display Name</Label>
+                    <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} aria-label="Display Name Input" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input id="email" value={user?.email || ''} disabled aria-label="Email Address Input" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="theme-switch">Interface Theme</Label>
+                    <div className="flex items-center gap-2">
+                      <span>Light</span>
+                      <Switch id="theme-switch" checked={isDarkTheme} onCheckedChange={setIsDarkTheme} aria-label="Toggle theme" />
+                      <span>Dark</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="notifications-switch">Push Notifications</Label>
+                    <Switch id="notifications-switch" defaultChecked aria-label="Toggle push notifications" />
+                  </div>
+                </CardContent>
+                <CardHeader>
+                  <Button onClick={handleProfileSave} className="w-full md:w-auto" aria-label="Save Profile Changes"><Save className="mr-2 h-4 w-4" /> Save Changes</Button>
+                </CardHeader>
+              </Card>
+              {/* Security Panel */}
+              <Card className="glass-panel border-accent/40" role="region" aria-label="Security Panel">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-accent glow-accent" tabIndex={0}><Shield /> Security</CardTitle>
+                  <CardDescription tabIndex={0}>Manage your account security settings.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button variant="outline" className="w-full justify-start gap-2" onClick={() => setIsPasswordModalOpen(true)} aria-label="Change Password">
+                    <KeyRound className="w-4 h-4"/> Change Password
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start gap-2" aria-label="Logout From All Devices">
+                    <LogOut className="w-4 h-4"/> Logout From All Devices
+                  </Button>
+                  <Separator />
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="destructive" className="w-full justify-start gap-2" aria-label="Delete Account">
+                        <Trash2 className="w-4 h-4"/> Delete Account
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle tabIndex={0}>Are you absolutely sure?</DialogTitle>
+                        <DialogDescription tabIndex={0}>
+                          This action cannot be undone. This will permanently delete your account and remove your data from our servers.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="ghost" aria-label="Cancel Delete Account">Cancel</Button>
+                        </DialogClose>
+                        <Button variant="destructive" onClick={() => toast({variant: 'destructive', title: "Action not implemented"})} aria-label="Confirm Delete Account">Delete Account</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+          {/* Modals */}
+          <ChangePasswordModal open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen} />
         </div>
     );
 }
