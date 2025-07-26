@@ -309,7 +309,10 @@ export default function AdminPage() {
                              {users.map(user => (
                                <TableRow key={user.uid} className="hover:bg-primary/5">
                                  <TableCell className="font-medium flex items-center gap-2">
-                                    <UserCircle className="w-5 h-5 text-cyan-300" />
+                                    <Avatar className="h-8 w-8">
+                                      <AvatarImage src={user.photoURL || ''} alt={user.displayName} />
+                                      <AvatarFallback><UserCircle className="w-5 h-5 text-cyan-300" /></AvatarFallback>
+                                    </Avatar>
                                     {user.displayName || 'N/A'}
                                  </TableCell>
                                  <TableCell>{user.email}</TableCell>
