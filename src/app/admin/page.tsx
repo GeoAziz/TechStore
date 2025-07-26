@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
-import { getProducts, getOrders, deleteProduct as serverDeleteProduct, addProduct as serverAddProduct, getUsers, updateProduct as serverUpdateProduct, deleteUser as serverDeleteUser, updateUserRole as serverUpdateUserRole } from '@/lib/firestore-service';
-import type { Product, Order, UserProfile, OrderStatus, UserRole } from '@/lib/types';
-import { Loader2, Package, Users, Activity, DollarSign, Warehouse, Edit, Trash2, PlusCircle, UserCircle, Filter, MoreHorizontal, Shield } from 'lucide-react';
+import { getProducts, getOrders, deleteProduct as serverDeleteProduct, addProduct as serverAddProduct, getUsers, updateProduct as serverUpdateProduct, deleteUser as serverDeleteUser, updateUserRole as serverUpdateUserRole, deleteMultipleProducts, deleteMultipleUsers, getAuditLogs, updateOrderStatus } from '@/lib/firestore-service';
+import type { Product, Order, UserProfile, OrderStatus, UserRole, ProductCategory, AuditLog } from '@/lib/types';
+import { Loader2, Package, Users, Activity, DollarSign, Warehouse, Edit, Trash2, PlusCircle, UserCircle, Filter, MoreHorizontal, Shield, Calendar as CalendarIcon, ChevronsUpDown, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Table,
@@ -27,7 +27,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-
+import { Checkbox } from '@/components/ui/checkbox';
+import AnalyticsCharts from '@/components/admin/analytics-charts';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DateRange } from 'react-day-picker';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { categoryData } from '@/lib/mock-data';
 
 export default function AdminPage() {
   const { user: currentUser, loading: authLoading, role, isAddProductDialogOpen, setAddProductDialogOpen } = useAuth();
@@ -35,31 +41,42 @@ export default function AdminPage() {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
+  // Data states
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Dialog states
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole>('client');
 
+  // Selection states for bulk actions
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  
+  // Filter states
+  const [productCategoryFilter, setProductCategoryFilter] = useState<ProductCategory | 'all'>('all');
   const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatus | 'all'>('all');
+  const [orderDateRange, setOrderDateRange] = useState<DateRange | undefined>();
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [productsData, ordersData, usersData] = await Promise.all([
+      const [productsData, ordersData, usersData, logsData] = await Promise.all([
         getProducts(),
         getOrders(),
         getUsers(),
+        getAuditLogs()
       ]);
       setProducts(productsData);
       setOrders(ordersData);
       setUsers(usersData);
+      setAuditLogs(logsData);
     } catch (error) {
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch dashboard data.' });
     } finally {
@@ -77,8 +94,8 @@ export default function AdminPage() {
   
   const handleDeleteProduct = async (productId: string) => {
     if(!confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
-
-    const result = await serverDeleteProduct(productId);
+    if (!currentUser) return;
+    const result = await serverDeleteProduct(productId, currentUser.uid, currentUser.email || '');
     if(result.success) {
       toast({ title: 'Success', description: 'Product successfully deleted.'});
       fetchData(); // Refresh data
@@ -86,12 +103,37 @@ export default function AdminPage() {
       toast({ variant: 'destructive', title: 'Error', description: result.message });
     }
   }
+  
+  const handleBulkDeleteProducts = async () => {
+     if (!currentUser) return;
+     const result = await deleteMultipleProducts(selectedProducts, currentUser.uid, currentUser.email || '');
+     if(result.success) {
+        toast({ title: 'Success', description: `${selectedProducts.length} products deleted.`});
+        setSelectedProducts([]);
+        fetchData();
+     } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.message });
+     }
+  }
+  
+  const handleBulkDeleteUsers = async () => {
+    if (!currentUser) return;
+    const result = await deleteMultipleUsers(selectedUsers, currentUser.uid, currentUser.email || '');
+    if(result.success) {
+       toast({ title: 'Success', description: `${selectedUsers.length} users deleted.`});
+       setSelectedUsers([]);
+       fetchData();
+    } else {
+       toast({ variant: 'destructive', title: 'Error', description: result.message });
+    }
+  }
 
   const handleProductSubmit = async (productData: Omit<Product, 'id'> | Product) => {
+    if (!currentUser) return;
     const isEditing = 'id' in productData;
     const result = isEditing 
-        ? await serverUpdateProduct(productData.id, productData) 
-        : await serverAddProduct({ ...productData, featured: false, rating: 0 });
+        ? await serverUpdateProduct(productData.id, productData, currentUser.uid, currentUser.email || '') 
+        : await serverAddProduct({ ...productData, featured: false, rating: 0 }, currentUser.uid, currentUser.email || '');
 
     if(result.success) {
         toast({ title: 'Success', description: `Product successfully ${isEditing ? 'updated' : 'added'}.`});
@@ -112,12 +154,20 @@ export default function AdminPage() {
     setIsEditDialogOpen(true);
   };
   
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => productCategoryFilter === 'all' || p.category === productCategoryFilter);
+  }, [products, productCategoryFilter]);
+
   const filteredOrders = useMemo(() => {
-    if (orderStatusFilter === 'all') {
-      return orders;
-    }
-    return orders.filter(order => order.status === orderStatusFilter);
-  }, [orders, orderStatusFilter]);
+    return orders.filter(order => {
+        const statusMatch = orderStatusFilter === 'all' || order.status === orderStatusFilter;
+        const dateMatch = !orderDateRange?.from || (
+            new Date(order.timestamp) >= orderDateRange.from &&
+            (!orderDateRange.to || new Date(order.timestamp) <= orderDateRange.to)
+        );
+        return statusMatch && dateMatch;
+    });
+  }, [orders, orderStatusFilter, orderDateRange]);
 
   const openEditUserDialog = (user: UserProfile) => {
     setEditingUser(user);
@@ -126,9 +176,9 @@ export default function AdminPage() {
   };
 
   const handleUpdateUserRole = () => {
-    if (!editingUser) return;
+    if (!editingUser || !currentUser) return;
     startTransition(async () => {
-      const result = await serverUpdateUserRole(editingUser.uid, selectedRole);
+      const result = await serverUpdateUserRole(editingUser.uid, selectedRole, currentUser.uid, currentUser.email || '');
       if (result.success) {
         toast({ title: 'Success', description: "User role has been updated." });
         fetchData(); // Refresh data
@@ -141,8 +191,9 @@ export default function AdminPage() {
   };
 
   const handleDeleteUser = (userId: string) => {
+    if (!currentUser) return;
     startTransition(async () => {
-      const result = await serverDeleteUser(userId);
+      const result = await serverDeleteUser(userId, currentUser.uid, currentUser.email || '');
       if (result.success) {
         toast({ title: 'Success', description: 'User has been deleted.' });
         fetchData(); // Refresh data
@@ -150,6 +201,17 @@ export default function AdminPage() {
         toast({ variant: 'destructive', title: 'Error', description: result.message });
       }
     });
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
+     if (!currentUser) return;
+     const result = await updateOrderStatus(orderId, status, currentUser.uid, currentUser.email || '');
+     if(result.success) {
+        toast({ title: 'Success', description: 'Order status updated.'});
+        fetchData();
+     } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.message });
+     }
   };
 
 
@@ -171,74 +233,122 @@ export default function AdminPage() {
         transition={{ duration: 0.5 }}
         className="text-3xl md:text-4xl font-bold mb-6 glow-primary font-['Orbitron',_monospace]">Admin Dashboard</motion.h1>
       
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="glass-panel">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                  <DollarSign className="w-4 h-4 text-muted-foreground"/>
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold text-primary">KES {totalSales.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">All-time sales</p>
-              </CardContent>
-          </Card>
-            <Card className="glass-panel">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-                  <Package className="w-4 h-4 text-muted-foreground"/>
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">+{orders.length}</div>
-                  <p className="text-xs text-muted-foreground">All-time order count</p>
-              </CardContent>
-          </Card>
-            <Card className="glass-panel">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Products in Stock</CardTitle>
-                  <Warehouse className="w-4 h-4 text-muted-foreground"/>
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">{products.length}</div>
-                  <p className="text-xs text-muted-foreground">Total unique products</p>
-              </CardContent>
-          </Card>
-      </motion.div>
-
-      <Tabs defaultValue="inventory" className="w-full">
+      <Tabs defaultValue="overview" className="w-full">
         <TabsList className="mb-6 bg-[#18182c]/80 border border-cyan-400/20 rounded-xl shadow-[0_0_16px_#00fff733]">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="inventory"><Warehouse className="mr-2"/>Inventory</TabsTrigger>
           <TabsTrigger value="orders"><Package className="mr-2"/>Orders</TabsTrigger>
           <TabsTrigger value="customers"><Users className="mr-2"/>Customers</TabsTrigger>
           <TabsTrigger value="logs"><Activity className="mr-2"/>System Logs</TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="overview">
+             <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <Card className="glass-panel">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                          <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                          <DollarSign className="w-4 h-4 text-muted-foreground"/>
+                      </CardHeader>
+                      <CardContent>
+                          <div className="text-2xl font-bold text-primary">KES {totalSales.toLocaleString()}</div>
+                          <p className="text-xs text-muted-foreground">All-time sales</p>
+                      </CardContent>
+                  </Card>
+                    <Card className="glass-panel">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                          <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+                          <Package className="w-4 h-4 text-muted-foreground"/>
+                      </CardHeader>
+                      <CardContent>
+                          <div className="text-2xl font-bold">+{orders.length}</div>
+                          <p className="text-xs text-muted-foreground">All-time order count</p>
+                      </CardContent>
+                  </Card>
+                    <Card className="glass-panel">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                          <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                          <Users className="w-4 h-4 text-muted-foreground"/>
+                      </CardHeader>
+                      <CardContent>
+                          <div className="text-2xl font-bold">{users.length}</div>
+                          <p className="text-xs text-muted-foreground">Total registered users</p>
+                      </CardContent>
+                  </Card>
+              </motion.div>
+              <AnalyticsCharts orders={orders} users={users} products={products} />
+        </TabsContent>
 
         <TabsContent value="inventory">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
             <Card className="glass-panel">
-               <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Manage Products</CardTitle>
-                    <Dialog open={isAddProductDialogOpen} onOpenChange={setAddProductDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" className="border-cyan-400/40 text-cyan-200 hover:bg-cyan-400/10">
-                                <PlusCircle className="w-4 h-4 mr-2" /> Add New Product
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px] bg-card/80 backdrop-blur-sm border-primary/20">
-                            <DialogHeader>
-                                <DialogTitle className="glow-primary">Add New Product</DialogTitle>
-                            </DialogHeader>
-                            <ProductForm onSubmit={handleProductSubmit} />
-                        </DialogContent>
-                    </Dialog>
+               <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>Manage Products</CardTitle>
+                    <CardDescription>Total: {filteredProducts.length} products</CardDescription>
+                  </div>
+                   <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                        {selectedProducts.length > 0 ? (
+                           <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive">
+                                  <Trash2 className="w-4 h-4 mr-2" /> Delete ({selectedProducts.length})
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                          This will permanently delete {selectedProducts.length} selected products. This action cannot be undone.
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={handleBulkDeleteProducts}>Continue</AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                           </AlertDialog>
+                        ) : (
+                          <Select value={productCategoryFilter} onValueChange={(value) => setProductCategoryFilter(value as any)}>
+                              <SelectTrigger className="w-full md:w-[180px] bg-card/80">
+                                  <SelectValue placeholder="Filter by category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                  <SelectItem value="all">All Categories</SelectItem>
+                                  {categoryData.map(cat => <SelectItem key={cat.name} value={cat.name}>{cat.name}</SelectItem>)}
+                              </SelectContent>
+                          </Select>
+                        )}
+                        <Dialog open={isAddProductDialogOpen} onOpenChange={setAddProductDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="border-cyan-400/40 text-cyan-200 hover:bg-cyan-400/10">
+                                    <PlusCircle className="w-4 h-4 mr-2" /> Add New Product
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px] bg-card/80 backdrop-blur-sm border-primary/20">
+                                <DialogHeader>
+                                    <DialogTitle className="glow-primary">Add New Product</DialogTitle>
+                                </DialogHeader>
+                                <ProductForm onSubmit={handleProductSubmit} />
+                            </DialogContent>
+                        </Dialog>
+                   </div>
                </CardHeader>
                <CardContent>
                  <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[40px]">
+                           <Checkbox
+                            checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
+                            onCheckedChange={(checked) => {
+                                setSelectedProducts(checked ? filteredProducts.map(p => p.id) : [])
+                            }}
+                           />
+                        </TableHead>
                         <TableHead>Image</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Price</TableHead>
@@ -248,8 +358,18 @@ export default function AdminPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {products.map(product => (
+                      {filteredProducts.map(product => (
                         <TableRow key={product.id} className="hover:bg-primary/5">
+                          <TableCell>
+                            <Checkbox 
+                              checked={selectedProducts.includes(product.id)}
+                              onCheckedChange={(checked) => {
+                                setSelectedProducts(
+                                    checked ? [...selectedProducts, product.id] : selectedProducts.filter(id => id !== product.id)
+                                )
+                              }}
+                            />
+                          </TableCell>
                           <TableCell>
                             <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="rounded-md" />
                           </TableCell>
@@ -279,12 +399,47 @@ export default function AdminPage() {
         <TabsContent value="orders" id="orders">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
              <Card className="glass-panel">
-               <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Manage Orders</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-muted-foreground" />
+               <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>Manage Orders</CardTitle>
+                    <CardDescription>Total: {filteredOrders.length} orders</CardDescription>
+                  </div>
+                  <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            id="date"
+                            variant={"outline"}
+                            className="w-full md:w-[300px] justify-start text-left font-normal bg-card/80"
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {orderDateRange?.from ? (
+                            orderDateRange.to ? (
+                                <>
+                                {format(orderDateRange.from, "LLL dd, y")} -{" "}
+                                {format(orderDateRange.to, "LLL dd, y")}
+                                </>
+                            ) : (
+                                format(orderDateRange.from, "LLL dd, y")
+                            )
+                            ) : (
+                            <span>Pick a date range</span>
+                            )}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                            initialFocus
+                            mode="range"
+                            defaultMonth={orderDateRange?.from}
+                            selected={orderDateRange}
+                            onSelect={setOrderDateRange}
+                            numberOfMonths={2}
+                        />
+                        </PopoverContent>
+                    </Popover>
                     <Select value={orderStatusFilter} onValueChange={(value) => setOrderStatusFilter(value as any)}>
-                        <SelectTrigger className="w-[180px] bg-card/80">
+                        <SelectTrigger className="w-full md:w-[180px] bg-card/80">
                             <SelectValue placeholder="Filter by status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -312,14 +467,21 @@ export default function AdminPage() {
                     <TableBody>
                       {filteredOrders.map(order => (
                         <TableRow key={order.id} className="hover:bg-primary/5">
-                          <TableCell className="font-medium text-primary">{order.id}</TableCell>
+                          <TableCell className="font-medium text-primary">{order.id.substring(0,8)}...</TableCell>
                           <TableCell>{order.user}</TableCell>
                           <TableCell>{order.productName}</TableCell>
                           <TableCell>
-                            <Badge variant={order.status === 'Delivered' ? 'default' : order.status === 'Processing' ? 'secondary' : 'destructive'} 
-                              className={order.status === 'Delivered' ? 'bg-green-500/20 text-green-400 border-green-500/30' : order.status === 'Processing' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : order.status === 'Cancelled' ? 'bg-gray-500/20 text-gray-400 border-gray-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}>
-                              {order.status}
-                            </Badge>
+                            <Select value={order.status} onValueChange={(value) => handleUpdateOrderStatus(order.id, value as OrderStatus)}>
+                                <SelectTrigger className="w-[130px] h-8 text-xs">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Processing">Processing</SelectItem>
+                                    <SelectItem value="Delivered">Delivered</SelectItem>
+                                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                    <SelectItem value="Failed">Failed</SelectItem>
+                                </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>{new Date(order.timestamp).toLocaleDateString()}</TableCell>
                           <TableCell className="text-right">KES {order.total.toLocaleString()}</TableCell>
@@ -335,11 +497,42 @@ export default function AdminPage() {
         <TabsContent value="customers" id="customers">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
                  <Card className="glass-panel">
-                    <CardHeader><CardTitle>Manage Customers</CardTitle></CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle>Manage Customers</CardTitle>
+                        {selectedUsers.length > 0 && (
+                           <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive">
+                                  <Trash2 className="w-4 h-4 mr-2" /> Delete ({selectedUsers.length})
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                          This will permanently delete {selectedUsers.length} selected users. This action cannot be undone.
+                                      </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={handleBulkDeleteUsers}>Continue</AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                           </AlertDialog>
+                        )}
+                    </CardHeader>
                     <CardContent>
                        <Table>
                           <TableHeader>
                             <TableRow>
+                                <TableHead className="w-[40px]">
+                                  <Checkbox
+                                    checked={selectedUsers.length === users.length && users.length > 0}
+                                    onCheckedChange={(checked) => {
+                                        setSelectedUsers(checked ? users.map(u => u.uid) : [])
+                                    }}
+                                  />
+                                </TableHead>
                                 <TableHead>User</TableHead>
                                 <TableHead>Email</TableHead>
                                 <TableHead>Role</TableHead>
@@ -349,6 +542,17 @@ export default function AdminPage() {
                           <TableBody>
                              {users.map(user => (
                                <TableRow key={user.uid} className="hover:bg-primary/5">
+                                 <TableCell>
+                                    <Checkbox 
+                                        checked={selectedUsers.includes(user.uid)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedUsers(
+                                                checked ? [...selectedUsers, user.uid] : selectedUsers.filter(id => id !== user.uid)
+                                            )
+                                        }}
+                                        disabled={user.uid === currentUser?.uid}
+                                    />
+                                 </TableCell>
                                  <TableCell className="font-medium flex items-center gap-2">
                                     <Avatar className="h-8 w-8">
                                       <AvatarImage src={user.photoURL || ''} alt={user.displayName} />
@@ -410,9 +614,35 @@ export default function AdminPage() {
         </TabsContent>
 
         <TabsContent value="logs" id="logs">
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
-                 <p className="text-muted-foreground text-center py-8">System log viewer coming soon.</p>
-            </motion.div>
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
+            <Card className="glass-panel">
+              <CardHeader><CardTitle>System Audit Logs</CardTitle></CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Timestamp</TableHead>
+                      <TableHead>Admin</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Target Type</TableHead>
+                      <TableHead>Target ID</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {auditLogs.map(log => (
+                      <TableRow key={log.id}>
+                        <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
+                        <TableCell>{log.adminEmail}</TableCell>
+                        <TableCell>{log.action}</TableCell>
+                        <TableCell><Badge variant="outline">{log.targetType}</Badge></TableCell>
+                        <TableCell className="font-mono text-xs">{log.targetId.substring(0,12)}...</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </motion.div>
         </TabsContent>
 
       </Tabs>
@@ -449,6 +679,8 @@ export default function AdminPage() {
                 <SelectContent>
                   <SelectItem value="client">Client</SelectItem>
                   <SelectItem value="vendor">Vendor</SelectItem>
+                  <SelectItem value="product_manager">Product Manager</SelectItem>
+                  <SelectItem value="support">Support</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
@@ -465,5 +697,3 @@ export default function AdminPage() {
     </>
   );
 }
-
-    

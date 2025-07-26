@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from './firebase-admin';
-import type { Product, Order, CartItem, Review, OrderStatus, UserProfile, UserRole } from './types';
+import type { Product, Order, CartItem, Review, OrderStatus, UserProfile, UserRole, AuditLog } from './types';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 
@@ -30,7 +30,7 @@ function serializeTimestamp(data: { [key: string]: any }): { [key: string]: any 
  */
 export async function getProducts(): Promise<Product[]> {
   const productsCol = db.collection('products');
-  const snapshot = await productsCol.get();
+  const snapshot = await productsCol.orderBy('createdAt', 'desc').get();
   return snapshot.docs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as Product));
 }
 
@@ -465,9 +465,10 @@ export async function reorder(orderId: string) {
  * @param orderId The ID of the order.
  * @param status The new status.
  */
-export async function updateOrderStatus(orderId: string, status: string) {
+export async function updateOrderStatus(orderId: string, status: string, adminId: string, adminEmail: string) {
     try {
         await db.collection('orders').doc(orderId).update({ status: status as OrderStatus });
+        await logAdminAction(adminId, adminEmail, 'update order status', { orderId, newStatus: status }, 'order');
         revalidatePath('/admin');
         return { success: true, message: "Order status updated." };
     } catch (error) {
@@ -479,13 +480,14 @@ export async function updateOrderStatus(orderId: string, status: string) {
 
 // --- Admin Product & User Management ---
 
-export async function addProduct(product: Omit<Product, 'id'>) {
+export async function addProduct(product: Omit<Product, 'id'>, adminId: string, adminEmail: string) {
     try {
         const newProductRef = await db.collection('products').add({
             ...product,
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
         });
+        await logAdminAction(adminId, adminEmail, 'add product', { productId: newProductRef.id, name: product.name }, 'product');
         revalidatePath('/admin');
         return { success: true, message: "Product added.", productId: newProductRef.id };
     } catch (error) {
@@ -494,12 +496,13 @@ export async function addProduct(product: Omit<Product, 'id'>) {
     }
 }
 
-export async function updateProduct(productId: string, updates: Partial<Product>) {
+export async function updateProduct(productId: string, updates: Partial<Product>, adminId: string, adminEmail: string) {
     try {
         await db.collection('products').doc(productId).update({
             ...updates,
             updatedAt: FieldValue.serverTimestamp(),
         });
+        await logAdminAction(adminId, adminEmail, 'update product', { productId, updates }, 'product');
         revalidatePath('/admin');
         revalidatePath(`/product/${productId}`);
         return { success: true, message: "Product updated." };
@@ -509,14 +512,31 @@ export async function updateProduct(productId: string, updates: Partial<Product>
     }
 }
 
-export async function deleteProduct(productId: string) {
+export async function deleteProduct(productId: string, adminId: string, adminEmail: string) {
     try {
         await db.collection('products').doc(productId).delete();
+        await logAdminAction(adminId, adminEmail, 'delete product', { productId }, 'product');
         revalidatePath('/admin');
         return { success: true, message: "Product deleted." };
     } catch (error) {
         console.error("Error deleting product:", error);
         return { success: false, message: "Failed to delete product." };
+    }
+}
+
+export async function deleteMultipleProducts(productIds: string[], adminId: string, adminEmail: string) {
+    try {
+        const batch = db.batch();
+        productIds.forEach(id => {
+            batch.delete(db.collection('products').doc(id));
+        });
+        await batch.commit();
+        await logAdminAction(adminId, adminEmail, 'bulk delete products', { productIds }, 'product');
+        revalidatePath('/admin');
+        return { success: true, message: `${productIds.length} products deleted.` };
+    } catch (error) {
+        console.error("Error bulk deleting products:", error);
+        return { success: false, message: "Failed to delete products." };
     }
 }
 
@@ -531,14 +551,16 @@ export async function getUsers(): Promise<UserProfile[]> {
         displayName: data.displayName || '',
         role: data.role || 'client',
         photoURL: data.photoURL || '',
+        createdAt: data.createdAt ? serializeTimestamp({ createdAt: data.createdAt }).createdAt : null
     } as UserProfile;
   });
 }
 
-export async function updateUserRole(userId: string, role: UserRole) {
+export async function updateUserRole(userId: string, role: UserRole, adminId: string, adminEmail: string) {
     if (!userId) return { success: false, message: "User ID is required." };
     try {
         await db.collection('users').doc(userId).update({ role });
+        await logAdminAction(adminId, adminEmail, 'update user role', { userId, newRole: role }, 'user');
         revalidatePath('/admin');
         return { success: true, message: "User role updated." };
     } catch (error) {
@@ -547,15 +569,55 @@ export async function updateUserRole(userId: string, role: UserRole) {
     }
 }
 
-export async function deleteUser(userId: string) {
+export async function deleteUser(userId: string, adminId: string, adminEmail: string) {
     if (!userId) return { success: false, message: "User ID is required." };
     try {
         // Note: This does not delete the Firebase Auth user. That requires a separate SDK call and elevated privileges.
         await db.collection('users').doc(userId).delete();
+        await logAdminAction(adminId, adminEmail, 'delete user', { userId }, 'user');
         revalidatePath('/admin');
         return { success: true, message: "User data deleted from Firestore." };
     } catch (error) {
         console.error("Error deleting user data:", error);
         return { success: false, message: "Failed to delete user data." };
     }
+}
+
+export async function deleteMultipleUsers(userIds: string[], adminId: string, adminEmail: string) {
+    try {
+        const batch = db.batch();
+        userIds.forEach(id => {
+            batch.delete(db.collection('users').doc(id));
+        });
+        await batch.commit();
+        await logAdminAction(adminId, adminEmail, 'bulk delete users', { userIds }, 'user');
+        revalidatePath('/admin');
+        return { success: true, message: `${userIds.length} users deleted.` };
+    } catch (error) {
+        console.error("Error bulk deleting users:", error);
+        return { success: false, message: "Failed to delete users." };
+    }
+}
+
+// --- Audit Log Functions ---
+export async function logAdminAction(adminId: string, adminEmail: string, action: string, details: Record<string, any>, targetType: 'product' | 'user' | 'order') {
+  try {
+    await db.collection('audit_logs').add({
+      adminId,
+      adminEmail,
+      action,
+      targetType,
+      targetId: details.productId || details.userId || details.orderId || 'N/A',
+      details,
+      timestamp: FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Failed to log admin action:', error);
+  }
+}
+
+export async function getAuditLogs(): Promise<AuditLog[]> {
+    const logsCol = db.collection('audit_logs');
+    const snapshot = await logsCol.orderBy('timestamp', 'desc').limit(100).get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as AuditLog));
 }

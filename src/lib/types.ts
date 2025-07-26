@@ -56,7 +56,7 @@ export interface Order {
   user: string;
 }
 
-export type UserRole = 'admin' | 'vendor' | 'client';
+export type UserRole = 'admin' | 'vendor' | 'client' | 'product_manager' | 'support';
 
 export interface UserProfile {
     uid: string;
@@ -65,6 +65,7 @@ export interface UserProfile {
     role: UserRole;
     address?: string;
     photoURL?: string;
+    createdAt?: string | any;
 }
 
 export interface CartItem {
@@ -83,4 +84,15 @@ export interface Review {
   rating: number;
   text: string;
   timestamp: string; // ISO string date format
+}
+
+export interface AuditLog {
+  id: string;
+  adminId: string;
+  adminEmail: string;
+  action: string;
+  targetId: string;
+  targetType: 'product' | 'user' | 'order';
+  timestamp: string;
+  details: Record<string, any>;
 }
