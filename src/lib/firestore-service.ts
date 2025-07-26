@@ -82,7 +82,7 @@ export async function getOrders(): Promise<Order[]> {
     } else if (data.timestamp && typeof data.timestamp._seconds === 'number') {
       timestamp = new Date(data.timestamp._seconds * 1000).toISOString();
     } else {
-      timestamp = '';
+      timestamp = new Date().toISOString(); // Fallback
     }
     return { 
       id: doc.id, 
@@ -351,6 +351,7 @@ export async function updateUserProfile(userId: string, profileData: Partial<Use
     try {
         await db.collection('users').doc(userId).set(profileData, { merge: true });
         revalidatePath('/admin/profile');
+        revalidatePath('/admin/layout'); // To refresh header
         return { success: true, message: "Profile updated." };
     } catch (error) {
         console.error("Error updating profile:", error);
@@ -405,7 +406,7 @@ export async function reorder(orderId: string) {
 export async function updateOrderStatus(orderId: string, status: string) {
     try {
         await db.collection('orders').doc(orderId).update({ status: status as OrderStatus });
-        revalidatePath('/dashboard/admin');
+        revalidatePath('/admin');
         return { success: true, message: "Order status updated." };
     } catch (error) {
         console.error("Error updating order status:", error);
@@ -422,6 +423,7 @@ export async function addProduct(product: Omit<Product, 'id'>) {
         revalidatePath('/admin');
         return { success: true, message: "Product added.", productId: newProductRef.id };
     } catch (error) {
+        console.error("Error adding product:", error);
         return { success: false, message: "Failed to add product." };
     }
 }
@@ -430,8 +432,10 @@ export async function updateProduct(productId: string, updates: Partial<Product>
     try {
         await db.collection('products').doc(productId).update(updates);
         revalidatePath('/admin');
+        revalidatePath(`/product/${productId}`);
         return { success: true, message: "Product updated." };
     } catch (error) {
+        console.error("Error updating product:", error);
         return { success: false, message: "Failed to update product." };
     }
 }
@@ -442,6 +446,7 @@ export async function deleteProduct(productId: string) {
         revalidatePath('/admin');
         return { success: true, message: "Product deleted." };
     } catch (error) {
+        console.error("Error deleting product:", error);
         return { success: false, message: "Failed to delete product." };
     }
 }
