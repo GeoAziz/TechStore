@@ -44,7 +44,7 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
       const current = new URLSearchParams(Array.from((searchParams ?? new URLSearchParams()).entries()));
       
       for (const [key, value] of Object.entries(newParams)) {
-          if (value === null || (Array.isArray(value) && value.length === 0)) {
+          if (value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
               current.delete(key);
           } else if (Array.isArray(value)) {
               current.delete(key);
@@ -60,7 +60,7 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
   }, [searchParams, pathname, router]);
   
   useEffect(() => {
-    setActiveCategory((searchParams && (searchParams.get('category') as ProductCategory)) || 'Laptops');
+    setActiveCategory((searchParams?.get('category') as ProductCategory) || 'Laptops');
     setActiveSubcategory(searchParams?.get('subcategory') || 'All');
     setSortBy(searchParams?.get('sort') || 'relevance');
     setSearchTerm(searchParams?.get('search') || '');
@@ -109,7 +109,10 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
 
   const handlePriceChange = (value: [number, number]) => {
     setPriceRange(value);
-    updateURL({ minPrice: String(value[0]), maxPrice: String(value[1]) });
+    const handler = setTimeout(() => {
+      updateURL({ minPrice: String(value[0]), maxPrice: String(value[1]) });
+    }, 500);
+    return () => clearTimeout(handler);
   };
 
   const clearFilters = () => {
@@ -160,7 +163,11 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
   
   const removeFilter = (chip: {type: string, value: string}) => {
     if(chip.type === 'brand') toggleBrand(chip.value);
-    if(chip.type === 'price') handlePriceChange([0, maxPrice]);
+    if(chip.type === 'price') {
+      const newPriceRange: [number, number] = [0, maxPrice];
+      setPriceRange(newPriceRange);
+      updateURL({ minPrice: null, maxPrice: null });
+    }
   }
 
   const subcategories = useMemo(() => {

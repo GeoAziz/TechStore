@@ -55,6 +55,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
 
   const handleToggleCompare = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     if (isProductInCompare) {
       removeFromCompare(product.id);
       toast({ title: 'Removed from Compare' });
@@ -66,6 +67,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
 
   const handleToggleCart = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!user) {
       router.push('/login');
       return;
@@ -93,6 +95,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
 
   const handleToggleWishlist = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!user) {
       router.push('/login');
       return;
@@ -109,7 +112,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
   };
 
   // Animated badge logic
-  const showLowStock = product.stock && product.stock < 8;
+  const showLowStock = product.stock > 0 && product.stock < 8;
   const showTrending = product.promoTag?.toLowerCase().includes('trend') || product.rating >= 4.7;
 
   if (viewMode === 'list') {
@@ -230,10 +233,10 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', stiffness: 300 }}
                 >
-                  <Badge className="bg-cyan-400/90 text-black animate-pulse shadow-[0_0_8px_#00fff7]">Trending</Badge>
+                  <Badge className="bg-cyan-400/90 text-black animate-pulse shadow-[0_0_8px_#00fff7]">{product.promoTag || 'Trending'}</Badge>
                 </motion.div>
               )}
-              {showLowStock && (
+              {showLowStock && !showTrending && (
                 <motion.div
                   className="absolute top-2 right-2"
                   initial={{ scale: 0.8, opacity: 0 }}
@@ -243,6 +246,16 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
                   <Badge className="bg-pink-600/90 text-white animate-pulse shadow-[0_0_8px_#ff00c8]">Low Stock</Badge>
                 </motion.div>
               )}
+                 {product.stock === 0 && (
+                     <motion.div
+                        className="absolute top-2 right-2"
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: 'spring', stiffness: 300, delay: 0.2 }}
+                    >
+                        <Badge variant="destructive" className="bg-red-700/90 text-white shadow-[0_0_8px_#ff0000]">Out of Stock</Badge>
+                    </motion.div>
+                 )}
             </div>
           </Link>
           <CardContent className="p-4 flex flex-col flex-grow">
@@ -260,7 +273,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
             </div>
             <div className="flex justify-between items-center mt-4">
               <p className="text-lg font-bold text-primary">{product.price.toLocaleString()} {product.currency}</p>
-              <Button variant="ghost" size="icon" onClick={handleToggleCart} disabled={isPending} className="w-9 h-9">
+              <Button variant="ghost" size="icon" onClick={handleToggleCart} disabled={isPending || product.stock === 0} className="w-9 h-9">
                 {isPending ? <Loader2 className="animate-spin" /> : inCart ? <Check className="text-green-500" /> : <ShoppingCart className="w-5 h-5" />}
               </Button>
             </div>
