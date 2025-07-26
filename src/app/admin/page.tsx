@@ -2,15 +2,15 @@
 "use client";
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useTransition } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
-import { getProducts, getOrders, deleteProduct as serverDeleteProduct, addProduct as serverAddProduct, getUsers, updateProduct as serverUpdateProduct } from '@/lib/firestore-service';
-import type { Product, Order, UserProfile, OrderStatus } from '@/lib/types';
-import { Loader2, Package, Users, Activity, DollarSign, Warehouse, Edit, Trash2, PlusCircle, UserCircle, Filter } from 'lucide-react';
+import { getProducts, getOrders, deleteProduct as serverDeleteProduct, addProduct as serverAddProduct, getUsers, updateProduct as serverUpdateProduct, deleteUser as serverDeleteUser, updateUserRole as serverUpdateUserRole } from '@/lib/firestore-service';
+import type { Product, Order, UserProfile, OrderStatus, UserRole } from '@/lib/types';
+import { Loader2, Package, Users, Activity, DollarSign, Warehouse, Edit, Trash2, PlusCircle, UserCircle, Filter, MoreHorizontal, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Table,
@@ -21,16 +21,19 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import Image from 'next/image';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import ProductForm from '@/components/admin/product-form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
 export default function AdminPage() {
-  const { user, loading: authLoading, role, isAddProductDialogOpen, setAddProductDialogOpen } = useAuth();
+  const { user: currentUser, loading: authLoading, role, isAddProductDialogOpen, setAddProductDialogOpen } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -39,6 +42,10 @@ export default function AdminPage() {
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<UserRole>('client');
 
   const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatus | 'all'>('all');
 
@@ -62,11 +69,11 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!authLoading) {
-      if (user && role === 'admin') {
+      if (currentUser && role === 'admin') {
         fetchData();
       }
     }
-  }, [user, authLoading, role]);
+  }, [currentUser, authLoading, role]);
   
   const handleDeleteProduct = async (productId: string) => {
     if(!confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
@@ -111,6 +118,39 @@ export default function AdminPage() {
     }
     return orders.filter(order => order.status === orderStatusFilter);
   }, [orders, orderStatusFilter]);
+
+  const openEditUserDialog = (user: UserProfile) => {
+    setEditingUser(user);
+    setSelectedRole(user.role);
+    setIsEditUserDialogOpen(true);
+  };
+
+  const handleUpdateUserRole = () => {
+    if (!editingUser) return;
+    startTransition(async () => {
+      const result = await serverUpdateUserRole(editingUser.uid, selectedRole);
+      if (result.success) {
+        toast({ title: 'Success', description: "User role has been updated." });
+        fetchData(); // Refresh data
+        setIsEditUserDialogOpen(false);
+        setEditingUser(null);
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.message });
+      }
+    });
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    startTransition(async () => {
+      const result = await serverDeleteUser(userId);
+      if (result.success) {
+        toast({ title: 'Success', description: 'User has been deleted.' });
+        fetchData(); // Refresh data
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.message });
+      }
+    });
+  };
 
 
   if (authLoading || loading) {
@@ -303,7 +343,7 @@ export default function AdminPage() {
                                 <TableHead>User</TableHead>
                                 <TableHead>Email</TableHead>
                                 <TableHead>Role</TableHead>
-                                <TableHead>Actions</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -322,8 +362,43 @@ export default function AdminPage() {
                                         {user.role}
                                     </Badge>
                                  </TableCell>
-                                 <TableCell>
-                                    <Button variant="ghost" size="sm">View Details</Button>
+                                 <TableCell className="text-right">
+                                    <AlertDialog>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" disabled={user.uid === currentUser?.uid}>
+                                                    <MoreHorizontal className="w-4 h-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onSelect={() => openEditUserDialog(user)}>
+                                                    <Shield className="mr-2 h-4 w-4" />
+                                                    Change Role
+                                                </DropdownMenuItem>
+                                                <AlertDialogTrigger asChild>
+                                                    <DropdownMenuItem className="text-red-400 focus:bg-red-500/10 focus:text-red-300">
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Delete User
+                                                    </DropdownMenuItem>
+                                                </AlertDialogTrigger>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This action cannot be undone. This will permanently delete the user account and remove their data from our servers.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteUser(user.uid)} disabled={isPending}>
+                                                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                    Continue
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                  </TableCell>
                                </TableRow>
                              ))}
@@ -354,6 +429,37 @@ export default function AdminPage() {
               onSubmit={handleProductSubmit}
             />
           )}
+        </DialogContent>
+      </Dialog>
+      
+       {/* Edit User Dialog */}
+      <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-card/80 backdrop-blur-sm border-primary/20">
+          <DialogHeader>
+            <DialogTitle className="glow-primary">Edit User Role</DialogTitle>
+            <DialogDescription>
+              Change the role for {editingUser?.email}. Be careful with admin privileges.
+            </DialogDescription>
+          </DialogHeader>
+            <div className="py-4">
+              <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as UserRole)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="client">Client</SelectItem>
+                  <SelectItem value="vendor">Vendor</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+            <Button onClick={handleUpdateUserRole} disabled={isPending}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from './firebase-admin';
-import type { Product, Order, CartItem, Review, OrderStatus, UserProfile } from './types';
+import type { Product, Order, CartItem, Review, OrderStatus, UserProfile, UserRole } from './types';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 
@@ -535,13 +535,27 @@ export async function getUsers(): Promise<UserProfile[]> {
   });
 }
 
-export async function deleteUser(userId: string) {
+export async function updateUserRole(userId: string, role: UserRole) {
+    if (!userId) return { success: false, message: "User ID is required." };
     try {
-        await db.collection('users').doc(userId).delete();
-        // Note: This does not delete the Firebase Auth user.
+        await db.collection('users').doc(userId).update({ role });
         revalidatePath('/admin');
-        return { success: true, message: "User data deleted." };
+        return { success: true, message: "User role updated." };
     } catch (error) {
+        console.error("Error updating user role:", error);
+        return { success: false, message: "Failed to update user role." };
+    }
+}
+
+export async function deleteUser(userId: string) {
+    if (!userId) return { success: false, message: "User ID is required." };
+    try {
+        // Note: This does not delete the Firebase Auth user. That requires a separate SDK call and elevated privileges.
+        await db.collection('users').doc(userId).delete();
+        revalidatePath('/admin');
+        return { success: true, message: "User data deleted from Firestore." };
+    } catch (error) {
+        console.error("Error deleting user data:", error);
         return { success: false, message: "Failed to delete user data." };
     }
 }
