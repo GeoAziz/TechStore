@@ -17,8 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 // Placeholder for a component to upload images
-const ImageUploadModal = ({ open, onOpenChange, onSave }) => (
-  <Dialog open={open} onOpenChange={onOpenChange}>
+const ImageUploadModal = ({ onSave }) => (
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Change Avatar</DialogTitle>
@@ -29,11 +28,12 @@ const ImageUploadModal = ({ open, onOpenChange, onSave }) => (
         <Input type="file" />
       </div>
       <DialogFooter>
-        <Button onClick={() => onOpenChange(false)} variant="ghost">Cancel</Button>
+        <DialogClose asChild>
+            <Button variant="ghost">Cancel</Button>
+        </DialogClose>
         <Button onClick={onSave}>Save</Button>
       </DialogFooter>
     </DialogContent>
-  </Dialog>
 );
 
 const ChangePasswordModal = ({ open, onOpenChange }) => (
@@ -63,7 +63,6 @@ export default function AdminProfilePage() {
     
     const [displayName, setDisplayName] = useState(user?.displayName || '');
     
-    const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     
     const [isDarkTheme, setIsDarkTheme] = useState(true);
@@ -88,7 +87,6 @@ export default function AdminProfilePage() {
         // This would be handled by the quick edit dialog for now.
         // In a more complex app, this could trigger a dedicated upload flow.
         toast({ title: "Avatar Updated" });
-        setIsAvatarModalOpen(false);
     };
 
     if (loading) {
@@ -107,21 +105,23 @@ export default function AdminProfilePage() {
                 <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-1 space-y-6">
                     <Card className="glass-panel text-center">
                         <CardHeader>
-                            <div className="relative w-32 h-32 mx-auto">
-                                <Avatar className="w-32 h-32 border-4 border-primary shadow-neon-primary">
-                                    <AvatarImage src={user?.photoURL || ''} />
-                                    <AvatarFallback><UserCircle className="w-24 h-24 text-primary" /></AvatarFallback>
-                                </Avatar>
-                                <DialogTrigger asChild>
-                                <Button
-                                    size="icon"
-                                    className="absolute bottom-1 right-1 rounded-full w-8 h-8 bg-accent hover:bg-accent/80"
-                                    onClick={() => setIsAvatarModalOpen(true)}
-                                >
-                                    <Pen className="w-4 h-4" />
-                                </Button>
-                                </DialogTrigger>
-                            </div>
+                            <Dialog>
+                                <div className="relative w-32 h-32 mx-auto">
+                                    <Avatar className="w-32 h-32 border-4 border-primary shadow-neon-primary">
+                                        <AvatarImage src={user?.photoURL || ''} />
+                                        <AvatarFallback><UserCircle className="w-24 h-24 text-primary" /></AvatarFallback>
+                                    </Avatar>
+                                    <DialogTrigger asChild>
+                                    <Button
+                                        size="icon"
+                                        className="absolute bottom-1 right-1 rounded-full w-8 h-8 bg-accent hover:bg-accent/80"
+                                    >
+                                        <Pen className="w-4 h-4" />
+                                    </Button>
+                                    </DialogTrigger>
+                                </div>
+                                <ImageUploadModal onSave={handleAvatarSave} />
+                            </Dialog>
                         </CardHeader>
                         <CardContent>
                             <h2 className="text-2xl font-bold glow-accent">{user?.displayName || 'Admin User'}</h2>
@@ -189,7 +189,6 @@ export default function AdminProfilePage() {
             </div>
 
             {/* Modals */}
-            <ImageUploadModal open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen} onSave={handleAvatarSave} />
             <ChangePasswordModal open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen} />
         </div>
     );
