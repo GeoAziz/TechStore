@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, UserCircle, Pen, Shield, Trash2, KeyRound, LogOut, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 
 // Placeholder for a component to upload images
 const ImageUploadModal = ({ onSave }) => (
