@@ -9,6 +9,19 @@ import { revalidatePath } from 'next/cache';
 // Re-export types for convenience
 export type { Product, Order, CartItem, Review };
 
+
+// Helper function to safely convert Firestore Timestamps
+function serializeTimestamp(data: { [key: string]: any }): { [key: string]: any } {
+  const serializedData = { ...data };
+  for (const key in serializedData) {
+    if (serializedData[key] instanceof Timestamp) {
+      serializedData[key] = serializedData[key].toDate().toISOString();
+    }
+  }
+  return serializedData;
+}
+
+
 // --- Product Functions ---
 
 /**
@@ -18,7 +31,7 @@ export type { Product, Order, CartItem, Review };
 export async function getProducts(): Promise<Product[]> {
   const productsCol = db.collection('products');
   const snapshot = await productsCol.get();
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as Product));
 }
 
 /**
@@ -32,7 +45,7 @@ export async function getProductById(id: string): Promise<Product | null> {
   if (!doc.exists) {
     return null;
   }
-  return { id: doc.id, ...doc.data() } as Product;
+  return { id: doc.id, ...serializeTimestamp(doc.data()) } as Product;
 }
 
 /**
@@ -46,7 +59,7 @@ export async function getProductsByIds(ids: string[]): Promise<Product[]> {
     }
     const productRefs = ids.map(id => db.collection('products').doc(id));
     const productDocs = await db.getAll(...productRefs);
-    return productDocs.map(doc => ({ id: doc.id, ...doc.data() } as Product)).filter(p => p.name); // filter out non-existent products
+    return productDocs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as Product)).filter(p => p.name); // filter out non-existent products
 }
 
 
@@ -58,7 +71,7 @@ export async function getProductsByIds(ids: string[]): Promise<Product[]> {
 export async function getProductsByVendor(brandName: string): Promise<Product[]> {
   const productsCol = db.collection('products');
   const snapshot = await productsCol.where('brand', '==', brandName).get();
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as Product));
 }
 
 // --- Dynamic Homepage Section Fetchers ---
@@ -69,7 +82,7 @@ export async function getProductsByVendor(brandName: string): Promise<Product[]>
 export async function getTrendingProducts(): Promise<Product[]> {
     const productsCol = db.collection('products');
     const snapshot = await productsCol.orderBy('views', 'desc').orderBy('ordersCount', 'desc').limit(10).get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as Product));
 }
 
 /**
@@ -86,7 +99,7 @@ export async function getNewArrivals(): Promise<Product[]> {
         .orderBy('createdAt', 'desc')
         .limit(10)
         .get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as Product));
 }
 
 /**
@@ -99,7 +112,7 @@ export async function getDeals(): Promise<Product[]> {
         .orderBy('discountPercent', 'desc')
         .limit(10)
         .get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as Product));
 }
 
 /**
@@ -108,7 +121,7 @@ export async function getDeals(): Promise<Product[]> {
 export async function getFeaturedProducts(): Promise<Product[]> {
     const productsCol = db.collection('products');
     const snapshot = await productsCol.where('isFeatured', '==', true).limit(10).get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as Product));
 }
 
 
@@ -468,7 +481,11 @@ export async function updateOrderStatus(orderId: string, status: string) {
 
 export async function addProduct(product: Omit<Product, 'id'>) {
     try {
-        const newProductRef = await db.collection('products').add(product);
+        const newProductRef = await db.collection('products').add({
+            ...product,
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        });
         revalidatePath('/admin');
         return { success: true, message: "Product added.", productId: newProductRef.id };
     } catch (error) {
@@ -479,7 +496,10 @@ export async function addProduct(product: Omit<Product, 'id'>) {
 
 export async function updateProduct(productId: string, updates: Partial<Product>) {
     try {
-        await db.collection('products').doc(productId).update(updates);
+        await db.collection('products').doc(productId).update({
+            ...updates,
+            updatedAt: FieldValue.serverTimestamp(),
+        });
         revalidatePath('/admin');
         revalidatePath(`/product/${productId}`);
         return { success: true, message: "Product updated." };

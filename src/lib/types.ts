@@ -1,4 +1,5 @@
 
+
 export type ProductCategory = 'Laptops' | 'Desktops' | 'Monitors' | 'Keyboards' | 'Mice' | 'Headphones' | 'Webcams' | 'Storage Drives' | 'Graphic Cards' | 'Processors' | 'RAM Modules' | 'Motherboards' | 'Power Supplies' | 'Coolers/Fans';
 
 export interface Product {
@@ -18,11 +19,10 @@ export interface Product {
   
   // Flags & Metrics
   isFeatured?: boolean;
-  hasDeal?: boolean;
   
-  // Timestamps
-  createdAt: any; // Firestore Timestamp
-  updatedAt?: any; // Firestore Timestamp
+  // Timestamps (as ISO strings)
+  createdAt: string; 
+  updatedAt?: string;
 
   // Metrics for "Trending"
   views?: number;
