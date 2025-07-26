@@ -1,4 +1,6 @@
 
+"use client";
+
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Cpu, Monitor, Headphones, HardDrive, View, Rocket, Star } from 'lucide-react';
@@ -8,6 +10,7 @@ import type { Product } from '@/lib/types';
 import RecentlyViewedProducts from '@/components/shop/recently-viewed-products';
 import { motion } from 'framer-motion';
 import { getTrendingProducts, getNewArrivals, getDeals, getFeaturedProducts } from '@/lib/firestore-service';
+import { useEffect, useState } from 'react';
 
 const fonts = "font-[Orbitron,Rajdhani,Space Grotesk,monospace]";
 
@@ -149,12 +152,24 @@ function FeaturedCategories() {
   );
 }
 
-export default async function Home() {
-    const [trendingProducts, newArrivals, topDeals] = await Promise.all([
-        getTrendingProducts(),
-        getNewArrivals(),
-        getDeals(),
-    ]);
+export default function Home() {
+    const [trendingProducts, setTrendingProducts] = useState<Product[]>([]);
+    const [newArrivals, setNewArrivals] = useState<Product[]>([]);
+    const [topDeals, setTopDeals] = useState<Product[]>([]);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            const [trending, arrivals, deals] = await Promise.all([
+                getTrendingProducts(),
+                getNewArrivals(),
+                getDeals(),
+            ]);
+            setTrendingProducts(trending);
+            setNewArrivals(arrivals);
+            setTopDeals(deals);
+        };
+        fetchProducts();
+    }, []);
 
   return (
     <div className={`min-h-screen bg-[#0c0c1e] text-cyan-100 ${fonts}`}>
