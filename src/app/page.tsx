@@ -4,13 +4,13 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Cpu, Monitor, Headphones, HardDrive, View, Rocket, Star } from 'lucide-react';
-import Image from 'next/image';
+import { Cpu, Monitor, Headphones, HardDrive, View, Rocket, Star, History } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import ProductCard from '@/components/shop/product-card';
 import type { Product } from '@/lib/types';
+import RecentlyViewedProducts from '@/components/shop/recently-viewed-products';
+
 
 const fonts = "font-[Orbitron,Rajdhani,Space Grotesk,monospace]";
 
@@ -63,7 +63,9 @@ function SectionHeading({ icon: Icon, title }: { icon: React.ElementType; title:
   );
 }
 
-function HorizontalScroller({ products, title, icon, viewAllHref }: { products: Product[]; title: string; icon: React.ElementType; viewAllHref: string; }) {
+function HorizontalScroller({ products, title, icon, viewAllHref }: { products: Product[]; title: string; icon: React.ElementType; viewAllHref?: string; }) {
+  if (!products || products.length === 0) return null;
+  
   return (
     <motion.section 
         className="py-12"
@@ -91,19 +93,21 @@ function HorizontalScroller({ products, title, icon, viewAllHref }: { products: 
                   <ProductCard product={product} />
                 </motion.div>
               ))}
-              <motion.div 
-                initial={{ opacity: 0, x: 40 }} 
-                whileInView={{ opacity: 1, x: 0 }} 
-                viewport={{ once: true }} 
-                transition={{ duration: 0.5, delay: products.length * 0.1 }}
-                className="snap-center flex items-center justify-center"
-              >
-                  <Link href={viewAllHref}>
-                    <div className="flex items-center justify-center w-48 h-full rounded-xl glass-panel glow-primary text-accent font-bold text-lg hover:bg-accent/10 transition-all">
-                        View All →
-                    </div>
-                  </Link>
-              </motion.div>
+              {viewAllHref && (
+                <motion.div 
+                  initial={{ opacity: 0, x: 40 }} 
+                  whileInView={{ opacity: 1, x: 0 }} 
+                  viewport={{ once: true }} 
+                  transition={{ duration: 0.5, delay: products.length * 0.1 }}
+                  className="snap-center flex items-center justify-center"
+                >
+                    <Link href={viewAllHref}>
+                      <div className="flex items-center justify-center w-48 h-full rounded-xl glass-panel glow-primary text-accent font-bold text-lg hover:bg-accent/10 transition-all">
+                          View All →
+                      </div>
+                    </Link>
+                </motion.div>
+              )}
             </div>
             <ScrollBar orientation="horizontal" className="mt-4" />
           </ScrollArea>
@@ -178,6 +182,7 @@ export default function Home() {
     <div className={`min-h-screen bg-[#0c0c1e] text-cyan-100 ${fonts}`}>
       <main className="flex-1">
         <HeroSection />
+        <RecentlyViewedProducts />
         <HorizontalScroller products={trendingProducts} title="🔥 Trending Tech" icon={Cpu} viewAllHref="/shop?sort=trending" />
         <HorizontalScroller products={newArrivals} title="🚀 New Arrivals" icon={Rocket} viewAllHref="/shop?sort=new" />
         <HorizontalScroller products={topDeals} title="💸 Top Deals" icon={Star} viewAllHref="/deals" />

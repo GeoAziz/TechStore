@@ -17,6 +17,7 @@ import { addToCart, removeFromCart, toggleWishlist, addReview, getReviewsByProdu
 import { useEffect, useState, useRef, useTransition } from 'react';
 import { useCompare } from '@/context/compare-context';
 import { Textarea } from '../ui/textarea';
+import { useRecentlyViewed } from '@/hooks/use-recently-viewed';
 
 export default function ProductDetailsClient({ product, initialReviews }: { product: Product, initialReviews: Review[] }) {
   const [zoomed, setZoomed] = useState(false);
@@ -31,6 +32,7 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [inCart, setInCart] = useState(false);
+  const { addRecentlyViewed } = useRecentlyViewed();
 
   const reviewTextareaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -38,6 +40,10 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
       reviewTextareaRef.current.blur();
     }
   }, [isSubmittingReview]);
+
+  useEffect(() => {
+    addRecentlyViewed(product.id);
+  }, [product.id, addRecentlyViewed]);
   
   useEffect(() => {
     if (user) {
