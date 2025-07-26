@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { db } from './firebase-admin';
@@ -157,7 +158,7 @@ export async function getOrders(): Promise<Order[]> {
 }
 
 /**
- * Fetches all orders for a specific user.
+ * Fetches all orders for a specific user email.
  * @param {string} userEmail - The email of the user.
  * @returns {Promise<Order[]>} A promise that resolves to an array of orders.
  */
@@ -173,6 +174,20 @@ export async function getOrdersByUser(userEmail: string): Promise<Order[]> {
         timestamp,
       } as Order
     });
+}
+
+/**
+ * Fetches all orders for a specific user ID.
+ * @param {string} userId - The ID of the user.
+ * @returns {Promise<Order[]>} A promise that resolves to an array of orders.
+ */
+export async function getOrdersByUserId(userId: string): Promise<Order[]> {
+    if (!userId) return [];
+    // First, get the user's email as orders are keyed by email currently
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userEmail = userDoc.data()?.email;
+    if (!userEmail) return [];
+    return getOrdersByUser(userEmail);
 }
 
 
@@ -414,6 +429,7 @@ export async function updateUserProfile(userId: string, profileData: Partial<Use
         await db.collection('users').doc(userId).set(profileData, { merge: true });
         revalidatePath('/admin/profile');
         revalidatePath('/admin/layout'); // To refresh header
+        revalidatePath('/admin');
         return { success: true, message: "Profile updated." };
     } catch (error) {
         console.error("Error updating profile:", error);

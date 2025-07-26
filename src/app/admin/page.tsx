@@ -1,4 +1,5 @@
 
+
 "use client";
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -8,9 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
-import { getProducts, getOrders, deleteProduct as serverDeleteProduct, addProduct as serverAddProduct, getUsers, updateProduct as serverUpdateProduct, deleteUser as serverDeleteUser, updateUserRole as serverUpdateUserRole, deleteMultipleProducts, deleteMultipleUsers, getAuditLogs, updateOrderStatus } from '@/lib/firestore-service';
+import { getProducts, getOrders, deleteProduct as serverDeleteProduct, addProduct as serverAddProduct, getUsers, updateProduct as serverUpdateProduct, deleteMultipleProducts, getAuditLogs, updateOrderStatus } from '@/lib/firestore-service';
 import type { Product, Order, UserProfile, OrderStatus, UserRole, ProductCategory, AuditLog } from '@/lib/types';
-import { Loader2, Package, Users, Activity, DollarSign, Warehouse, Edit, Trash2, PlusCircle, UserCircle, Filter, MoreHorizontal, Shield, Calendar as CalendarIcon, ChevronsUpDown, X } from 'lucide-react';
+import { Loader2, Package, Users, Activity, DollarSign, Warehouse, Edit, Trash2, PlusCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Table,
@@ -21,11 +22,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import Image from 'next/image';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ProductForm from '@/components/admin/product-form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import AnalyticsCharts from '@/components/admin/analytics-charts';
@@ -34,12 +33,11 @@ import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { categoryData } from '@/lib/mock-data';
+import CustomerManagement from '@/components/admin/customer-management';
 
 export default function AdminPage() {
   const { user: currentUser, loading: authLoading, role, isAddProductDialogOpen, setAddProductDialogOpen } = useAuth();
-  const router = useRouter();
   const { toast } = useToast();
-  const [isPending, startTransition] = useTransition();
 
   // Data states
   const [products, setProducts] = useState<Product[]>([]);
@@ -51,13 +49,9 @@ export default function AdminPage() {
   // Dialog states
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
-  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<UserRole>('client');
-
+  
   // Selection states for bulk actions
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   
   // Filter states
   const [productCategoryFilter, setProductCategoryFilter] = useState<ProductCategory | 'all'>('all');
@@ -116,18 +110,6 @@ export default function AdminPage() {
      }
   }
   
-  const handleBulkDeleteUsers = async () => {
-    if (!currentUser) return;
-    const result = await deleteMultipleUsers(selectedUsers, currentUser.uid, currentUser.email || '');
-    if(result.success) {
-       toast({ title: 'Success', description: `${selectedUsers.length} users deleted.`});
-       setSelectedUsers([]);
-       fetchData();
-    } else {
-       toast({ variant: 'destructive', title: 'Error', description: result.message });
-    }
-  }
-
   const handleProductSubmit = async (productData: Omit<Product, 'id'> | Product) => {
     if (!currentUser) return;
     const isEditing = 'id' in productData;
@@ -168,40 +150,6 @@ export default function AdminPage() {
         return statusMatch && dateMatch;
     });
   }, [orders, orderStatusFilter, orderDateRange]);
-
-  const openEditUserDialog = (user: UserProfile) => {
-    setEditingUser(user);
-    setSelectedRole(user.role);
-    setIsEditUserDialogOpen(true);
-  };
-
-  const handleUpdateUserRole = () => {
-    if (!editingUser || !currentUser) return;
-    startTransition(async () => {
-      const result = await serverUpdateUserRole(editingUser.uid, selectedRole, currentUser.uid, currentUser.email || '');
-      if (result.success) {
-        toast({ title: 'Success', description: "User role has been updated." });
-        fetchData(); // Refresh data
-        setIsEditUserDialogOpen(false);
-        setEditingUser(null);
-      } else {
-        toast({ variant: 'destructive', title: 'Error', description: result.message });
-      }
-    });
-  };
-
-  const handleDeleteUser = (userId: string) => {
-    if (!currentUser) return;
-    startTransition(async () => {
-      const result = await serverDeleteUser(userId, currentUser.uid, currentUser.email || '');
-      if (result.success) {
-        toast({ title: 'Success', description: 'User has been deleted.' });
-        fetchData(); // Refresh data
-      } else {
-        toast({ variant: 'destructive', title: 'Error', description: result.message });
-      }
-    });
-  };
 
   const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
      if (!currentUser) return;
@@ -495,122 +443,7 @@ export default function AdminPage() {
         </TabsContent>
 
         <TabsContent value="customers" id="customers">
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
-                 <Card className="glass-panel">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Manage Customers</CardTitle>
-                        {selectedUsers.length > 0 && (
-                           <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="destructive">
-                                  <Trash2 className="w-4 h-4 mr-2" /> Delete ({selectedUsers.length})
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                          This will permanently delete {selectedUsers.length} selected users. This action cannot be undone.
-                                      </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction onClick={handleBulkDeleteUsers}>Continue</AlertDialogAction>
-                                  </AlertDialogFooter>
-                              </AlertDialogContent>
-                           </AlertDialog>
-                        )}
-                    </CardHeader>
-                    <CardContent>
-                       <Table>
-                          <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[40px]">
-                                  <Checkbox
-                                    checked={selectedUsers.length === users.length && users.length > 0}
-                                    onCheckedChange={(checked) => {
-                                        setSelectedUsers(checked ? users.map(u => u.uid) : [])
-                                    }}
-                                  />
-                                </TableHead>
-                                <TableHead>User</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Role</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                             {users.map(user => (
-                               <TableRow key={user.uid} className="hover:bg-primary/5">
-                                 <TableCell>
-                                    <Checkbox 
-                                        checked={selectedUsers.includes(user.uid)}
-                                        onCheckedChange={(checked) => {
-                                            setSelectedUsers(
-                                                checked ? [...selectedUsers, user.uid] : selectedUsers.filter(id => id !== user.uid)
-                                            )
-                                        }}
-                                        disabled={user.uid === currentUser?.uid}
-                                    />
-                                 </TableCell>
-                                 <TableCell className="font-medium flex items-center gap-2">
-                                    <Avatar className="h-8 w-8">
-                                      <AvatarImage src={user.photoURL || ''} alt={user.displayName} />
-                                      <AvatarFallback><UserCircle className="w-5 h-5 text-cyan-300" /></AvatarFallback>
-                                    </Avatar>
-                                    {user.displayName || 'N/A'}
-                                 </TableCell>
-                                 <TableCell>{user.email}</TableCell>
-                                 <TableCell>
-                                    <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'} className={user.role === 'admin' ? 'bg-accent/20 text-accent border-accent/40' : ''}>
-                                        {user.role}
-                                    </Badge>
-                                 </TableCell>
-                                 <TableCell className="text-right">
-                                    <AlertDialog>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" disabled={user.uid === currentUser?.uid}>
-                                                    <MoreHorizontal className="w-4 h-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onSelect={() => openEditUserDialog(user)}>
-                                                    <Shield className="mr-2 h-4 w-4" />
-                                                    Change Role
-                                                </DropdownMenuItem>
-                                                <AlertDialogTrigger asChild>
-                                                    <DropdownMenuItem className="text-red-400 focus:bg-red-500/10 focus:text-red-300">
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        Delete User
-                                                    </DropdownMenuItem>
-                                                </AlertDialogTrigger>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    This action cannot be undone. This will permanently delete the user account and remove their data from our servers.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteUser(user.uid)} disabled={isPending}>
-                                                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                    Continue
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                 </TableCell>
-                               </TableRow>
-                             ))}
-                          </TableBody>
-                       </Table>
-                    </CardContent>
-                 </Card>
-            </motion.div>
+            <CustomerManagement initialUsers={users} onDataChange={fetchData} />
         </TabsContent>
 
         <TabsContent value="logs" id="logs">
@@ -659,39 +492,6 @@ export default function AdminPage() {
               onSubmit={handleProductSubmit}
             />
           )}
-        </DialogContent>
-      </Dialog>
-      
-       {/* Edit User Dialog */}
-      <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-card/80 backdrop-blur-sm border-primary/20">
-          <DialogHeader>
-            <DialogTitle className="glow-primary">Edit User Role</DialogTitle>
-            <DialogDescription>
-              Change the role for {editingUser?.email}. Be careful with admin privileges.
-            </DialogDescription>
-          </DialogHeader>
-            <div className="py-4">
-              <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as UserRole)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="client">Client</SelectItem>
-                  <SelectItem value="vendor">Vendor</SelectItem>
-                  <SelectItem value="product_manager">Product Manager</SelectItem>
-                  <SelectItem value="support">Support</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
-            <Button onClick={handleUpdateUserRole} disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
