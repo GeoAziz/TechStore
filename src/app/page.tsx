@@ -1,16 +1,13 @@
 
-"use client";
-
-import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Cpu, Monitor, Headphones, HardDrive, View, Rocket, Star, History } from 'lucide-react';
+import { Cpu, Monitor, Headphones, HardDrive, View, Rocket, Star } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import ProductCard from '@/components/shop/product-card';
 import type { Product } from '@/lib/types';
 import RecentlyViewedProducts from '@/components/shop/recently-viewed-products';
-
+import { motion } from 'framer-motion';
+import { getTrendingProducts, getNewArrivals, getDeals, getFeaturedProducts } from '@/lib/firestore-service';
 
 const fonts = "font-[Orbitron,Rajdhani,Space Grotesk,monospace]";
 
@@ -75,7 +72,16 @@ function HorizontalScroller({ products, title, icon, viewAllHref }: { products: 
         transition={{ duration: 0.5, delay: 0.1 }}
     >
       <div className="container">
-        <SectionHeading icon={icon} title={title} />
+        <div className="flex justify-between items-center mb-6">
+            <SectionHeading icon={icon} title={title} />
+            {viewAllHref && (
+                 <Link href={viewAllHref}>
+                    <Button variant="outline" className="hidden md:flex">
+                        View All →
+                    </Button>
+                 </Link>
+            )}
+        </div>
         <div className="relative">
           <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0c0c1e] to-transparent pointer-events-none z-10" />
           <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0c0c1e] to-transparent pointer-events-none z-10" />
@@ -93,21 +99,6 @@ function HorizontalScroller({ products, title, icon, viewAllHref }: { products: 
                   <ProductCard product={product} />
                 </motion.div>
               ))}
-              {viewAllHref && (
-                <motion.div 
-                  initial={{ opacity: 0, x: 40 }} 
-                  whileInView={{ opacity: 1, x: 0 }} 
-                  viewport={{ once: true }} 
-                  transition={{ duration: 0.5, delay: products.length * 0.1 }}
-                  className="snap-center flex items-center justify-center"
-                >
-                    <Link href={viewAllHref}>
-                      <div className="flex items-center justify-center w-48 h-full rounded-xl glass-panel glow-primary text-accent font-bold text-lg hover:bg-accent/10 transition-all">
-                          View All →
-                      </div>
-                    </Link>
-                </motion.div>
-              )}
             </div>
             <ScrollBar orientation="horizontal" className="mt-4" />
           </ScrollArea>
@@ -158,25 +149,12 @@ function FeaturedCategories() {
   );
 }
 
-export default function Home() {
-  // Mock data for demonstration - using the full Product type
-  const trendingProducts: Product[] = [
-    { id: 'rtx-3060-ti', name: 'NVIDIA RTX 3060 Ti', imageUrl: 'https://placehold.co/400x300.png', category: 'Graphic Cards', brand: 'NVIDIA', price: 82000, currency: 'KES', stock: 8, description: 'Powerful graphics card for high-end gaming.', featured: true, rating: 4.8, promoTag: '🔥 Trending', dataAiHint: "graphics card" },
-    { id: 'mx-master-3s', name: 'Logitech MX Master 3S', imageUrl: 'https://placehold.co/400x300.png', category: 'Mice', brand: 'Logitech', price: 12800, currency: 'KES', stock: 2, description: 'Ergonomic wireless mouse with 8K DPI.', featured: true, rating: 4.9, dataAiHint: "computer mouse" },
-    { id: 'samsung-980-pro-1tb', name: 'Samsung 980 Pro 1TB', imageUrl: 'https://placehold.co/400x300.png', category: 'Storage Drives', brand: 'Samsung', price: 17500, currency: 'KES', stock: 15, description: 'High-speed NVMe SSD for gaming and pro apps.', featured: false, rating: 4.9, promoTag: '🔥 Trending', dataAiHint: "solid state drive" },
-    { id: 'redragon-k552', name: 'Redragon K552 Keyboard', imageUrl: 'https://placehold.co/400x300.png', category: 'Keyboards', brand: 'Redragon', price: 5499, currency: 'KES', stock: 0, description: 'Mechanical gaming keyboard with RGB backlighting.', featured: false, rating: 4.4, dataAiHint: "gaming keyboard" },
-  ];
-  const newArrivals: Product[] = [
-    { id: 'jbl-quantum-400', name: 'JBL Quantum 400 Headset', imageUrl: 'https://placehold.co/400x300.png', category: 'Headphones', brand: 'JBL', price: 8500, currency: 'KES', stock: 12, description: 'Immersive surround sound gaming headset.', featured: false, rating: 4.6, promoTag: '💡 New', dataAiHint: "gaming headset" },
-    { id: 'acer-nitro-5', name: 'Acer Nitro 5 Laptop', imageUrl: 'https://placehold.co/400x300.png', category: 'Laptops', brand: 'Acer', price: 109999, currency: 'KES', stock: 5, description: 'Gaming laptop with RTX 4060 and 16GB RAM.', featured: true, rating: 4.5, promoTag: '💡 New', dataAiHint: "gaming laptop" },
-    { id: 'corsair-vengeance-16gb', name: 'Corsair Vengeance 16GB RAM', imageUrl: 'https://placehold.co/400x300.png', category: 'RAM Modules', brand: 'Corsair', price: 8499, currency: 'KES', stock: 20, description: 'High-speed DDR5 memory for modern PCs.', featured: false, rating: 4.7, dataAiHint: "ram module" },
-    { id: 'cooler-master-hyper-212', name: 'Cooler Master Hyper 212', imageUrl: 'https://placehold.co/400x300.png', category: 'Coolers/Fans', brand: 'Cooler Master', price: 4500, currency: 'KES', stock: 25, description: 'Legendary air cooler for CPUs.', featured: false, rating: 4.7, dataAiHint: "cpu cooler" },
-  ];
-  const topDeals: Product[] = [
-    { id: 'dell-ultrasharp-27', name: 'Dell UltraSharp 27" Monitor', imageUrl: 'https://placehold.co/400x300.png', category: 'Monitors', brand: 'Dell', price: 58000, currency: 'KES', stock: 3, description: '4K IPS monitor with stunning color accuracy.', featured: true, rating: 4.8, promoTag: '⚡️ Deal', dataAiHint: "computer monitor" },
-    { id: 'hp-pavilion-15', name: 'HP Pavilion 15 Laptop', imageUrl: 'https://placehold.co/400x300.png', category: 'Laptops', brand: 'HP', price: 74999, currency: 'KES', stock: 6, description: 'Versatile laptop for work and entertainment.', featured: false, rating: 4.6, promoTag: '⚡️ Deal', dataAiHint: "business laptop" },
-    { id: 'seagate-1tb-hdd', name: 'Seagate 1TB External HDD', imageUrl: 'https://placehold.co/400x300.png', category: 'Storage Drives', brand: 'Seagate', price: 5299, currency: 'KES', stock: 15, description: 'Portable external hard drive for extra storage.', featured: false, rating: 4.6, dataAiHint: "hard drive" },
-  ];
+export default async function Home() {
+    const [trendingProducts, newArrivals, topDeals] = await Promise.all([
+        getTrendingProducts(),
+        getNewArrivals(),
+        getDeals(),
+    ]);
 
   return (
     <div className={`min-h-screen bg-[#0c0c1e] text-cyan-100 ${fonts}`}>

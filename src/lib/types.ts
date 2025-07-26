@@ -1,23 +1,48 @@
 
-
-
 export type ProductCategory = 'Laptops' | 'Desktops' | 'Monitors' | 'Keyboards' | 'Mice' | 'Headphones' | 'Webcams' | 'Storage Drives' | 'Graphic Cards' | 'Processors' | 'RAM Modules' | 'Motherboards' | 'Power Supplies' | 'Coolers/Fans';
 
 export interface Product {
   id: string;
   name: string;
   category: ProductCategory;
-  subcategory?: string; // e.g., 'Gaming', 'Ultrabook'
+  subcategory?: string;
   brand: string;
-  price: number;
+  price: number; // KES
   currency: 'KES';
+  discountPercent?: number;
   stock: number;
   description: string;
   imageUrl: string;
-  featured: boolean;
-  rating: number;
+  tags?: string[];
+  specs?: { [key: string]: string };
+  
+  // Flags & Metrics
+  isFeatured?: boolean;
+  hasDeal?: boolean;
+  
+  // Timestamps
+  createdAt: any; // Firestore Timestamp
+  updatedAt?: any; // Firestore Timestamp
+
+  // Metrics for "Trending"
+  views?: number;
+  cartCount?: number;
+  ordersCount?: number;
+
+  // Reviews
+  averageRating?: number;
+  reviewsCount?: number;
+  
+  // Additional Info
+  warranty?: string;
+  shippingTime?: string;
+  vendor?: string;
+  
+  // AI Hint for images
+  dataAiHint?: string;
   promoTag?: string; // e.g., '10% OFF', 'New Arrival'
 }
+
 
 export type OrderStatus = 'Delivered' | 'Processing' | 'Failed' | 'Cancelled';
 

@@ -3,7 +3,7 @@
 
 import { db } from './firebase-admin';
 import type { Product, Order, CartItem, Review, OrderStatus, UserProfile } from './types';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 
 // Re-export types for convenience
@@ -59,6 +59,56 @@ export async function getProductsByVendor(brandName: string): Promise<Product[]>
   const productsCol = db.collection('products');
   const snapshot = await productsCol.where('brand', '==', brandName).get();
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+}
+
+// --- Dynamic Homepage Section Fetchers ---
+
+/**
+ * Fetches trending products. Logic: highest views, then most orders.
+ */
+export async function getTrendingProducts(): Promise<Product[]> {
+    const productsCol = db.collection('products');
+    const snapshot = await productsCol.orderBy('views', 'desc').orderBy('ordersCount', 'desc').limit(10).get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+}
+
+/**
+ * Fetches new arrival products (created within the last 30 days).
+ */
+export async function getNewArrivals(): Promise<Product[]> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgoTimestamp = Timestamp.fromDate(thirtyDaysAgo);
+
+    const productsCol = db.collection('products');
+    const snapshot = await productsCol
+        .where('createdAt', '>=', thirtyDaysAgoTimestamp)
+        .orderBy('createdAt', 'desc')
+        .limit(10)
+        .get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+}
+
+/**
+ * Fetches products that are on deal.
+ */
+export async function getDeals(): Promise<Product[]> {
+    const productsCol = db.collection('products');
+    const snapshot = await productsCol
+        .where('discountPercent', '>=', 10)
+        .orderBy('discountPercent', 'desc')
+        .limit(10)
+        .get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+}
+
+/**
+ * Fetches featured products as flagged by an admin.
+ */
+export async function getFeaturedProducts(): Promise<Product[]> {
+    const productsCol = db.collection('products');
+    const snapshot = await productsCol.where('isFeatured', '==', true).limit(10).get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
 }
 
 

@@ -1,13 +1,13 @@
 
-import { getProducts } from '@/lib/firestore-service';
+import { getDeals } from '@/lib/firestore-service';
 import ProductCard from '@/components/shop/product-card';
 import type { Product } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Percent } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default async function DealsPage() {
-  const allProducts = await getProducts();
-  const dealProducts = allProducts.filter(p => p.featured);
+  const dealProducts = await getDeals();
 
   return (
     <div className="container py-12">
@@ -23,11 +23,21 @@ export default async function DealsPage() {
       </div>
 
       {dealProducts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+            }}
+        >
             {dealProducts.map((product) => (
-                <ProductCard key={product.id} product={product as Product} />
+                <motion.div key={product.id} variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
+                    <ProductCard product={product as Product} />
+                </motion.div>
             ))}
-        </div>
+        </motion.div>
       ) : (
         <div className="text-center py-16">
             <h2 className="text-2xl font-bold">No Deals Available</h2>
