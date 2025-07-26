@@ -6,14 +6,11 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Card, CardContent } from '@/components/ui/card';
-import { Cpu, Laptop, Mouse, MemoryStick, Monitor, Keyboard, Headphones, Camera, HardDrive, CircuitBoard, Power, Wind, View, Heart, Star, Truck, Shield, Rocket } from 'lucide-react';
+import { Cpu, Monitor, Headphones, HardDrive, View, Rocket, Star } from 'lucide-react';
 import Image from 'next/image';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/auth-context';
-import { useRouter } from 'next/navigation';
-import { addToCart } from '@/lib/firestore-service';
+import ProductCard from '@/components/shop/product-card';
+import type { Product } from '@/lib/types';
 
 const fonts = "font-[Orbitron,Rajdhani,Space Grotesk,monospace]";
 
@@ -66,88 +63,32 @@ function SectionHeading({ icon: Icon, title }: { icon: React.ElementType; title:
   );
 }
 
-function ProductCard({ product }: { product: any }) {
-  const [wish, setWish] = useState(false);
-  const { user } = useAuth();
-  const router = useRouter();
-  const { toast } = useToast();
-
-  const handleAddToCart = async (e) => {
-    e.preventDefault();
-    if (!user) {
-      toast({ variant: 'destructive', title: 'Login Required', description: 'Please log in to add items to your cart.' });
-      router.push('/login');
-      return;
-    }
-    const result = await addToCart(user.uid, product.id);
-    if(result.success) {
-        toast({ title: "Success", description: `${product.name} added to cart!`});
-    } else {
-        toast({ variant: 'destructive', title: "Error", description: result.message });
-    }
-  };
-
+function HorizontalScroller({ products, title, icon, viewAllHref }: { products: Product[]; title: string; icon: React.ElementType; viewAllHref: string; }) {
   return (
-    <motion.div
-      whileHover={{ scale: 1.05, y: -5 }}
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, type: 'spring', stiffness: 100 }}
-      className={`w-72 bg-card/60 border-accent/20 border shadow-neon-accent rounded-xl p-4 flex flex-col gap-2 glass-panel ${fonts} relative group`}
-      tabIndex={0}
-      aria-label={product.name}
+    <motion.section 
+        className="py-12"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.2 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
     >
-      {product.badge && (
-        <Badge variant="default" className="absolute top-3 left-3 bg-accent text-accent-foreground neon-glow text-xs font-bold z-10">{product.badge}</Badge>
-      )}
-      <div className="relative">
-        <Image src={product.image} alt={product.name} width={250} height={160} className="rounded-lg h-40 object-cover mb-2 w-full" loading="lazy" />
-        <Button variant="ghost" size="icon" className="absolute top-2 right-2 bg-black/30 hover:bg-black/60 rounded-full" aria-label="Wishlist" onClick={(e) => { e.preventDefault(); setWish(!wish); }}>
-          <Heart className={`w-5 h-5 transition-all ${wish ? 'text-accent fill-accent' : 'text-muted-foreground'}`} />
-        </Button>
-      </div>
-      <div className="flex items-start justify-between">
-        <h2 className="font-bold text-lg text-cyan-100 pr-2 flex-1">{product.name}</h2>
-        <Badge variant={product.inStock ? 'secondary' : 'destructive'} className={`${product.inStock ? 'bg-green-500/20 text-green-300' : ''}`}>{product.inStock ? (product.stock < 5 ? 'Low Stock' : 'In Stock') : 'Out of Stock'}</Badge>
-      </div>
-       <div className="flex items-center gap-1 mt-1 text-sm">
-        <Star className="w-4 h-4 text-yellow-400" />
-        <span className="font-bold">{product.rating}</span>
-        <span className="text-xs text-muted-foreground">({product.reviewCount} reviews)</span>
-      </div>
-      <div className="flex gap-2 text-xs text-muted-foreground mt-2">
-        <Badge variant="outline" className="flex items-center gap-1"><Truck className="w-3 h-3 text-accent" /> <span>Free Shipping</span></Badge>
-        <Badge variant="outline" className="flex items-center gap-1"><Shield className="w-3 h-3 text-accent" /> <span>1yr Warranty</span></Badge>
-      </div>
-       <div className="flex-grow" />
-       <div className="flex gap-2 mt-3 flex-wrap">
-        {product.specs.map((spec: string) => (
-          <Badge key={spec} variant="secondary">{spec}</Badge>
-        ))}
-      </div>
-      <div className="flex gap-2 mt-4">
-        <motion.div whileHover={{ scale: 1.05 }} className="flex-1">
-          <Button variant="default" className="w-full font-bold glow-primary shadow-lg transition-transform" aria-label={`Add ${product.name} to cart`} onClick={handleAddToCart}>Add to Cart</Button>
-        </motion.div>
-        <Button variant="outline" className="font-bold" aria-label={`Compare ${product.name}`}>Compare</Button>
-      </div>
-    </motion.div>
-  );
-}
-
-function HorizontalScroller({ products, title, icon, viewAllHref, badge }: { products: any[]; title: string; icon: React.ElementType; viewAllHref: string; badge: string }) {
-  return (
-    <section className="py-12">
       <div className="container">
         <SectionHeading icon={icon} title={title} />
         <div className="relative">
           <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0c0c1e] to-transparent pointer-events-none z-10" />
           <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0c0c1e] to-transparent pointer-events-none z-10" />
           <ScrollArea className="w-full whitespace-nowrap -m-2 p-2">
-            <div className="flex w-max space-x-6 py-2 snap-x snap-mandatory overflow-x-auto">
+            <div className="flex w-max space-x-6 py-4">
               {products.map((product, i) => (
-                <motion.div key={product.id} initial={{ opacity: 0, x: 40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: i * 0.1 }} className="snap-center">
-                  <Link href={`/product/${product.id}`}><ProductCard product={{ ...product, badge }} /></Link>
+                <motion.div 
+                  key={product.id} 
+                  className="w-72 snap-center"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ type: "spring", stiffness: 200, delay: i * 0.08 }}
+                >
+                  <ProductCard product={product} />
                 </motion.div>
               ))}
               <motion.div 
@@ -168,20 +109,26 @@ function HorizontalScroller({ products, title, icon, viewAllHref, badge }: { pro
           </ScrollArea>
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 }
 
 
 function FeaturedCategories() {
   const modules = [
-    { name: 'Gaming Gear', icon: MemoryStick, href: '/shop?category=Graphic Cards' },
+    { name: 'Gaming Gear', icon: Cpu, href: '/shop?category=Graphic Cards' },
     { name: 'Displays', icon: Monitor, href: '/shop?category=Monitors' },
     { name: 'Audio Systems', icon: Headphones, href: '/shop?category=Headphones' },
     { name: 'Storage Drives', icon: HardDrive, href: '/shop?category=Storage Drives' },
   ];
   return (
-    <section className="py-12">
+    <motion.section 
+        className="py-12"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.2 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+    >
       <div className="container">
         <SectionHeading icon={View} title="Mission Modules" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -203,37 +150,37 @@ function FeaturedCategories() {
           ))}
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 }
 
 export default function Home() {
-  // Mock data for demonstration
-  const trendingProducts = [
-    { id: 'rtx-3060-ti', name: 'NVIDIA RTX 3060 Ti', image: 'https://placehold.co/400x300.png', inStock: true, stock: 8, rating: 4.8, reviewCount: 120, specs: ['RGB', '12GB GDDR6X', 'PCIe 4.0'], dataAiHint: "graphics card" },
-    { id: 'mx-master-3s', name: 'Logitech MX Master 3S', image: 'https://placehold.co/400x300.png', inStock: true, stock: 2, rating: 4.9, reviewCount: 98, specs: ['Wireless', '8K DPI', 'Quiet Click'], dataAiHint: "computer mouse" },
-    { id: 'samsung-980-pro-1tb', name: 'Samsung 980 Pro 1TB', image: 'https://placehold.co/400x300.png', inStock: true, stock: 15, rating: 4.9, reviewCount: 210, specs: ['1TB', 'NVMe', '7,000 MB/s'], dataAiHint: "solid state drive" },
-    { id: 'redragon-k552', name: 'Redragon K552 Keyboard', image: 'https://placehold.co/400x300.png', inStock: false, stock: 0, rating: 4.4, reviewCount: 155, specs: ['Mechanical', 'Tenkeyless', 'RGB'], dataAiHint: "gaming keyboard" },
+  // Mock data for demonstration - using the full Product type
+  const trendingProducts: Product[] = [
+    { id: 'rtx-3060-ti', name: 'NVIDIA RTX 3060 Ti', imageUrl: 'https://placehold.co/400x300.png', category: 'Graphic Cards', brand: 'NVIDIA', price: 82000, currency: 'KES', stock: 8, description: 'Powerful graphics card for high-end gaming.', featured: true, rating: 4.8, promoTag: '🔥 Trending', dataAiHint: "graphics card" },
+    { id: 'mx-master-3s', name: 'Logitech MX Master 3S', imageUrl: 'https://placehold.co/400x300.png', category: 'Mice', brand: 'Logitech', price: 12800, currency: 'KES', stock: 2, description: 'Ergonomic wireless mouse with 8K DPI.', featured: true, rating: 4.9, dataAiHint: "computer mouse" },
+    { id: 'samsung-980-pro-1tb', name: 'Samsung 980 Pro 1TB', imageUrl: 'https://placehold.co/400x300.png', category: 'Storage Drives', brand: 'Samsung', price: 17500, currency: 'KES', stock: 15, description: 'High-speed NVMe SSD for gaming and pro apps.', featured: false, rating: 4.9, promoTag: '🔥 Trending', dataAiHint: "solid state drive" },
+    { id: 'redragon-k552', name: 'Redragon K552 Keyboard', imageUrl: 'https://placehold.co/400x300.png', category: 'Keyboards', brand: 'Redragon', price: 5499, currency: 'KES', stock: 0, description: 'Mechanical gaming keyboard with RGB backlighting.', featured: false, rating: 4.4, dataAiHint: "gaming keyboard" },
   ];
-  const newArrivals = [
-    { id: 'jbl-quantum-400', name: 'JBL Quantum 400 Headset', image: 'https://placehold.co/400x300.png', inStock: true, stock: 12, rating: 4.6, reviewCount: 45, specs: ['Surround 7.1', 'Wireless', 'RGB'], dataAiHint: "gaming headset" },
-    { id: 'acer-nitro-5', name: 'Acer Nitro 5 Laptop', image: 'https://placehold.co/400x300.png', inStock: true, stock: 5, rating: 4.5, reviewCount: 32, specs: ['16GB RAM', 'RTX 4060', '1TB SSD'], dataAiHint: "gaming laptop" },
-    { id: 'corsair-vengeance-16gb', name: 'Corsair Vengeance 16GB RAM', image: 'https://placehold.co/400x300.png', inStock: true, stock: 20, rating: 4.7, reviewCount: 60, specs: ['16GB Kit', 'DDR5', '3200MHz'], dataAiHint: "ram module" },
-    { id: 'cooler-master-hyper-212', name: 'Cooler Master Hyper 212', image: 'https://placehold.co/400x300.png', inStock: true, stock: 25, rating: 4.7, reviewCount: 190, specs: ['Air Cooler', '4 Heatpipes', 'Quiet Fan'], dataAiHint: "cpu cooler" },
+  const newArrivals: Product[] = [
+    { id: 'jbl-quantum-400', name: 'JBL Quantum 400 Headset', imageUrl: 'https://placehold.co/400x300.png', category: 'Headphones', brand: 'JBL', price: 8500, currency: 'KES', stock: 12, description: 'Immersive surround sound gaming headset.', featured: false, rating: 4.6, promoTag: '💡 New', dataAiHint: "gaming headset" },
+    { id: 'acer-nitro-5', name: 'Acer Nitro 5 Laptop', imageUrl: 'https://placehold.co/400x300.png', category: 'Laptops', brand: 'Acer', price: 109999, currency: 'KES', stock: 5, description: 'Gaming laptop with RTX 4060 and 16GB RAM.', featured: true, rating: 4.5, promoTag: '💡 New', dataAiHint: "gaming laptop" },
+    { id: 'corsair-vengeance-16gb', name: 'Corsair Vengeance 16GB RAM', imageUrl: 'https://placehold.co/400x300.png', category: 'RAM Modules', brand: 'Corsair', price: 8499, currency: 'KES', stock: 20, description: 'High-speed DDR5 memory for modern PCs.', featured: false, rating: 4.7, dataAiHint: "ram module" },
+    { id: 'cooler-master-hyper-212', name: 'Cooler Master Hyper 212', imageUrl: 'https://placehold.co/400x300.png', category: 'Coolers/Fans', brand: 'Cooler Master', price: 4500, currency: 'KES', stock: 25, description: 'Legendary air cooler for CPUs.', featured: false, rating: 4.7, dataAiHint: "cpu cooler" },
   ];
-  const topDeals = [
-    { id: 'dell-ultrasharp-27', name: 'Dell UltraSharp 27" Monitor', image: 'https://placehold.co/400x300.png', inStock: true, stock: 3, rating: 4.8, reviewCount: 80, specs: ['27"', '4K IPS', '144Hz'], dataAiHint: "computer monitor" },
-    { id: 'hp-pavilion-15', name: 'HP Pavilion 15 Laptop', image: 'https://placehold.co/400x300.png', inStock: true, stock: 6, rating: 4.6, reviewCount: 65, specs: ['Core i5', '512GB SSD', 'Intel Iris Xe'], dataAiHint: "business laptop" },
-    { id: 'seagate-1tb-hdd', name: 'Seagate 1TB External HDD', image: 'https://placehold.co/400x300.png', inStock: true, stock: 15, rating: 4.6, reviewCount: 95, specs: ['1TB', 'USB 3.0', 'Portable'], dataAiHint: "hard drive" },
+  const topDeals: Product[] = [
+    { id: 'dell-ultrasharp-27', name: 'Dell UltraSharp 27" Monitor', imageUrl: 'https://placehold.co/400x300.png', category: 'Monitors', brand: 'Dell', price: 58000, currency: 'KES', stock: 3, description: '4K IPS monitor with stunning color accuracy.', featured: true, rating: 4.8, promoTag: '⚡️ Deal', dataAiHint: "computer monitor" },
+    { id: 'hp-pavilion-15', name: 'HP Pavilion 15 Laptop', imageUrl: 'https://placehold.co/400x300.png', category: 'Laptops', brand: 'HP', price: 74999, currency: 'KES', stock: 6, description: 'Versatile laptop for work and entertainment.', featured: false, rating: 4.6, promoTag: '⚡️ Deal', dataAiHint: "business laptop" },
+    { id: 'seagate-1tb-hdd', name: 'Seagate 1TB External HDD', imageUrl: 'https://placehold.co/400x300.png', category: 'Storage Drives', brand: 'Seagate', price: 5299, currency: 'KES', stock: 15, description: 'Portable external hard drive for extra storage.', featured: false, rating: 4.6, dataAiHint: "hard drive" },
   ];
 
   return (
     <div className={`min-h-screen bg-[#0c0c1e] text-cyan-100 ${fonts}`}>
       <main className="flex-1">
         <HeroSection />
-        <HorizontalScroller products={trendingProducts} title="🔥 Trending Tech" icon={Cpu} viewAllHref="/shop?sort=trending" badge="🔥 Trending" />
-        <HorizontalScroller products={newArrivals} title="🚀 New Arrivals" icon={Rocket} viewAllHref="/shop?sort=new" badge="💡 New" />
-        <HorizontalScroller products={topDeals} title="💸 Top Deals" icon={Star} viewAllHref="/deals" badge="⚡️ Deal" />
+        <HorizontalScroller products={trendingProducts} title="🔥 Trending Tech" icon={Cpu} viewAllHref="/shop?sort=trending" />
+        <HorizontalScroller products={newArrivals} title="🚀 New Arrivals" icon={Rocket} viewAllHref="/shop?sort=new" />
+        <HorizontalScroller products={topDeals} title="💸 Top Deals" icon={Star} viewAllHref="/deals" />
         <FeaturedCategories />
       </main>
       <style jsx global>{`
@@ -261,5 +208,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
