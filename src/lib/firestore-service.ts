@@ -59,7 +59,7 @@ export async function getOrders(): Promise<Order[]> {
   return snapshot.docs.map(doc => {
     const data = doc.data();
     // Ensure timestamp is converted to a string right away
-    const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : data.timestamp;
+    const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : new Date(data.timestamp._seconds * 1000).toISOString();
     return { 
       id: doc.id, 
       ...data,
@@ -78,8 +78,7 @@ export async function getOrdersByUser(userEmail: string): Promise<Order[]> {
     const snapshot = await ordersCol.where('user', '==', userEmail).orderBy('timestamp', 'desc').get();
     return snapshot.docs.map(doc => {
       const data = doc.data();
-      // Ensure timestamp is converted to a string right away
-      const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : data.timestamp;
+      const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : new Date(data.timestamp._seconds * 1000).toISOString();
       return { 
         id: doc.id, 
         ...data,
@@ -107,8 +106,7 @@ export async function getOrdersByVendor(brandName: string): Promise<Order[]> {
   
   return snapshot.docs.map(doc => {
       const data = doc.data();
-      // Ensure timestamp is converted to a string right away
-      const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : data.timestamp;
+      const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : new Date(data.timestamp._seconds * 1000).toISOString();
       return { 
         id: doc.id, 
         ...data,
@@ -156,6 +154,28 @@ export async function addToCart(userId: string, productId: string) {
     return { success: false, message: "Failed to add item to cart." };
   }
 }
+
+/**
+ * Removes a product from a user's cart.
+ * @param {string} userId - The ID of the user.
+ * @param {string} productId - The ID of the product to remove.
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function removeFromCart(userId: string, productId: string) {
+    if (!userId) {
+        return { success: false, message: "User not authenticated." };
+    }
+    const cartRef = db.collection('users').doc(userId).collection('cart').doc(productId);
+    try {
+        await cartRef.delete();
+        revalidatePath('/checkout');
+        return { success: true, message: "Item removed from cart." };
+    } catch (error) {
+        console.error("Error removing from cart:", error);
+        return { success: false, message: "Failed to remove item from cart." };
+    }
+}
+
 
 /**
  * Toggles a product in a user's wishlist.
@@ -254,8 +274,7 @@ export async function getReviewsByProductId(productId: string): Promise<Review[]
 
   return snapshot.docs.map(doc => {
     const data = doc.data();
-    // Ensure timestamp is converted to a string right away
-    const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : data.timestamp;
+    const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : new Date(data.timestamp._seconds * 1000).toISOString();
     return {
       id: doc.id,
       ...data,
@@ -393,5 +412,3 @@ export async function deleteUser(userId: string) {
         return { success: false, message: "Failed to delete user data." };
     }
 }
-
-    

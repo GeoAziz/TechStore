@@ -11,8 +11,8 @@ import { ShoppingCart, Heart, Eye, Star, Scale } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { addToCart, toggleWishlist } from '@/lib/firestore-service';
-import { useState } from 'react';
+import { addToCart, toggleWishlist, getWishlist } from '@/lib/firestore-service';
+import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { useCompare } from '@/context/compare-context';
 
@@ -30,7 +30,16 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
   const router = useRouter();
   const { toast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
   const { compareItems, addToCompare, removeFromCompare } = useCompare();
+
+  useEffect(() => {
+    if (user) {
+      getWishlist(user.uid).then(wishlist => {
+        setIsInWishlist(wishlist.includes(product.id));
+      });
+    }
+  }, [user, product.id]);
 
   const isProductInCompare = compareItems.some(item => item.id === product.id);
 
@@ -79,6 +88,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
     }
     const result = await toggleWishlist(user.uid, product.id);
     if (result.success) {
+      setIsInWishlist(result.wishlist?.includes(product.id) ?? false);
       toast({ title: "Wishlist Updated", description: result.message });
     } else {
       toast({ variant: "destructive", title: "Error", description: result.message });
@@ -128,7 +138,6 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
             )}
           </Link>
           <CardContent className="p-4 flex flex-col flex-grow sm:w-2/3">
-            {/* ...existing code... */}
             <div className='flex-grow'>
               <p className="text-xs text-muted-foreground">{product.category}</p>
               <h3 className="text-lg font-bold group-hover:text-primary transition-colors font-headline">
@@ -150,7 +159,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
               </p>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="icon" className="w-8 h-8" onClick={handleToggleWishlist} title="Add to Wishlist">
-                  <Heart className="w-4 h-4" />
+                  <Heart className={`w-4 h-4 ${isInWishlist ? 'text-red-500 fill-red-500' : ''}`} />
                 </Button>
                 <Button variant={isProductInCompare ? "secondary" : "outline"} size="icon" className="w-8 h-8" onClick={handleToggleCompare} title="Compare">
                   <Scale className="w-4 h-4" />
@@ -167,7 +176,6 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
   }
 
   // Grid view
-  // 3D tilt and neon ring for grid view
   const { x, y, rotateX, rotateY } = use3DTilt();
   return (
     <motion.div
@@ -201,7 +209,6 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
                 className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110 group-hover:brightness-110 group-hover:saturate-150"
                 data-ai-hint={`${product.category.toLowerCase()} device`}
               />
-              {/* Neon glow ring on hover */}
               <motion.div
                 className="absolute inset-0 pointer-events-none rounded-lg"
                 initial={{ opacity: 0 }}
@@ -233,7 +240,6 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
             </div>
           </Link>
           <CardContent className="p-4 flex flex-col flex-grow">
-            {/* ...existing code... */}
             <div className='flex-grow'>
               <p className="text-xs text-muted-foreground">{product.category}</p>
               <h3 className="text-base font-bold group-hover:text-primary transition-colors font-[Orbitron,Space Grotesk,monospace]">
@@ -257,7 +263,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
                 <Scale className="w-4 h-4 mr-2" /> {isProductInCompare ? 'Comparing' : 'Compare'}
               </Button>
               <Button variant="outline" size="sm" className="w-full" onClick={handleToggleWishlist}>
-                <Heart className="w-4 h-4 mr-2" /> Wishlist
+                 <Heart className={`w-4 h-4 mr-2 ${isInWishlist ? 'text-red-500 fill-red-500' : ''}`} /> Wishlist
               </Button>
             </div>
           </CardContent>
@@ -266,5 +272,3 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
     </motion.div>
   );
 }
-
-    

@@ -13,7 +13,7 @@ import { Star, ShoppingCart, Heart, ShieldCheck, Truck, CheckCircle, Scale, Send
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { addToCart, toggleWishlist, addReview, getReviewsByProductId } from '@/lib/firestore-service';
+import { addToCart, toggleWishlist, addReview, getReviewsByProductId, getWishlist } from '@/lib/firestore-service';
 import { useEffect, useState, useRef } from 'react';
 import { useCompare } from '@/context/compare-context';
 import { Textarea } from '../ui/textarea';
@@ -29,8 +29,16 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
   const [newReviewText, setNewReviewText] = useState('');
   const [newReviewRating, setNewReviewRating] = useState(0);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
 
-  // Accessibility: Focus management for review form
+  useEffect(() => {
+    if (user) {
+      getWishlist(user.uid).then(wishlist => {
+        setIsInWishlist(wishlist.includes(product.id));
+      });
+    }
+  }, [user, product.id]);
+
   const reviewTextareaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (isSubmittingReview && reviewTextareaRef.current) {
@@ -98,6 +106,7 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
     }
     const result = await toggleWishlist(user.uid, product.id);
      if (result.success) {
+      setIsInWishlist(result.wishlist?.includes(product.id) ?? false);
       toast({ title: "Wishlist Updated", description: result.message });
     } else {
       toast({ variant: "destructive", title: "Error", description: result.message });
@@ -125,7 +134,6 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
       };
       const result = await addReview(product.id, reviewData);
       if (result.success) {
-        // Optimistically update UI, or refetch
         const updatedReviews = await getReviewsByProductId(product.id);
         setReviews(updatedReviews as Review[]);
         setNewReviewText('');
@@ -210,7 +218,7 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
                   Add to Cart
                 </Button>
                 <Button size="icon" variant="outline" className="h-auto px-3" onClick={handleToggleWishlist} aria-label="Toggle wishlist">
-                  <Heart className="w-6 h-6"/>
+                   <Heart className={`w-6 h-6 transition-colors ${isInWishlist ? 'text-red-500 fill-red-500' : ''}`} />
                 </Button>
                  <Button size="icon" variant={isProductInCompare ? "secondary" : "outline"} className="h-auto px-3" onClick={handleToggleCompare} aria-label="Toggle compare">
                   <Scale className="w-6 h-6"/>
@@ -313,5 +321,3 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
     </div>
   );
 }
-
-    

@@ -8,7 +8,8 @@ import Logo from "./logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/auth-context";
-import { auth } from "@/lib/firebase";
+import { auth, app } from "@/lib/firebase"; // Import app
+import { getFirestore, collection, onSnapshot } from 'firebase/firestore'; // Import firestore functions
 import { getCart } from "@/lib/firestore-service";
 
 const navLinks = [
@@ -24,26 +25,18 @@ export default function Header() {
 
   useEffect(() => {
     if (user) {
-      const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
-        if (currentUser) {
-          const cartItems = await getCart(currentUser.uid);
-          setCartCount(cartItems.length);
-        } else {
-          setCartCount(0);
-        }
+      const db = getFirestore(app);
+      const cartRef = collection(db, 'users', user.uid, 'cart');
+      
+      const unsubscribe = onSnapshot(cartRef, (snapshot) => {
+        setCartCount(snapshot.size);
       });
-      // To-do: This could be optimized with a realtime listener on the cart collection
-      // For now, re-fetch on auth state change.
-      getCart(user.uid).then(items => setCartCount(items.length));
 
-      return () => {
-        if (unsubscribe) unsubscribe();
-      };
+      return () => unsubscribe();
     } else {
-        setCartCount(0);
+      setCartCount(0);
     }
   }, [user]);
-
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -118,6 +111,7 @@ export default function Header() {
 
       {isMenuOpen && (
         <>
+          <div className="fixed inset-0 z-40 bg-[#0c0c1e]" onClick={() => setIsMenuOpen(false)} />
           <div
             className="fixed inset-0 z-50 flex md:hidden"
             onClick={() => setIsMenuOpen(false)}
