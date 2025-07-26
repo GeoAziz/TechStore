@@ -1,7 +1,5 @@
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { ai } from '@/ai/genkit';
-import { generate } from 'genkit/ai';
 
 // Ensure you have a 'googleai/gemini-1.5-flash-latest' or similar model configured in your genkit setup
 // Example in src/ai/genkit.ts:
@@ -19,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { output } = await generate({
+    const { output } = await ai.generate({
       prompt: `You are an AI assistant for an e-commerce store called Zizo_OrderVerse. 
                Your persona is a helpful, slightly futuristic AI. Keep responses concise and helpful.
                User query: "${message}"`,
