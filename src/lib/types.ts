@@ -1,5 +1,3 @@
-
-
 export type ProductCategory = 'Laptops' | 'Desktops' | 'Monitors' | 'Keyboards' | 'Mice' | 'Headphones' | 'Webcams' | 'Storage Drives' | 'Graphic Cards' | 'Processors' | 'RAM Modules' | 'Motherboards' | 'Power Supplies' | 'Coolers/Fans' | 'Phones' | 'Accessories' | 'Networking' | 'Smart Tech';
 
 export interface Product {
@@ -56,7 +54,7 @@ export interface Order {
   user: string;
 }
 
-export type UserRole = 'admin' | 'vendor' | 'client';
+export type UserRole = 'admin' | 'vendor' | 'client' | 'vip' | 'premium' | 'inactive';
 
 export interface UserProfile {
     uid: string;
@@ -65,6 +63,10 @@ export interface UserProfile {
     role: UserRole;
     address?: string;
     photoURL?: string;
+    segment?: 'VIP' | 'New' | 'Inactive' | 'Regular';
+    flagged?: boolean;
+    failedLoginAttempts?: number;
+    vendorUpgradeRequested?: boolean;
 }
 
 export interface CartItem {
@@ -83,4 +85,13 @@ export interface Review {
   rating: number;
   text: string;
   timestamp: string; // ISO string date format
+}
+
+export interface CustomerAuditLogEntry {
+  id: string;
+  timestamp: string;
+  admin: string;
+  action: string;
+  customer: string;
+  details: string;
 }

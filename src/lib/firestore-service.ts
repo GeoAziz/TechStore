@@ -45,7 +45,7 @@ export async function getProductById(id: string): Promise<Product | null> {
   if (!doc.exists) {
     return null;
   }
-  return { id: doc.id, ...serializeTimestamp(doc.data()) } as Product;
+  return { id: doc.id, ...serializeTimestamp(doc.data() || {}) } as Product;
 }
 
 /**
@@ -59,7 +59,7 @@ export async function getProductsByIds(ids: string[]): Promise<Product[]> {
     }
     const productRefs = ids.map(id => db.collection('products').doc(id));
     const productDocs = await db.getAll(...productRefs);
-    return productDocs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as Product)).filter(p => p.name); // filter out non-existent products
+    return productDocs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data() || {}) } as Product)).filter(p => p.name); // filter out non-existent products
 }
 
 
