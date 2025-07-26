@@ -29,12 +29,12 @@ export default function FilterPanel({
 }: FilterPanelProps) {
 
   return (
-    <div className="w-full p-4 space-y-6 bg-[#10102a]/70 rounded-xl border border-cyan-400/20 shadow-[0_0_24px_#00fff733]">
+    <div className="w-full p-4 space-y-6">
       <Accordion type="multiple" defaultValue={["brand", "price"]} className="w-full">
         <AccordionItem value="brand">
           <AccordionTrigger className="text-base font-semibold text-cyan-300 hover:text-cyan-200 transition-all flex items-center gap-2 [&[data-state=open]]:glow-primary">
             <Filter className="w-4 h-4 mr-1 text-cyan-400/80" />
-            <span className="glow-primary">Brand</span>
+            <span className="font-headline">Brand</span>
           </AccordionTrigger>
           <AccordionContent asChild>
             <div className="flex flex-wrap gap-2 pt-2">
@@ -56,7 +56,7 @@ export default function FilterPanel({
         <AccordionItem value="price">
           <AccordionTrigger className="text-base font-semibold text-cyan-300 hover:text-cyan-200 transition-all flex items-center gap-2 [&[data-state=open]]:glow-primary">
             <BadgeDollarSign className="w-4 h-4 mr-1 text-cyan-400/80" />
-            <span className="glow-primary">Price Range</span>
+            <span className="font-headline">Price Range</span>
           </AccordionTrigger>
           <AccordionContent asChild className="pt-4">
             <div>
@@ -66,7 +66,7 @@ export default function FilterPanel({
                 max={maxPrice}
                 step={1000}
                 onValueChange={(value) => setPriceRange(value as [number, number])}
-                className="[&_.range-track]:bg-cyan-400/30 [&_.range-thumb]:bg-cyan-400"
+                className="[&_>_span:first-child_>_span]:bg-primary [&_>_span:last-child]:bg-primary"
               />
               <div className="flex justify-between text-cyan-400/80 text-sm mt-2 font-mono">
                 <span>KES {priceRange[0].toLocaleString()}</span>
@@ -78,9 +78,9 @@ export default function FilterPanel({
       </Accordion>
 
       <Button
-        variant="secondary"
+        variant="outline"
         onClick={clearFilters}
-        className="w-full mt-2 border border-cyan-400/60 text-cyan-100 bg-cyan-400/10 hover:bg-cyan-400/20 transition-all font-[Orbitron,Space Grotesk,monospace] shadow-[0_0_16px_#00fff7] animate-pulse"
+        className="w-full mt-2 border-accent text-accent hover:bg-accent/20 transition-all font-headline"
       >
         Clear All Filters
       </Button>

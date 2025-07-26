@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from './firebase-admin';
@@ -234,16 +235,14 @@ export async function toggleWishlist(userId: string, productId: string) {
     let message = '';
 
     if (currentWishlist.includes(productId)) {
-      // Use set with merge to avoid errors on non-existent documents
-      await userRef.set({
+      await userRef.update({
         wishlist: FieldValue.arrayRemove(productId)
-      }, { merge: true });
+      });
       message = 'Removed from wishlist.';
     } else {
-      // Use set with merge to avoid errors on non-existent documents
-      await userRef.set({
+      await userRef.update({
         wishlist: FieldValue.arrayUnion(productId)
-      }, { merge: true });
+      });
       message = 'Added to wishlist.';
     }
     
