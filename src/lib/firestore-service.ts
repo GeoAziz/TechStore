@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from './firebase-admin';
-import type { Product, Order, CartItem, Review, OrderStatus } from './types';
+import type { Product, Order, CartItem, Review, OrderStatus, UserProfile } from './types';
 import { FieldValue } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 
@@ -408,12 +408,12 @@ export async function updateOrderStatus(orderId: string, status: string) {
 }
 
 
-// --- Admin Product Management ---
+// --- Admin Product & User Management ---
 
 export async function addProduct(product: Omit<Product, 'id'>) {
     try {
         const newProductRef = await db.collection('products').add(product);
-        revalidatePath('/dashboard/admin');
+        revalidatePath('/admin');
         return { success: true, message: "Product added.", productId: newProductRef.id };
     } catch (error) {
         return { success: false, message: "Failed to add product." };
@@ -423,7 +423,7 @@ export async function addProduct(product: Omit<Product, 'id'>) {
 export async function updateProduct(productId: string, updates: Partial<Product>) {
     try {
         await db.collection('products').doc(productId).update(updates);
-        revalidatePath('/dashboard/admin');
+        revalidatePath('/admin');
         return { success: true, message: "Product updated." };
     } catch (error) {
         return { success: false, message: "Failed to update product." };
@@ -433,18 +433,32 @@ export async function updateProduct(productId: string, updates: Partial<Product>
 export async function deleteProduct(productId: string) {
     try {
         await db.collection('products').doc(productId).delete();
-        revalidatePath('/dashboard/admin');
+        revalidatePath('/admin');
         return { success: true, message: "Product deleted." };
     } catch (error) {
         return { success: false, message: "Failed to delete product." };
     }
 }
 
+export async function getUsers(): Promise<UserProfile[]> {
+  const usersCol = db.collection('users');
+  const snapshot = await usersCol.get();
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+        uid: doc.id,
+        email: data.email || '',
+        displayName: data.displayName || '',
+        role: data.role || 'client',
+    } as UserProfile;
+  });
+}
+
 export async function deleteUser(userId: string) {
     try {
         await db.collection('users').doc(userId).delete();
         // Note: This does not delete the Firebase Auth user.
-        revalidatePath('/dashboard/admin');
+        revalidatePath('/admin');
         return { success: true, message: "User data deleted." };
     } catch (error) {
         return { success: false, message: "Failed to delete user data." };

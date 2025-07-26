@@ -2,15 +2,15 @@
 "use client";
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
-import { getProducts, getOrders, deleteProduct as serverDeleteProduct, addProduct as serverAddProduct } from '@/lib/firestore-service';
-import type { Product, Order } from '@/lib/types';
-import { Loader2, Package, Users, Activity, DollarSign, Warehouse, Edit, Trash2, PlusCircle } from 'lucide-react';
+import { getProducts, getOrders, deleteProduct as serverDeleteProduct, addProduct as serverAddProduct, getUsers } from '@/lib/firestore-service';
+import type { Product, Order, UserProfile, OrderStatus } from '@/lib/types';
+import { Loader2, Package, Users, Activity, DollarSign, Warehouse, Edit, Trash2, PlusCircle, UserCircle, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Table,
@@ -35,6 +35,7 @@ export default function AdminPage() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   
@@ -50,15 +51,18 @@ export default function AdminPage() {
     imageUrl: 'https://placehold.co/600x600.png',
   });
 
+  const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatus | 'all'>('all');
 
   const fetchData = async () => {
     setLoading(true);
-    const [productsData, ordersData] = await Promise.all([
+    const [productsData, ordersData, usersData] = await Promise.all([
       getProducts(),
-      getOrders()
+      getOrders(),
+      getUsers(),
     ]);
     setProducts(productsData);
     setOrders(ordersData);
+    setUsers(usersData);
     setLoading(false);
   };
 
@@ -112,6 +116,14 @@ export default function AdminPage() {
   const handleCategoryChange = (value: string) => {
       setNewProduct(prev => ({...prev, category: value as any }))
   }
+  
+  const filteredOrders = useMemo(() => {
+    if (orderStatusFilter === 'all') {
+      return orders;
+    }
+    return orders.filter(order => order.status === orderStatusFilter);
+  }, [orders, orderStatusFilter]);
+
 
   if (authLoading || loading) {
     return (
@@ -280,7 +292,24 @@ export default function AdminPage() {
         <TabsContent value="orders">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
              <Card className="glass-panel">
-               <CardHeader><CardTitle>Manage Orders</CardTitle></CardHeader>
+               <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Manage Orders</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-muted-foreground" />
+                    <Select value={orderStatusFilter} onValueChange={(value) => setOrderStatusFilter(value as any)}>
+                        <SelectTrigger className="w-[180px] bg-card/80">
+                            <SelectValue placeholder="Filter by status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Statuses</SelectItem>
+                            <SelectItem value="Processing">Processing</SelectItem>
+                            <SelectItem value="Delivered">Delivered</SelectItem>
+                            <SelectItem value="Cancelled">Cancelled</SelectItem>
+                            <SelectItem value="Failed">Failed</SelectItem>
+                        </SelectContent>
+                    </Select>
+                  </div>
+               </CardHeader>
                <CardContent>
                  <Table>
                     <TableHeader>
@@ -294,14 +323,14 @@ export default function AdminPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {orders.map(order => (
+                      {filteredOrders.map(order => (
                         <TableRow key={order.id} className="hover:bg-primary/5">
                           <TableCell className="font-medium text-primary">{order.id}</TableCell>
                           <TableCell>{order.user}</TableCell>
                           <TableCell>{order.productName}</TableCell>
                           <TableCell>
                             <Badge variant={order.status === 'Delivered' ? 'default' : order.status === 'Processing' ? 'secondary' : 'destructive'} 
-                              className={order.status === 'Delivered' ? 'bg-green-500/20 text-green-400 border-green-500/30' : order.status === 'Processing' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}>
+                              className={order.status === 'Delivered' ? 'bg-green-500/20 text-green-400 border-green-500/30' : order.status === 'Processing' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : order.status === 'Cancelled' ? 'bg-gray-500/20 text-gray-400 border-gray-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}>
                               {order.status}
                             </Badge>
                           </TableCell>
@@ -318,7 +347,40 @@ export default function AdminPage() {
 
         <TabsContent value="customers">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
-                 <p className="text-muted-foreground text-center py-8">Customer management interface coming soon.</p>
+                 <Card className="glass-panel">
+                    <CardHeader><CardTitle>Manage Customers</CardTitle></CardHeader>
+                    <CardContent>
+                       <Table>
+                          <TableHeader>
+                            <TableRow>
+                                <TableHead>User</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Role</TableHead>
+                                <TableHead>Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                             {users.map(user => (
+                               <TableRow key={user.uid} className="hover:bg-primary/5">
+                                 <TableCell className="font-medium flex items-center gap-2">
+                                    <UserCircle className="w-5 h-5 text-cyan-300" />
+                                    {user.displayName || 'N/A'}
+                                 </TableCell>
+                                 <TableCell>{user.email}</TableCell>
+                                 <TableCell>
+                                    <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'} className={user.role === 'admin' ? 'bg-accent/20 text-accent border-accent/40' : ''}>
+                                        {user.role}
+                                    </Badge>
+                                 </TableCell>
+                                 <TableCell>
+                                    <Button variant="ghost" size="sm">View Details</Button>
+                                 </TableCell>
+                               </TableRow>
+                             ))}
+                          </TableBody>
+                       </Table>
+                    </CardContent>
+                 </Card>
             </motion.div>
         </TabsContent>
 

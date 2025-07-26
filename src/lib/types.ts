@@ -1,4 +1,5 @@
 
+
 export type ProductCategory = 'Laptops' | 'Desktops' | 'Monitors' | 'Keyboards' | 'Mice' | 'Headphones' | 'Webcams' | 'Storage Drives' | 'Graphic Cards' | 'Processors' | 'RAM Modules' | 'Motherboards' | 'Power Supplies' | 'Coolers/Fans';
 
 export interface Product {
@@ -29,6 +30,14 @@ export interface Order {
 }
 
 export type UserRole = 'admin' | 'vendor' | 'client';
+
+export interface UserProfile {
+    uid: string;
+    email: string;
+    displayName?: string;
+    role: UserRole;
+    address?: string;
+}
 
 export interface CartItem {
   productId: string;
