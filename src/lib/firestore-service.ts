@@ -222,22 +222,31 @@ export async function toggleWishlist(userId: string, productId: string) {
   try {
     const userDoc = await userRef.get();
     const currentWishlist = userDoc.data()?.wishlist || [];
-    let newWishlist: string[];
     let message = '';
 
     if (currentWishlist.includes(productId)) {
-      await userRef.update({ wishlist: FieldValue.arrayRemove(productId) });
-      newWishlist = currentWishlist.filter((id: string) => id !== productId);
+      // Use set with merge to avoid errors on non-existent documents
+      await userRef.set({
+        wishlist: FieldValue.arrayRemove(productId)
+      }, { merge: true });
       message = 'Removed from wishlist.';
     } else {
-      await userRef.update({ wishlist: FieldValue.arrayUnion(productId) });
-      newWishlist = [...currentWishlist, productId];
+      // Use set with merge to avoid errors on non-existent documents
+      await userRef.set({
+        wishlist: FieldValue.arrayUnion(productId)
+      }, { merge: true });
       message = 'Added to wishlist.';
     }
     
     revalidatePath('/product/[id]', 'page');
     revalidatePath('/');
     revalidatePath('/dashboard');
+    revalidatePath('/wishlist');
+
+    // Refetch the latest wishlist state to return it
+    const updatedUserDoc = await userRef.get();
+    const newWishlist = updatedUserDoc.data()?.wishlist || [];
+
     return { success: true, message, wishlist: newWishlist };
   } catch (error) {
     console.error("Error updating wishlist:", error);
@@ -441,3 +450,5 @@ export async function deleteUser(userId: string) {
         return { success: false, message: "Failed to delete user data." };
     }
 }
+
+    
