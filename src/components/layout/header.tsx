@@ -29,7 +29,7 @@ export default function Header() {
       const cartRef = collection(db, 'users', user.uid, 'cart');
       
       const unsubscribe = onSnapshot(cartRef, (snapshot) => {
-        setCartCount(snapshot.size);
+        setCartCount(snapshot.docs.length);
       });
 
       return () => unsubscribe();
@@ -75,8 +75,7 @@ export default function Header() {
             <Input placeholder="Search transmissions..." className="pl-10 font-[Orbitron,Space Grotesk,monospace] bg-[#18182c]/80 border-cyan-400/30 focus:border-cyan-400 text-cyan-100 placeholder:text-cyan-400/40 shadow-[0_0_8px_#00fff733]" />
           </div>
           <Button variant="ghost" size="icon" asChild className="hover:bg-cyan-400/10">
-            {/* TODO: Create a dedicated wishlist page */}
-            <Link href="#">
+            <Link href="/wishlist">
               <Heart className="h-6 w-6 text-cyan-300" />
               <span className="sr-only">Wishlist</span>
             </Link>
