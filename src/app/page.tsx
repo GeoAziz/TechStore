@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Cpu, Monitor, Headphones, HardDrive, View, Rocket, Star } from 'lucide-react';
+import { Cpu, Monitor, Headphones, HardDrive, View, Rocket, Star, ArrowRight } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import ProductCard from '@/components/shop/product-card';
 import type { Product } from '@/lib/types';
@@ -129,14 +129,14 @@ function FeaturedCategories() {
     >
       <div className="container">
         <SectionHeading icon={View} title="Mission Modules" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {modules.map((mod, i) => (
             <motion.div
                 key={mod.name}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.15 }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
             >
                 <Link href={mod.href}>
                   <div className="glass-panel card-glow flex flex-col items-center justify-center p-6 rounded-xl hover:bg-accent/10 transition-all h-full">
@@ -146,6 +146,19 @@ function FeaturedCategories() {
                 </Link>
             </motion.div>
           ))}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+          >
+            <Link href="/categories">
+              <div className="glass-panel card-glow flex flex-col items-center justify-center p-6 rounded-xl hover:bg-primary/10 transition-all h-full border-dashed border-primary/40 hover:border-primary">
+                <ArrowRight className="w-10 h-10 mb-3 text-primary" />
+                <span className="font-bold text-lg text-center text-primary">View All</span>
+              </div>
+            </Link>
+          </motion.div>
         </div>
       </div>
     </motion.section>
