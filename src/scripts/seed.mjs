@@ -1,141 +1,698 @@
 
-import { db } from '../lib/firebase-admin.js';
-import { Timestamp } from 'firebase-admin/firestore';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import 'dotenv/config'; // Load environment variables from .env file
 
-// Helper function to generate random numbers
-const random = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+// --- Firebase Admin SDK Initialization ---
 
-// Helper to get a random date in the last year
-const randomDate = () => {
-    const start = new Date();
-    start.setFullYear(start.getFullYear() - 1);
-    const end = new Date();
-    return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-};
-
-const products = [
-  // Laptops
-  { name: 'HP Spectre x360 14', brand: 'HP', category: 'Laptops', price: 155000, stock: 15, tags: ['hp', 'laptop', 'x360', 'intel core i7'], warranty: "1 Year", vendor: "HP Kenya" },
-  { name: 'Dell XPS 13', brand: 'Dell', category: 'Laptops', price: 140000, stock: 20, tags: ['dell', 'xps', 'laptop', 'ultrabook'], warranty: "1 Year", vendor: "Dell Store KE" },
-  { name: 'Lenovo Yoga Slim 7', brand: 'Lenovo', category: 'Laptops', price: 110000, stock: 25, tags: ['lenovo', 'yoga', 'laptop', 'amd ryzen 7'], warranty: "1 Year", vendor: "Lenovo Official" },
-  { name: 'Apple MacBook Air M2', brand: 'Apple', category: 'Laptops', price: 160000, stock: 10, tags: ['apple', 'macbook', 'm2', 'laptop'], warranty: "1 Year", vendor: "Apple Kenya" },
-  { name: 'Asus ZenBook Duo', brand: 'Asus', category: 'Laptops', price: 180000, stock: 8, tags: ['asus', 'zenbook', 'laptop', 'dual screen'], warranty: "1 Year", vendor: "Asus Kenya" },
-
-  // Phones
-  { name: 'Samsung Galaxy S23 Ultra', brand: 'Samsung', category: 'Phones', price: 145000, stock: 30, tags: ['samsung', 'galaxy', 'phone', 'android'], warranty: "2 Years", vendor: "Samsung Kenya" },
-  { name: 'iPhone 14 Pro', brand: 'Apple', category: 'Phones', price: 180000, stock: 18, tags: ['apple', 'iphone', 'phone', 'ios'], warranty: "1 Year", vendor: "Apple Kenya" },
-  { name: 'Xiaomi Redmi Note 12 Pro', brand: 'Xiaomi', category: 'Phones', price: 35000, stock: 50, tags: ['xiaomi', 'redmi', 'phone', 'budget'], warranty: "1 Year", vendor: "Xiaomi KE" },
-  { name: 'Infinix Zero 20', brand: 'Infinix', category: 'Phones', price: 28000, stock: 60, tags: ['infinix', 'phone', 'android'], warranty: "1 Year", vendor: "Infinix Mobile" },
-  { name: 'Google Pixel 7', brand: 'Google', category: 'Phones', price: 95000, stock: 22, tags: ['google', 'pixel', 'phone', 'android'], warranty: "1 Year", vendor: "Gadget Store" },
-  
-  // Accessories
-  { name: 'Logitech MX Keys', brand: 'Logitech', category: 'Keyboards', price: 15000, stock: 40, tags: ['logitech', 'keyboard', 'wireless'], warranty: "1 Year", vendor: "Logitech KE" },
-  { name: 'Razer DeathAdder V2', brand: 'Razer', category: 'Mice', price: 8500, stock: 35, tags: ['razer', 'mouse', 'gaming', 'rgb'], warranty: "1 Year", vendor: "Razer Store" },
-  { name: 'Anker PowerCore 20000', brand: 'Anker', category: 'Accessories', price: 6500, stock: 100, tags: ['anker', 'powerbank', 'charger'], warranty: "18 Months", vendor: "Anker Kenya" },
-  { name: 'HP 15.6 Value Backpack', brand: 'HP', category: 'Accessories', price: 3500, stock: 80, tags: ['hp', 'laptop bag', 'backpack'], warranty: "6 Months", vendor: "HP Kenya" },
-
-  // Storage
-  { name: 'Samsung 980 Pro 1TB NVMe SSD', brand: 'Samsung', category: 'Storage Drives', price: 18000, stock: 50, tags: ['samsung', 'ssd', 'nvme', 'storage'], warranty: "5 Years", vendor: "Samsung Kenya" },
-  { name: 'Seagate Backup Plus 2TB', brand: 'Seagate', category: 'Storage Drives', price: 9000, stock: 70, tags: ['seagate', 'hdd', 'external', 'storage'], warranty: "2 Years", vendor: "Seagate KE" },
-  { name: 'SanDisk Ultra 128GB USB 3.0', brand: 'SanDisk', category: 'Storage Drives', price: 2500, stock: 200, tags: ['sandisk', 'flash drive', 'usb'], warranty: "5 Years", vendor: "SanDisk Official" },
-
-  // Displays
-  { name: 'Dell UltraSharp U2723QE 27" 4K Monitor', brand: 'Dell', category: 'Monitors', price: 65000, stock: 15, tags: ['dell', 'monitor', '4k', 'ultrasharp'], warranty: "3 Years", vendor: "Dell Store KE" },
-  { name: 'LG 24MP60G 24" IPS Gaming Monitor', brand: 'LG', category: 'Monitors', price: 22000, stock: 30, tags: ['lg', 'monitor', 'gaming', 'ips'], warranty: "2 Years", vendor: "LG Kenya" },
-
-  // Networking
-  { name: 'TP-Link Archer AX55 WiFi 6 Router', brand: 'TP-Link', category: 'Networking', price: 11500, stock: 45, tags: ['tp-link', 'router', 'wifi 6'], warranty: "2 Years", vendor: "TP-Link Kenya" },
-  { name: 'Faiba MiFi JTL 4G', brand: 'Faiba', category: 'Networking', price: 5500, stock: 90, tags: ['faiba', 'mifi', '4g', 'internet'], warranty: "1 Year", vendor: "JTL" },
-  
-  // Audio
-  { name: 'Sony WH-1000XM5 Headphones', brand: 'Sony', category: 'Headphones', price: 48000, stock: 25, tags: ['sony', 'headphones', 'noise cancelling'], warranty: "1 Year", vendor: "Sony Kenya" },
-  { name: 'JBL Flip 6 Bluetooth Speaker', brand: 'JBL', category: 'Audio', price: 14000, stock: 60, tags: ['jbl', 'speaker', 'bluetooth', 'portable'], warranty: "1 Year", vendor: "JBL Official" },
-  { name: 'Apple AirPods Pro 2', brand: 'Apple', category: 'Headphones', price: 32000, stock: 40, tags: ['apple', 'airpods', 'earbuds', 'wireless'], warranty: "1 Year", vendor: "Apple Kenya" },
-  
-  // Smart Tech
-  { name: 'Apple Watch Series 8', brand: 'Apple', category: 'Smart Tech', price: 65000, stock: 20, tags: ['apple', 'smartwatch', 'wearable'], warranty: "1 Year", vendor: "Apple Kenya" },
-  { name: 'Xiaomi Mi Band 7', brand: 'Xiaomi', category: 'Smart Tech', price: 5000, stock: 120, tags: ['xiaomi', 'fitness tracker', 'smartband'], warranty: "1 Year", vendor: "Xiaomi KE" },
-  
-  // More Graphic Cards
-  { name: 'NVIDIA GeForce RTX 3060', brand: 'NVIDIA', category: 'Graphic Cards', price: 55000, stock: 18, tags: ['nvidia', 'gpu', 'rtx', 'gaming'], warranty: "3 Years", vendor: "StellarForce" },
-  { name: 'AMD Radeon RX 6700 XT', brand: 'AMD', category: 'Graphic Cards', price: 62000, stock: 12, tags: ['amd', 'gpu', 'radeon', 'gaming'], warranty: "3 Years", vendor: "StellarForce" },
-  
-  // More Processors
-  { name: 'Intel Core i5-12600K', brand: 'Intel', category: 'Processors', price: 38000, stock: 25, tags: ['intel', 'cpu', 'core i5', 'processor'], warranty: "3 Years", vendor: "StellarForce" },
-  { name: 'AMD Ryzen 5 5600X', brand: 'AMD', category: 'Processors', price: 32000, stock: 30, tags: ['amd', 'cpu', 'ryzen 5', 'processor'], warranty: "3 Years", vendor: "StellarForce" },
-];
-
-async function seedDatabase() {
-    console.log("Starting database seed process...");
-    const productsCollection = db.collection('products');
-    let featuredCount = 0;
-    let dealsCount = 0;
-
-    const batch = db.batch();
-
-    for (const product of products) {
-        const docRef = productsCollection.doc(); // Auto-generate ID
-        
-        // Randomize metrics
-        const views = random(100, 5000);
-        const cartCount = random(10, 200);
-        const ordersCount = random(5, 100);
-        const averageRating = (Math.random() * (5 - 3.5) + 3.5).toFixed(1);
-        const reviewsCount = random(5, 100);
-        
-        let discountPercent = 0;
-        if (dealsCount < 12 && Math.random() > 0.6) {
-            discountPercent = random(15, 40);
-            dealsCount++;
-        }
-        
-        let isFeatured = false;
-        if (featuredCount < 8 && Math.random() > 0.7) {
-            isFeatured = true;
-            featuredCount++;
-        }
-
-        const fullProductData = {
-            ...product,
-            currency: 'KES',
-            description: `High-quality ${product.name} from ${product.brand}. Perfect for the Kenyan market.`,
-            imageUrl: `https://placehold.co/600x400.png`,
-            dataAiHint: `${product.category.toLowerCase()} ${product.tags[1]}`,
-            createdAt: Timestamp.fromDate(randomDate()),
-            updatedAt: Timestamp.now(),
-            discountPercent,
-            isFeatured,
-            views,
-            cartCount,
-            ordersCount,
-            averageRating: parseFloat(averageRating),
-            reviewsCount,
-            shippingTime: `${random(1,3)}-${random(4,5)} Days`,
-            specs: {
-                "Processor": "i5 11th Gen",
-                "RAM": "8GB DDR4",
-                "Storage": "512GB NVMe SSD"
-            },
-            color: 'Space Gray'
-        };
-
-        batch.set(docRef, fullProductData);
-        console.log(`Preparing to add: ${product.name}`);
-    }
-
-    try {
-        await batch.commit();
-        console.log("-----------------------------------------");
-        console.log("✅ Success! Database has been seeded.");
-        console.log(`Total products added: ${products.length}`);
-        console.log(`Featured products: ${featuredCount}`);
-        console.log(`Products on deal: ${dealsCount}`);
-        console.log("-----------------------------------------");
-    } catch (error) {
-        console.error("Error committing batch:", error);
-    }
+function getServiceAccount() {
+  const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!serviceAccountString) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is not set.');
+  }
+  try {
+    return JSON.parse(serviceAccountString);
+  } catch (e) {
+    console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT JSON string.", e);
+    throw new Error("FIREBASE_SERVICE_ACCOUNT is not a valid JSON object.");
+  }
 }
 
+try {
+  initializeApp({
+    credential: cert(getServiceAccount())
+  });
+} catch (error) {
+  if (!/already exists/u.test(error.message)) {
+    console.error('Firebase admin initialization error', error.stack);
+  }
+}
+
+const db = getFirestore();
+
+
+// --- Product Data ---
+
+const products = [
+  // Laptops (5)
+  {
+    name: 'HP Spectre x360 14',
+    description: 'Premium convertible laptop with a stunning OLED display and powerful performance.',
+    category: 'Laptops',
+    brand: 'HP',
+    price: 155000,
+    stock: 15,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'laptop silver',
+    color: 'Nightfall Black',
+    tags: ['hp', 'spectre', 'x360', 'oled', 'convertible'],
+    specs: { 'CPU': 'Intel Core i7-1355U', 'RAM': '16GB LPDDR4x', 'Storage': '1TB NVMe SSD' },
+    isFeatured: true,
+    promoTag: 'Top Rated',
+    averageRating: 4.8,
+    reviewsCount: 45,
+    views: 4800,
+    cartCount: 150,
+    ordersCount: 85,
+    warranty: '2 Years',
+    shippingTime: '1-2 Days',
+    vendor: 'ZizoDirect',
+  },
+  {
+    name: 'Lenovo IdeaPad Slim 5',
+    description: 'A versatile and lightweight laptop for everyday productivity and entertainment.',
+    category: 'Laptops',
+    brand: 'Lenovo',
+    price: 82000,
+    stock: 25,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'laptop gray',
+    color: 'Graphite Grey',
+    tags: ['lenovo', 'ideapad', 'slim', 'ryzen 7'],
+    specs: { 'CPU': 'AMD Ryzen 7 5700U', 'RAM': '16GB DDR4', 'Storage': '512GB NVMe SSD' },
+    discountPercent: 10,
+    averageRating: 4.5,
+    reviewsCount: 30,
+    views: 3200,
+    cartCount: 95,
+    ordersCount: 45,
+    warranty: '1 Year',
+    shippingTime: '2-3 Days',
+    vendor: 'TechSavvy Kenya',
+  },
+  {
+    name: 'Dell XPS 15 (9530)',
+    description: 'A creator\'s powerhouse with a vibrant display and high-end performance components.',
+    category: 'Laptops',
+    brand: 'Dell',
+    price: 240000,
+    stock: 10,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'laptop platinum',
+    color: 'Platinum Silver',
+    tags: ['dell', 'xps', 'creator', 'rtx 4060'],
+    specs: { 'CPU': 'Intel Core i9-13900H', 'GPU': 'NVIDIA GeForce RTX 4060', 'RAM': '32GB DDR5', 'Storage': '1TB NVMe SSD' },
+    averageRating: 4.7,
+    reviewsCount: 22,
+    views: 3900,
+    cartCount: 75,
+    ordersCount: 38,
+    warranty: '2 Years Premium',
+    shippingTime: '1-2 Days',
+    vendor: 'ZizoDirect',
+  },
+  {
+    name: 'Apple MacBook Air M2',
+    description: 'Incredibly thin and light, the MacBook Air is now more powerful than ever with the M2 chip.',
+    category: 'Laptops',
+    brand: 'Apple',
+    price: 145000,
+    stock: 18,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'laptop space gray',
+    color: 'Space Gray',
+    tags: ['apple', 'macbook', 'm2', 'ultrabook'],
+    specs: { 'Chip': 'Apple M2', 'RAM': '8GB Unified Memory', 'Storage': '256GB SSD' },
+    isFeatured: true,
+    averageRating: 4.9,
+    reviewsCount: 88,
+    views: 6500,
+    cartCount: 210,
+    ordersCount: 110,
+    warranty: '1 Year International',
+    shippingTime: 'Next-Day',
+    vendor: 'Apple Authorized',
+  },
+  {
+    name: 'ASUS ROG Strix G16',
+    description: 'Dominate the competition with this powerful gaming laptop featuring the latest hardware.',
+    category: 'Laptops',
+    brand: 'ASUS',
+    price: 195000,
+    stock: 12,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'gaming laptop black',
+    color: 'Eclipse Gray',
+    tags: ['asus', 'rog', 'gaming', 'rtx 4070'],
+    specs: { 'CPU': 'Intel Core i7-13650HX', 'GPU': 'NVIDIA GeForce RTX 4070', 'RAM': '16GB DDR5', 'Storage': '1TB NVMe SSD' },
+    discountPercent: 15,
+    promoTag: 'Big Discount',
+    averageRating: 4.6,
+    reviewsCount: 18,
+    views: 4100,
+    cartCount: 130,
+    ordersCount: 65,
+    warranty: '2 Years',
+    shippingTime: '1-3 Days',
+    vendor: 'GameChanger KE',
+  },
+
+  // Phones (5)
+  {
+    name: 'Samsung Galaxy S24 Ultra',
+    description: 'Experience the new era of mobile AI with Galaxy S24 Ultra.',
+    category: 'Phones',
+    brand: 'Samsung',
+    price: 180000,
+    stock: 20,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'phone titanium',
+    color: 'Titanium Gray',
+    tags: ['samsung', 'galaxy', 's24', 'android', 'flagship'],
+    specs: { 'Display': '6.8" Dynamic AMOLED 2X', 'Camera': '200MP Wide', 'Storage': '256GB' },
+    isFeatured: true,
+    averageRating: 4.8,
+    reviewsCount: 95,
+    views: 7200,
+    cartCount: 180,
+    ordersCount: 92,
+    warranty: '2 Years',
+    shippingTime: 'Next-Day',
+    vendor: 'Samsung Kenya',
+  },
+  {
+    name: 'iPhone 15 Pro',
+    description: 'Forged in titanium and featuring the groundbreaking A17 Pro chip.',
+    category: 'Phones',
+    brand: 'Apple',
+    price: 195000,
+    stock: 22,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'phone blue',
+    color: 'Blue Titanium',
+    tags: ['apple', 'iphone', 'iphone 15 pro', 'ios'],
+    specs: { 'Display': '6.1" Super Retina XDR', 'Chip': 'A17 Pro', 'Storage': '256GB' },
+    averageRating: 4.9,
+    reviewsCount: 150,
+    views: 8500,
+    cartCount: 250,
+    ordersCount: 130,
+    warranty: '1 Year International',
+    shippingTime: 'Next-Day',
+    vendor: 'Apple Authorized',
+  },
+  {
+    name: 'Xiaomi Redmi Note 13',
+    description: 'Capture iconic moments with a 108MP triple camera system and a vivid display.',
+    category: 'Phones',
+    brand: 'Xiaomi',
+    price: 28500,
+    stock: 50,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'phone black',
+    color: 'Midnight Black',
+    tags: ['xiaomi', 'redmi', 'budget', 'android'],
+    specs: { 'Display': '6.67" AMOLED', 'Camera': '108MP Main', 'Battery': '5000mAh' },
+    discountPercent: 5,
+    averageRating: 4.4,
+    reviewsCount: 112,
+    views: 9500,
+    cartCount: 350,
+    ordersCount: 180,
+    warranty: '1 Year',
+    shippingTime: '2-4 Days',
+    vendor: 'Xiaomi Kenya',
+  },
+  {
+    name: 'Google Pixel 8',
+    description: 'The helpful phone, engineered by Google. With an amazing camera and AI-powered features.',
+    category: 'Phones',
+    brand: 'Google',
+    price: 95000,
+    stock: 15,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'phone gray green',
+    color: 'Hazel',
+    tags: ['google', 'pixel', 'android', 'camera'],
+    specs: { 'Display': '6.2" Actua display', 'Chip': 'Google Tensor G3', 'Storage': '128GB' },
+    averageRating: 4.7,
+    reviewsCount: 65,
+    views: 5100,
+    cartCount: 115,
+    ordersCount: 55,
+    warranty: '1 Year',
+    shippingTime: '2-3 Days',
+    vendor: 'ZizoDirect',
+  },
+  {
+    name: 'Infinix Note 40 Pro',
+    description: 'All-Round FastCharge 2.0 with a vibrant 120Hz AMOLED display.',
+    category: 'Phones',
+    brand: 'Infinix',
+    price: 36000,
+    stock: 40,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'phone gold',
+    color: 'Titan Gold',
+    tags: ['infinix', 'note', 'fast charge', 'budget'],
+    specs: { 'Display': '6.78" FHD+ AMOLED', 'Charging': '70W FastCharge', 'Camera': '108MP OIS' },
+    isFeatured: true,
+    promoTag: 'New Arrival',
+    averageRating: 4.3,
+    reviewsCount: 88,
+    views: 8800,
+    cartCount: 290,
+    ordersCount: 140,
+    warranty: '1 Year',
+    shippingTime: '2-4 Days',
+    vendor: 'Infinix Kenya',
+  },
+  
+  // Accessories (10)
+  {
+    name: 'Logitech MX Keys S',
+    description: 'Advanced wireless illuminated keyboard with smart actions and comfortable typing.',
+    category: 'Keyboards',
+    brand: 'Logitech',
+    price: 15500,
+    stock: 30,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'keyboard gray',
+    color: 'Graphite',
+    tags: ['logitech', 'keyboard', 'wireless', 'productivity'],
+    isFeatured: true,
+    averageRating: 4.9,
+    reviewsCount: 78,
+    views: 6100,
+    cartCount: 220,
+    ordersCount: 98,
+    warranty: '1 Year',
+    shippingTime: 'Next-Day',
+  },
+  {
+    name: 'Anker 737 Power Bank (PowerCore 24K)',
+    description: 'High-capacity 24,000mAh power bank with 140W output for charging laptops and phones.',
+    category: 'Accessories',
+    brand: 'Anker',
+    price: 18000,
+    stock: 25,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'power bank black',
+    color: 'Black',
+    tags: ['anker', 'power bank', 'charging', '140w'],
+    averageRating: 4.8,
+    reviewsCount: 55,
+    views: 4500,
+    cartCount: 150,
+    ordersCount: 70,
+    warranty: '18 Months',
+    shippingTime: '1-3 Days',
+  },
+   {
+    name: 'Razer DeathAdder V3 Pro',
+    description: 'Ultra-lightweight wireless ergonomic esports mouse.',
+    category: 'Mice',
+    brand: 'Razer',
+    price: 17500,
+    stock: 20,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'gaming mouse white',
+    color: 'White',
+    tags: ['razer', 'mouse', 'gaming', 'esports', 'wireless'],
+    discountPercent: 10,
+    averageRating: 4.7,
+    reviewsCount: 40,
+    views: 5200,
+    cartCount: 160,
+    ordersCount: 80,
+    warranty: '2 Years',
+    shippingTime: '1-2 Days',
+    vendor: 'GameChanger KE',
+  },
+  {
+    name: 'Ugreen 100W GaN Fast Charger',
+    description: '4-Port PD USB C charger for MacBook, Dell, HP, iPhone, and Galaxy devices.',
+    category: 'Accessories',
+    brand: 'Ugreen',
+    price: 7500,
+    stock: 40,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'charger black',
+    color: 'Space Gray',
+    tags: ['ugreen', 'charger', 'gan', '100w', 'pd'],
+    averageRating: 4.8,
+    reviewsCount: 150,
+    views: 7800,
+    cartCount: 400,
+    ordersCount: 210,
+    warranty: '1 Year',
+    shippingTime: '2-4 Days',
+  },
+  {
+    name: 'Sony WH-1000XM5 Wireless Headphones',
+    description: 'Industry-leading noise canceling headphones with Auto NC Optimizer, and crystal clear hands-free calling.',
+    category: 'Headphones',
+    brand: 'Sony',
+    price: 42000,
+    stock: 18,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'headphones black',
+    color: 'Black',
+    tags: ['sony', 'headphones', 'noise canceling', 'xm5', 'audio'],
+    isFeatured: true,
+    averageRating: 4.9,
+    reviewsCount: 120,
+    views: 6800,
+    cartCount: 230,
+    ordersCount: 115,
+    warranty: '1 Year',
+    shippingTime: 'Next-Day',
+    vendor: 'Sony Kenya',
+  },
+  {
+    name: 'TP-Link Archer AX55 WiFi 6 Router',
+    description: 'Dual-Band Gigabit Wi-Fi 6 Router for ultra-fast speeds and reliable connections.',
+    category: 'Networking',
+    brand: 'TP-Link',
+    price: 11500,
+    stock: 35,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'router black',
+    color: 'Black',
+    tags: ['tp-link', 'router', 'wifi 6', 'networking'],
+    averageRating: 4.6,
+    reviewsCount: 60,
+    views: 4300,
+    cartCount: 140,
+    ordersCount: 75,
+    warranty: '2 Years',
+    shippingTime: '1-3 Days',
+  },
+  {
+    name: 'Keychron K2 Mechanical Keyboard',
+    description: 'A popular 75% layout wireless mechanical keyboard with Gateron switches.',
+    category: 'Keyboards',
+    brand: 'Keychron',
+    price: 13500,
+    stock: 22,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'mechanical keyboard gray',
+    color: 'Gray',
+    tags: ['keychron', 'mechanical', 'keyboard', 'gateron', 'wireless'],
+    discountPercent: 15,
+    promoTag: 'Clearance',
+    averageRating: 4.7,
+    reviewsCount: 50,
+    views: 5500,
+    cartCount: 190,
+    ordersCount: 90,
+    warranty: '1 Year',
+    shippingTime: '2-3 Days',
+  },
+  {
+    name: 'Samsung T7 Shield 1TB Portable SSD',
+    description: 'Rugged, fast, and compact. Tough, fast, and compact. The all-new T7 Shield gives you superior performance on the go, even in challenging environmental conditions.',
+    category: 'Storage Drives',
+    brand: 'Samsung',
+    price: 16500,
+    stock: 30,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'portable ssd black',
+    color: 'Black',
+    tags: ['samsung', 'ssd', 'portable', 'storage', 'rugged'],
+    averageRating: 4.8,
+    reviewsCount: 85,
+    views: 5900,
+    cartCount: 210,
+    ordersCount: 105,
+    warranty: '3 Years',
+    shippingTime: '1-3 Days',
+  },
+   {
+    name: 'Anker Soundcore Liberty 4 NC',
+    description: 'Reduce noise by up to 98.5% with our advanced noise cancelling system.',
+    category: 'Headphones',
+    brand: 'Anker',
+    price: 9800,
+    stock: 50,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'earbuds case black',
+    color: 'Black',
+    tags: ['anker', 'soundcore', 'earbuds', 'tws', 'noise canceling'],
+    promoTag: 'Best Seller',
+    isFeatured: true,
+    averageRating: 4.5,
+    reviewsCount: 180,
+    views: 9200,
+    cartCount: 550,
+    ordersCount: 300,
+    warranty: '18 Months',
+    shippingTime: '2-4 Days',
+  },
+   {
+    name: 'HP M24f 24-inch FHD Monitor',
+    description: 'Lose yourself in the picture-perfect immersion of this massive canvas, designed to redefine comfort, wellness, and sustainability.',
+    category: 'Monitors',
+    brand: 'HP',
+    price: 19500,
+    stock: 28,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'monitor silver',
+    color: 'Silver',
+    tags: ['hp', 'monitor', 'fhd', '24 inch', 'ips'],
+    discountPercent: 20,
+    promoTag: 'Hot Deal!',
+    averageRating: 4.4,
+    reviewsCount: 42,
+    views: 6300,
+    cartCount: 180,
+    ordersCount: 88,
+    warranty: '1 Year',
+    shippingTime: '1-3 Days',
+    vendor: 'Nairobi Tech Store',
+  },
+
+  // PC Components (10)
+  {
+    name: 'NVIDIA GeForce RTX 4070 SUPER',
+    description: 'Get equipped for stellar gaming and creating with the NVIDIA GeForce RTX 4070 SUPER graphics card.',
+    category: 'Graphic Cards',
+    brand: 'NVIDIA',
+    price: 98000,
+    stock: 10,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'graphics card',
+    color: 'Black/Silver',
+    tags: ['nvidia', 'rtx', '4070 super', 'gpu', 'gaming'],
+    isFeatured: true,
+    averageRating: 4.9,
+    reviewsCount: 35,
+    views: 6800,
+    cartCount: 150,
+    ordersCount: 70,
+    warranty: '3 Years',
+    shippingTime: '1-2 Days',
+    vendor: 'GameChanger KE',
+  },
+  {
+    name: 'AMD Ryzen 7 7800X3D',
+    description: 'The ultimate gaming processor with AMD 3D V-Cache technology for even more game performance.',
+    category: 'Processors',
+    brand: 'AMD',
+    price: 65000,
+    stock: 15,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'cpu processor',
+    color: 'N/A',
+    tags: ['amd', 'ryzen', '7800x3d', 'cpu', 'gaming', 'am5'],
+    averageRating: 4.9,
+    reviewsCount: 50,
+    views: 7500,
+    cartCount: 200,
+    ordersCount: 95,
+    warranty: '3 Years',
+    shippingTime: '1-3 Days',
+  },
+   {
+    name: 'Corsair Vengeance 32GB (2x16GB) DDR5 6000MHz',
+    description: 'Push the limits of your system like never-before with DDR5 memory, unlocking even faster frequencies.',
+    category: 'RAM Modules',
+    brand: 'Corsair',
+    price: 18500,
+    stock: 40,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'ram sticks black',
+    color: 'Black',
+    tags: ['corsair', 'ram', 'ddr5', '32gb', '6000mhz'],
+    averageRating: 4.8,
+    reviewsCount: 65,
+    views: 6200,
+    cartCount: 250,
+    ordersCount: 120,
+    warranty: 'Limited Lifetime',
+    shippingTime: '2-3 Days',
+  },
+   {
+    name: 'Samsung 990 Pro 2TB NVMe SSD',
+    description: 'Reach max performance of PCIe 4.0. Experience longer-lasting, opponent-blasting speed.',
+    category: 'Storage Drives',
+    brand: 'Samsung',
+    price: 28000,
+    stock: 25,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'nvme ssd',
+    color: 'Black',
+    tags: ['samsung', 'ssd', 'nvme', 'pcie 4.0', '2tb', 'gaming'],
+    isFeatured: true,
+    promoTag: 'Pro Pick',
+    averageRating: 4.9,
+    reviewsCount: 90,
+    views: 8100,
+    cartCount: 300,
+    ordersCount: 140,
+    warranty: '5 Years',
+    shippingTime: 'Next-Day',
+  },
+  {
+    name: 'ASUS ROG Strix B650-A Gaming WiFi',
+    description: 'An ATX motherboard for AMD Ryzen 7000 series processors with WiFi 6E and DDR5 support.',
+    category: 'Motherboards',
+    brand: 'ASUS',
+    price: 38000,
+    stock: 18,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'motherboard white silver',
+    color: 'Silver/White',
+    tags: ['asus', 'rog', 'motherboard', 'b650', 'am5', 'wifi'],
+    averageRating: 4.7,
+    reviewsCount: 25,
+    views: 4800,
+    cartCount: 110,
+    ordersCount: 50,
+    warranty: '3 Years',
+    shippingTime: '1-3 Days',
+  },
+  {
+    name: 'SeaSonic FOCUS Plus Gold 850W',
+    description: '80+ Gold certified, fully modular power supply for high-end systems.',
+    category: 'Power Supplies',
+    brand: 'SeaSonic',
+    price: 21000,
+    stock: 20,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'power supply black',
+    color: 'Black',
+    tags: ['seasonic', 'psu', 'power supply', '850w', 'gold', 'modular'],
+    averageRating: 4.8,
+    reviewsCount: 70,
+    views: 5300,
+    cartCount: 130,
+    ordersCount: 60,
+    warranty: '10 Years',
+    shippingTime: '2-4 Days',
+  },
+  {
+    name: 'Noctua NH-D15 chromax.black',
+    description: 'Dual-tower CPU cooler for maximum cooling performance with a sleek all-black design.',
+    category: 'Coolers/Fans',
+    brand: 'Noctua',
+    price: 15500,
+    stock: 15,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'cpu cooler black',
+    color: 'chromax.black',
+    tags: ['noctua', 'cpu cooler', 'air cooling', 'nh-d15', 'silent'],
+    averageRating: 5.0,
+    reviewsCount: 110,
+    views: 7900,
+    cartCount: 240,
+    ordersCount: 115,
+    warranty: '6 Years',
+    shippingTime: '1-3 Days',
+    vendor: 'ZizoDirect',
+  },
+  {
+    name: 'Intel Core i5-13600K',
+    description: 'A fantastic mid-range gaming and productivity CPU that offers incredible value.',
+    category: 'Processors',
+    brand: 'Intel',
+    price: 48000,
+    stock: 25,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'cpu processor box',
+    color: 'N/A',
+    tags: ['intel', 'core i5', '13600k', 'cpu', 'gaming'],
+    isFeatured: true,
+    promoTag: 'Value King',
+    discountPercent: 20,
+    averageRating: 4.7,
+    reviewsCount: 80,
+    views: 8200,
+    cartCount: 310,
+    ordersCount: 150,
+    warranty: '3 Years',
+    shippingTime: '2-3 Days',
+  },
+  {
+    name: 'Crucial P3 Plus 1TB Gen4 NVMe SSD',
+    description: 'Impressive Gen4 performance with read speeds up to 5000MB/s for a great price.',
+    category: 'Storage Drives',
+    brand: 'Crucial',
+    price: 11000,
+    stock: 50,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'nvme ssd pcb',
+    color: 'Black',
+    tags: ['crucial', 'ssd', 'nvme', 'pcie 4.0', '1tb', 'value'],
+    averageRating: 4.5,
+    reviewsCount: 95,
+    views: 8500,
+    cartCount: 450,
+    ordersCount: 220,
+    warranty: '5 Years',
+    shippingTime: '2-4 Days',
+  },
+  {
+    name: 'Lian Li Lancool 216 RGB Case',
+    description: 'A mid-tower ATX case focused on airflow with two front 160mm ARGB fans.',
+    category: 'Accessories',
+    brand: 'Lian Li',
+    price: 14500,
+    stock: 18,
+    imageUrl: 'https://placehold.co/600x400.png',
+    dataAiHint: 'computer case black',
+    color: 'Black',
+    tags: ['lian li', 'pc case', 'atx', 'airflow', 'rgb'],
+    averageRating: 4.8,
+    reviewsCount: 30,
+    views: 5000,
+    cartCount: 120,
+    ordersCount: 55,
+    warranty: '1 Year',
+    shippingTime: '2-3 Days',
+  },
+];
+
+
+// --- Seeding Logic ---
+
+const seedDatabase = async () => {
+  console.log('Starting to seed database...');
+
+  const productsCollection = db.collection('products');
+  const existingProductsSnapshot = await productsCollection.limit(1).get();
+
+  if (!existingProductsSnapshot.empty) {
+    console.log('Database already contains products. Deleting existing products before seeding.');
+    const allDocs = await productsCollection.listDocuments();
+    await Promise.all(allDocs.map(doc => doc.delete()));
+    console.log('Existing products deleted.');
+  }
+
+  const promises = products.map(product => {
+    const data = {
+      ...product,
+      createdAt: product.createdAt instanceof Date ? Timestamp.fromDate(product.createdAt) : Timestamp.now(),
+      updatedAt: Timestamp.now()
+    };
+    return productsCollection.add(data);
+  });
+
+  await Promise.all(promises);
+
+  console.log(`Successfully seeded ${products.length} products.`);
+};
+
 seedDatabase().catch(error => {
-    console.error("Seeder script failed:", error);
+  console.error('Error seeding database:', error);
 });
