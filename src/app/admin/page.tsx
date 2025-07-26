@@ -1,3 +1,4 @@
+
 "use client";
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -24,7 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import ProductForm from '@/components/admin/product-form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import AnalyticsCharts from '@/components/admin/analytics-charts'; // <-- Add this import
+import AnalyticsCharts from '@/components/admin/analytics-charts';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -35,7 +36,6 @@ import type { ProductCategory } from '@/lib/types';
 import { deleteMultipleProducts, updateOrderStatus, getAuditLogs } from '@/lib/firestore-service';
 import CustomerManagement from '@/components/admin/customer-management';
 
-// Example category data (replace with your actual categories or import from your data source)
 const categoryData = [
   { name: 'Electronics' },
   { name: 'Computers' },
@@ -43,56 +43,29 @@ const categoryData = [
   { name: 'Phones' },
   { name: 'Gaming' },
 ];
-// Mocks for missing modules
-const CustomerBulkActions = ({ selectedCustomers, onBulkDelete, onBulkEdit }: any) => (
-  <div className="mb-4">
-    <button onClick={() => onBulkDelete(selectedCustomers)}>Bulk Delete</button>
-    <button onClick={() => onBulkEdit(selectedCustomers)}>Bulk Edit</button>
-  </div>
-);
-const CustomerSegmentation = ({ segment }: any) => <span>{segment}</span>;
-const CustomerNotificationDialog = ({ open, onClose, onSend }: { open: boolean; onClose: () => void; onSend: (message: string) => Promise<void>; }) => null;
-const CustomerAuditLog = ({ logs }: any) => <div />;
-// Mocks for export functions
-const exportCustomersToCSV = (users: any) => alert('Exported CSV');
-const exportCustomersToExcel = (users: any) => alert('Exported Excel');
-// Mocks for audit log service
-const logCustomerAction = (action: any) => {};
-const getCustomerAuditLogs = () => [];
-const handleDeleteUser = async (uid: string) => {
-  // Simulate user deletion
-  return Promise.resolve();
-};
 
+const getCustomerAuditLogs = () => [];
 
 export default function AdminPage() {
   const { user: currentUser, loading: authLoading, role, isAddProductDialogOpen, setAddProductDialogOpen } = useAuth();
   const { toast } = useToast();
 
-  // Data states
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
-  // const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Dialog states
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
-  // Selection states for bulk actions
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   
-  // Filter states
   const [productCategoryFilter, setProductCategoryFilter] = useState<ProductCategory | 'all'>('all');
   const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [orderDateRange, setOrderDateRange] = useState<{ from: Date | undefined; to?: Date | undefined }>({ from: undefined, to: undefined });
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [isNotificationDialogOpen, setNotificationDialogOpen] = useState(false);
-  const [notificationTarget, setNotificationTarget] = useState<UserProfile | null>(null);
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
-
-  // User edit dialog states
+  
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [selectedRole, setSelectedRole] = useState<UserRole>('client');
@@ -143,7 +116,7 @@ export default function AdminPage() {
     const result = await serverDeleteProduct(productId, currentUser.uid, currentUser.email || '');
     if(result.success) {
       toast({ title: 'Success', description: 'Product successfully deleted.'});
-      fetchData(); // Refresh data
+      fetchData(); 
     } else {
       toast({ variant: 'destructive', title: 'Error', description: result.message });
     }
@@ -166,7 +139,7 @@ export default function AdminPage() {
     const isEditing = 'id' in productData;
     const result = isEditing 
         ? await serverUpdateProduct(productData.id, productData, currentUser.uid, currentUser.email || '') 
-        : await serverAddProduct({ ...productData, isFeatured: false }, currentUser.uid, currentUser.email || '');
+        : await serverAddProduct({ ...productData, isFeatured: false } as Omit<Product, 'id'>, currentUser.uid, currentUser.email || '');
 
     if(result.success) {
         toast({ title: 'Success', description: `Product successfully ${isEditing ? 'updated' : 'added'}.`});
@@ -213,64 +186,7 @@ export default function AdminPage() {
      }
   };
 
-  const handleBulkDelete = async (userIds: string[]) => {
-    if (!confirm('Delete selected users?')) return;
-    for (const uid of userIds) {
-      await handleDeleteUser(uid);
-      logCustomerAction({
-        id: `${Date.now()}-${uid}`,
-        timestamp: new Date().toISOString(),
-        admin: currentUser?.email || '',
-        action: 'Bulk Delete',
-        customer: uid,
-        details: 'Deleted via bulk action',
-      });
-    }
-    setSelectedUsers([]);
-    fetchData();
-  };
-
-  const handleBulkEdit = async (userIds: string[]) => {
-    // Example: set all selected users to 'inactive'
-    for (const uid of userIds) {
-      await serverUpdateUserRole(uid, 'inactive', currentUser?.uid || '', currentUser?.email || '');
-      logCustomerAction({
-        id: `${Date.now()}-${uid}`,
-        timestamp: new Date().toISOString(),
-        admin: currentUser?.email || '',
-        action: 'Bulk Edit',
-        customer: uid,
-        details: 'Set to inactive via bulk action',
-      });
-    }
-    setSelectedUsers([]);
-    fetchData();
-  };
-
-  // Notification sending logic
-  const handleSendNotification = async (message: string) => {
-    if (!notificationTarget) return;
-    // Mock Firestore db
-    const db = {
-      collection: (name: string) => ({
-        add: async (data: any) => {
-          alert(`Notification sent to collection "${name}": ` + JSON.stringify(data));
-        }
-      })
-    };
-    await db.collection('notifications').add({
-      title: 'Admin Message',
-      message,
-      user: notificationTarget.uid,
-      timestamp: new Date(),
-      read: false,
-      type: 'admin',
-    });
-    setNotificationDialogOpen(false);
-  };
-
-  const handleExportCSV = () => exportCustomersToCSV(users);
-  const handleExportExcel = () => exportCustomersToExcel(users);
+  const totalSales = orders.reduce((acc, order) => acc + order.total, 0);
 
   if (authLoading || loading) {
     return (
@@ -280,10 +196,8 @@ export default function AdminPage() {
     );
   }
 
-  const totalSales = orders.reduce((acc, order) => acc + order.total, 0);
-
   return (
-    <>
+    <div>
       <motion.h1 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -587,37 +501,39 @@ export default function AdminPage() {
           </motion.div>
         </TabsContent>
 
-        <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
-          <DialogContent className="sm:max-w-[425px] bg-card/80 backdrop-blur-sm border-primary/20">
-            <DialogHeader>
-              <DialogTitle className="glow-primary">Edit User Role</DialogTitle>
-              <DialogDescription>
-                Change the role for {editingUser?.email}. Be careful with admin privileges.
-              </DialogDescription>
-            </DialogHeader>
-            {editingUser && (
-              <div className="flex flex-col gap-4 mt-4">
-                <Select value={selectedRole} onValueChange={value => setSelectedRole(value as UserRole)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="vendor">Vendor</SelectItem>
-                    <SelectItem value="client">Client</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-                <DialogFooter>
-                  <Button onClick={handleUpdateUserRole}>Save</Button>
-                  <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </DialogClose>
-                </DialogFooter>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+      </Tabs>
+
+      <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-card/80 backdrop-blur-sm border-primary/20">
+          <DialogHeader>
+            <DialogTitle className="glow-primary">Edit User Role</DialogTitle>
+            <DialogDescription>
+              Change the role for {editingUser?.email}. Be careful with admin privileges.
+            </DialogDescription>
+          </DialogHeader>
+          {editingUser && (
+            <div className="flex flex-col gap-4 mt-4">
+              <Select value={selectedRole} onValueChange={value => setSelectedRole(value as UserRole)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="vendor">Vendor</SelectItem>
+                  <SelectItem value="client">Client</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+              <DialogFooter>
+                <Button onClick={handleUpdateUserRole}>Save</Button>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Product Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -633,6 +549,8 @@ export default function AdminPage() {
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
+
+    
