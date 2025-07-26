@@ -3,7 +3,8 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export type UserRole = 'admin' | 'vendor' | 'client';
 
@@ -25,15 +26,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<UserRole | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
-        // Simulate role assignment based on email
-        if (user.email === 'admin@zizo.net') {
-          setRole('admin');
-        } else if (user.email === 'vendor@zizo.net') {
-          setRole('vendor');
+        // Fetch user role from Firestore
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setRole(userData.role || 'client');
         } else {
+          // Default to client if no specific role is found
           setRole('client');
         }
       } else {
