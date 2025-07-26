@@ -21,7 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import Image from 'next/image';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import ProductForm from '@/components/admin/product-form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -62,13 +62,11 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!authLoading) {
-      if (!user || role !== 'admin') {
-        router.push('/login');
-      } else {
+      if (user && role === 'admin') {
         fetchData();
       }
     }
-  }, [user, authLoading, role, router]);
+  }, [user, authLoading, role]);
   
   const handleDeleteProduct = async (productId: string) => {
     if(!confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
@@ -117,7 +115,7 @@ export default function AdminPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="container mx-auto py-10 flex justify-center items-center h-full">
+      <div className="flex justify-center items-center h-full">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
       </div>
     );
@@ -131,7 +129,7 @@ export default function AdminPage() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="text-3xl md:text-4xl font-bold mb-6 glow-primary font-['Orbitron',_monospace]">Admin Control Deck</motion.h1>
+        className="text-3xl md:text-4xl font-bold mb-6 glow-primary font-['Orbitron',_monospace]">Admin Dashboard</motion.h1>
       
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -358,5 +356,3 @@ export default function AdminPage() {
     </>
   );
 }
-
-    

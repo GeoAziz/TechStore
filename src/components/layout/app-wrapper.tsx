@@ -31,10 +31,14 @@ export default function AppWrapper({ children }: { children: React.ReactNode }) 
   return (
     <>
       {showSplash && <SplashScreen onFinished={() => setShowSplash(false)} />}
-      <div className={`flex flex-col min-h-screen transition-opacity duration-500 ${showSplash ? 'opacity-0' : 'opacity-100'}`}>
-        <Header />
-        <main className="flex-1">{children}</main>
-        <AiAssistantOverlay />
+      <div className={`transition-opacity duration-500 ${showSplash ? 'opacity-0' : 'opacity-100'}`}>
+        {!showSplash && (
+          <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-1">{children}</main>
+            <AiAssistantOverlay />
+          </div>
+        )}
       </div>
     </>
   );

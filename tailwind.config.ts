@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss"
 
 const config = {
@@ -20,8 +21,8 @@ const config = {
     extend: {
       fontFamily: {
         body: ["var(--font-inter)"],
-        headline: ["var(--font-space-grotesk)"],
-        mono: ["var(--font-space-mono)"],
+        headline: ["var(--font-orbitron)", "var(--font-space-grotesk)", "sans-serif"],
+        mono: ["var(--font-space-grotesk)", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",

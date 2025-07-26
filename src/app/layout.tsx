@@ -4,12 +4,12 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import AppWrapper from '@/components/layout/app-wrapper';
 import { AuthProvider } from '@/context/auth-context';
-import { Inter, Space_Grotesk, Space_Mono } from 'next/font/google';
+import { Inter, Space_Grotesk, Orbitron } from 'next/font/google';
 import { CompareProvider } from '@/context/compare-context';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk' });
-const spaceMono = Space_Mono({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-space-mono' });
+const orbitron = Orbitron({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-orbitron' });
 
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} ${spaceGrotesk.variable} ${spaceMono.variable} font-body antialiased`}>
+      <body className={`${inter.variable} ${spaceGrotesk.variable} ${orbitron.variable} font-body antialiased`}>
         <AuthProvider>
           <CompareProvider>
             <AppWrapper>
