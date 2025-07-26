@@ -346,14 +346,11 @@ export async function getWishlist(userId: string): Promise<string[]> {
  * @param userId The user's ID.
  * @param profileData The data to update.
  */
-export async function updateUserProfile(userId: string, profileData: { displayName: string, address: string }) {
+export async function updateUserProfile(userId: string, profileData: Partial<UserProfile>) {
     if (!userId) return { success: false, message: "User not authenticated." };
     try {
-        await db.collection('users').doc(userId).set({
-            displayName: profileData.displayName,
-            address: profileData.address,
-        }, { merge: true });
-        revalidatePath('/dashboard/client');
+        await db.collection('users').doc(userId).set(profileData, { merge: true });
+        revalidatePath('/admin/profile');
         return { success: true, message: "Profile updated." };
     } catch (error) {
         console.error("Error updating profile:", error);
@@ -459,6 +456,7 @@ export async function getUsers(): Promise<UserProfile[]> {
         email: data.email || '',
         displayName: data.displayName || '',
         role: data.role || 'client',
+        photoURL: data.photoURL || '',
     } as UserProfile;
   });
 }
@@ -473,5 +471,3 @@ export async function deleteUser(userId: string) {
         return { success: false, message: "Failed to delete user data." };
     }
 }
-
-

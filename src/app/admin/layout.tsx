@@ -4,7 +4,7 @@
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2, Warehouse, PanelLeft, Bot, Bell, Activity, Rocket } from 'lucide-react';
+import { Loader2, Warehouse, PanelLeft, Bot, Bell, Activity, Rocket, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 
 const navItems = [
     { href: "/admin", icon: Warehouse, label: "Dashboard" },
+    { href: "/admin/profile", icon: User, label: "Profile" },
 ];
 
 
@@ -83,6 +84,8 @@ function ProfileDialog({ open, onOpenChange, user }: { open: boolean, onOpenChan
 function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const { user, handleLogout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
+  const router = useRouter();
+  
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-primary/20 bg-background/80 px-4 backdrop-blur-sm md:px-6">
       <div className="flex items-center gap-2">
@@ -104,32 +107,54 @@ function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           <Bell className="h-5 w-5 text-cyan-300 animate-pulse" />
           <span className="sr-only">Toggle notifications</span>
         </Button>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <motion.div whileHover={{ scale: 1.1 }}>
-              <Button variant="ghost" size="icon" className="rounded-full neon-glow" onClick={() => setProfileOpen(true)}>
-                <UserCircle className="h-8 w-8 text-cyan-300" />
-              </Button>
-            </motion.div>
-          </TooltipTrigger>
-          <TooltipContent>
-            Profile & Settings
-          </TooltipContent>
-        </Tooltip>
-        <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} user={user} />
-        <Button variant="ghost" size="icon" className="rounded-full neon-glow" onClick={handleLogout}>
-          <LogOut className="h-6 w-6 text-accent" />
-        </Button>
+        <DropdownMenu>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                        <motion.button whileHover={{ scale: 1.1 }} className="rounded-full neon-glow p-0.5">
+                           <Avatar>
+                              <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'Admin'} />
+                              <AvatarFallback>
+                                 <UserCircle className="h-8 w-8 text-cyan-300" />
+                              </AvatarFallback>
+                           </Avatar>
+                        </motion.button>
+                    </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                    Profile & Settings
+                </TooltipContent>
+            </Tooltip>
+             <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user?.displayName || 'Admin'}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                    {user?.email}
+                    </p>
+                </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push('/admin/profile')}>
+                    <UserCircle className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
 }
 
-function AdminSidebar() {
+function AdminSidebar({isSidebarOpen, setSidebarOpen}) {
   const pathname = usePathname();
-  const { isSidebarOpen } = useAuth();
+  
   return (
-    <aside className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-primary/20 bg-background/90 backdrop-blur-lg transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-primary/20 bg-background/90 backdrop-blur-lg transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="flex h-full max-h-screen flex-col gap-2">
         <div className="flex h-16 items-center border-b border-primary/20 px-6">
           <Link href="/" className="flex items-center gap-2 font-semibold">
@@ -162,6 +187,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, loading, role, isSidebarOpen, setSidebarOpen } = useAuth();
   const router = useRouter();
   const [fabOpen, setFabOpen] = useState(false);
+  
   useEffect(() => {
     if (!loading) {
       if (!user) {
@@ -171,12 +197,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
     }
   }, [user, loading, role, router]);
+
   const pathname = usePathname();
+  
   useEffect(() => {
     if(isSidebarOpen && window.innerWidth < 768) {
       setSidebarOpen(false);
     }
   }, [pathname, isSidebarOpen, setSidebarOpen]);
+
   if (loading || !user || role !== 'admin') {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -184,32 +213,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
     );
   }
+
   return (
     <TooltipProvider>
-      <div className="grid min-h-screen w-full">
+      <div className="min-h-screen w-full bg-background text-foreground">
         <div className={`fixed inset-0 z-30 bg-black/60 md:hidden ${isSidebarOpen ? 'block' : 'hidden'}`} onClick={() => setSidebarOpen(false)}></div>
-        <AdminSidebar />
+        
+        <AdminSidebar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
        
-        <div className="flex flex-col">
+        <div className={`flex flex-col transition-all duration-300 ease-in-out ${isSidebarOpen ? 'md:pl-64' : 'md:pl-0'}`}>
           <AdminHeader onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
           <main className="flex-1 p-4 md:p-6 lg:p-8">
             {children}
           </main>
-          <FloatingActionButton onClick={() => setFabOpen(true)} />
-          {/* Modal for quick admin actions */}
-          <Dialog open={fabOpen} onOpenChange={setFabOpen}>
-            <DialogContent className="bg-card/80 border-accent/40 shadow-neon-accent rounded-2xl">
-              <DialogHeader>
-                <DialogTitle className="glow-accent">Quick Admin Actions</DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col gap-4">
-                <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">Add Product</Button>
-                <Button variant="outline" className="border-accent text-accent hover:bg-accent/10">View Logs</Button>
-                <Button variant="outline" className="border-secondary text-secondary hover:bg-secondary/10">Manage Users</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
         </div>
+        
+        <FloatingActionButton onClick={() => setFabOpen(true)} />
+        <Dialog open={fabOpen} onOpenChange={setFabOpen}>
+          <DialogContent className="bg-card/80 border-accent/40 shadow-neon-accent rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="glow-accent">Quick Admin Actions</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-4">
+              <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">Add Product</Button>
+              <Button variant="outline" className="border-accent text-accent hover:bg-accent/10">View Logs</Button>
+              <Button variant="outline" className="border-secondary text-secondary hover:bg-secondary/10">Manage Users</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         <AiAssistantOverlay />
       </div>
     </TooltipProvider>
