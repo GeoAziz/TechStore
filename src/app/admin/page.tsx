@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
-import { getProducts, getOrders, deleteProduct as serverDeleteProduct, addProduct as serverAddProduct, getUsers } from '@/lib/firestore-service';
+import { getProducts, getOrders, deleteProduct as serverDeleteProduct, addProduct as serverAddProduct, getUsers, updateProduct as serverUpdateProduct } from '@/lib/firestore-service';
 import type { Product, Order, UserProfile, OrderStatus } from '@/lib/types';
 import { Loader2, Package, Users, Activity, DollarSign, Warehouse, Edit, Trash2, PlusCircle, UserCircle, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -22,11 +22,7 @@ import {
 } from "@/components/ui/table"
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { categoryData } from '@/lib/mock-data';
+import ProductForm from '@/components/admin/product-form';
 
 export default function AdminPage() {
   const { user, loading: authLoading, role } = useAuth();
@@ -37,33 +33,29 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   
-  // State for the new product form
-  const [newProduct, setNewProduct] = useState<Omit<Product, 'id' | 'rating' | 'featured'>>({
-    name: '',
-    description: '',
-    price: 0,
-    currency: 'KES',
-    stock: 0,
-    category: 'Laptops',
-    brand: '',
-    imageUrl: 'https://placehold.co/600x600.png',
-  });
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatus | 'all'>('all');
 
   const fetchData = async () => {
     setLoading(true);
-    const [productsData, ordersData, usersData] = await Promise.all([
-      getProducts(),
-      getOrders(),
-      getUsers(),
-    ]);
-    setProducts(productsData);
-    setOrders(ordersData);
-    setUsers(usersData);
-    setLoading(false);
+    try {
+      const [productsData, ordersData, usersData] = await Promise.all([
+        getProducts(),
+        getOrders(),
+        getUsers(),
+      ]);
+      setProducts(productsData);
+      setOrders(ordersData);
+      setUsers(usersData);
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch dashboard data.' });
+    } finally {
+        setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -88,34 +80,30 @@ export default function AdminPage() {
     }
   }
 
-  const handleAddProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const productData = {
-        ...newProduct,
-        featured: false, // Default value
-        rating: 0, // Default value
-    }
-    const result = await serverAddProduct(productData);
+  const handleProductSubmit = async (productData: Omit<Product, 'id'> | Product) => {
+    const isEditing = 'id' in productData;
+    const result = isEditing 
+        ? await serverUpdateProduct(productData.id, productData) 
+        : await serverAddProduct({ ...productData, featured: false, rating: 0 });
+
     if(result.success) {
-        toast({ title: 'Success', description: 'Product successfully added.'});
+        toast({ title: 'Success', description: `Product successfully ${isEditing ? 'updated' : 'added'}.`});
         fetchData();
-        setIsAddProductOpen(false); // Close dialog
-        setNewProduct({
-            name: '', description: '', price: 0, currency: 'KES', stock: 0, category: 'Laptops', brand: '', imageUrl: 'https://placehold.co/600x600.png'
-        }); // Reset form
+        if (isEditing) {
+            setIsEditDialogOpen(false);
+            setEditingProduct(null);
+        } else {
+            setIsAddDialogOpen(false);
+        }
     } else {
         toast({ variant: 'destructive', title: 'Error', description: result.message });
     }
   }
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const { name, value } = e.target;
-      setNewProduct(prev => ({...prev, [name]: name === 'price' || name === 'stock' ? Number(value) : value }))
-  }
 
-  const handleCategoryChange = (value: string) => {
-      setNewProduct(prev => ({...prev, category: value as any }))
-  }
+  const openEditDialog = (product: Product) => {
+    setEditingProduct(product);
+    setIsEditDialogOpen(true);
+  };
   
   const filteredOrders = useMemo(() => {
     if (orderStatusFilter === 'all') {
@@ -193,7 +181,7 @@ export default function AdminPage() {
             <Card className="glass-panel">
                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Manage Products</CardTitle>
-                    <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
+                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                         <DialogTrigger asChild>
                             <Button variant="outline" className="border-cyan-400/40 text-cyan-200 hover:bg-cyan-400/10">
                                 <PlusCircle className="w-4 h-4 mr-2" /> Add New Product
@@ -203,48 +191,7 @@ export default function AdminPage() {
                             <DialogHeader>
                                 <DialogTitle className="glow-primary">Add New Product</DialogTitle>
                             </DialogHeader>
-                            <form onSubmit={handleAddProduct}>
-                                <div className="grid gap-4 py-4">
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="name" className="text-right">Name</Label>
-                                        <Input id="name" name="name" value={newProduct.name} onChange={handleInputChange} className="col-span-3" />
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="description" className="text-right">Description</Label>
-                                        <Textarea id="description" name="description" value={newProduct.description} onChange={handleInputChange} className="col-span-3" />
-                                    </div>
-                                     <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="brand" className="text-right">Brand</Label>
-                                        <Input id="brand" name="brand" value={newProduct.brand} onChange={handleInputChange} className="col-span-3" />
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="category" className="text-right">Category</Label>
-                                        <Select onValueChange={handleCategoryChange} defaultValue={newProduct.category}>
-                                            <SelectTrigger className="col-span-3">
-                                                <SelectValue placeholder="Select a category" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {categoryData.map(cat => <SelectItem key={cat.name} value={cat.name}>{cat.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="price" className="text-right">Price (KES)</Label>
-                                        <Input id="price" name="price" type="number" value={newProduct.price} onChange={handleInputChange} className="col-span-3" />
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="stock" className="text-right">Stock</Label>
-                                        <Input id="stock" name="stock" type="number" value={newProduct.stock} onChange={handleInputChange} className="col-span-3" />
-                                    </div>
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="imageUrl" className="text-right">Image URL</Label>
-                                        <Input id="imageUrl" name="imageUrl" value={newProduct.imageUrl} onChange={handleInputChange} className="col-span-3" />
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button type="submit">Save Product</Button>
-                                </DialogFooter>
-                            </form>
+                            <ProductForm onSubmit={handleProductSubmit} />
                         </DialogContent>
                     </Dialog>
                </CardHeader>
@@ -276,7 +223,7 @@ export default function AdminPage() {
                           <TableCell>{product.category}</TableCell>
                           <TableCell>
                              <div className="flex gap-2">
-                              <Button variant="ghost" size="icon" className="text-cyan-300 hover:text-cyan-100"><Edit className="w-4 h-4" /></Button>
+                              <Button variant="ghost" size="icon" className="text-cyan-300 hover:text-cyan-100" onClick={() => openEditDialog(product)}><Edit className="w-4 h-4" /></Button>
                               <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-300" onClick={() => handleDeleteProduct(product.id)}><Trash2 className="w-4 h-4" /></Button>
                             </div>
                           </TableCell>
@@ -391,6 +338,22 @@ export default function AdminPage() {
         </TabsContent>
 
       </Tabs>
+
+      {/* Edit Product Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-card/80 backdrop-blur-sm border-primary/20">
+          <DialogHeader>
+            <DialogTitle className="glow-primary">Edit Product</DialogTitle>
+          </DialogHeader>
+          {editingProduct && (
+            <ProductForm
+              product={editingProduct}
+              onSubmit={handleProductSubmit}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
+
