@@ -181,9 +181,25 @@ export default function AdminProfilePage() {
                                 <LogOut className="w-4 h-4"/> Logout From All Devices
                             </Button>
                             <Separator />
-                            <Button variant="destructive" className="w-full justify-start gap-2">
-                                <Trash2 className="w-4 h-4"/> Delete Account
-                            </Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" className="w-full justify-start gap-2">
+                                        <Trash2 className="w-4 h-4"/> Delete Account
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This action cannot be undone. This will permanently delete your account and remove your data from our servers.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => toast({variant: 'destructive', title: "Action not implemented"})}>Delete Account</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </CardContent>
                     </Card>
                 </motion.div>
