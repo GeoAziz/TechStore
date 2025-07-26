@@ -55,24 +55,24 @@ export default function Footer() {
              <div>
               <h3 className="font-bold text-cyan-200 glow-primary mb-3">Shop</h3>
               <ul className="space-y-2">
-                {footerNavLinks.shop.map(link => (
-                  <li key={link.href}><Link href={link.href} className="hover:text-primary transition-colors">{link.label}</Link></li>
+                {footerNavLinks.shop.map((link, i) => (
+                  <li key={`${link.label}-${i}`}><Link href={link.href} className="hover:text-primary transition-colors">{link.label}</Link></li>
                 ))}
               </ul>
             </div>
              <div>
               <h3 className="font-bold text-cyan-200 glow-primary mb-3">Support</h3>
               <ul className="space-y-2">
-                {footerNavLinks.support.map(link => (
-                  <li key={link.href}><Link href={link.href} className="hover:text-primary transition-colors">{link.label}</Link></li>
+                {footerNavLinks.support.map((link, i) => (
+                  <li key={`${link.label}-${i}`}><Link href={link.href} className="hover:text-primary transition-colors">{link.label}</Link></li>
                 ))}
               </ul>
             </div>
              <div>
               <h3 className="font-bold text-cyan-200 glow-primary mb-3">Company</h3>
               <ul className="space-y-2">
-                {footerNavLinks.company.map(link => (
-                  <li key={link.href}><Link href={link.href} className="hover:text-primary transition-colors">{link.label}</Link></li>
+                {footerNavLinks.company.map((link, i) => (
+                  <li key={`${link.label}-${i}`}><Link href={link.href} className="hover:text-primary transition-colors">{link.label}</Link></li>
                 ))}
               </ul>
             </div>
@@ -95,8 +95,8 @@ export default function Footer() {
             <div className="md:text-right">
                 <h3 className="font-bold text-cyan-200 glow-accent mb-3">Follow Our Logs</h3>
                 <div className="flex gap-4 mt-4 md:justify-end">
-                    {socialLinks.map(link => (
-                        <Link key={link.label} href={link.href} aria-label={link.label}>
+                    {socialLinks.map((link, i) => (
+                        <Link key={`${link.label}-${i}`} href={link.href} aria-label={link.label}>
                             <link.icon className="w-6 h-6 text-cyan-300 hover:text-accent transition-all hover:scale-110" />
                         </Link>
                     ))}
