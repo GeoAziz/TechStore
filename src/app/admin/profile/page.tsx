@@ -58,29 +58,35 @@ const ChangePasswordModal = ({ open, onOpenChange }) => (
 
 
 export default function AdminProfilePage() {
-    const { user, loading } = useAuth();
+    const { user, loading, updateUserProfile } = useAuth();
     const { toast } = useToast();
     
-    // State for controlled inputs
     const [displayName, setDisplayName] = useState(user?.displayName || '');
     
-    // State for modals
     const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     
-    // State for theme toggle
     const [isDarkTheme, setIsDarkTheme] = useState(true);
 
-    const handleProfileSave = () => {
-        // Here you would call an API to update the user's profile
-        toast({
-            title: "Profile Updated",
-            description: "Your changes have been saved successfully.",
-        });
+    const handleProfileSave = async () => {
+        try {
+            await updateUserProfile({ displayName });
+            toast({
+                title: "Profile Updated",
+                description: "Your changes have been saved successfully.",
+            });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: "Update Failed",
+                description: "Could not save your profile.",
+            });
+        }
     };
     
     const handleAvatarSave = () => {
-        // API call to update avatar
+        // This would be handled by the quick edit dialog for now.
+        // In a more complex app, this could trigger a dedicated upload flow.
         toast({ title: "Avatar Updated" });
         setIsAvatarModalOpen(false);
     };
@@ -106,6 +112,7 @@ export default function AdminProfilePage() {
                                     <AvatarImage src={user?.photoURL || ''} />
                                     <AvatarFallback><UserCircle className="w-24 h-24 text-primary" /></AvatarFallback>
                                 </Avatar>
+                                <DialogTrigger asChild>
                                 <Button
                                     size="icon"
                                     className="absolute bottom-1 right-1 rounded-full w-8 h-8 bg-accent hover:bg-accent/80"
@@ -113,6 +120,7 @@ export default function AdminProfilePage() {
                                 >
                                     <Pen className="w-4 h-4" />
                                 </Button>
+                                </DialogTrigger>
                             </div>
                         </CardHeader>
                         <CardContent>
