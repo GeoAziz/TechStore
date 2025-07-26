@@ -236,7 +236,7 @@ export default function AdminPage() {
           </motion.div>
         </TabsContent>
 
-        <TabsContent value="orders">
+        <TabsContent value="orders" id="orders">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
              <Card className="glass-panel">
                <CardHeader className="flex flex-row items-center justify-between">
@@ -292,7 +292,7 @@ export default function AdminPage() {
           </motion.div>
         </TabsContent>
 
-        <TabsContent value="customers">
+        <TabsContent value="customers" id="customers">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
                  <Card className="glass-panel">
                     <CardHeader><CardTitle>Manage Customers</CardTitle></CardHeader>
@@ -334,7 +334,7 @@ export default function AdminPage() {
             </motion.div>
         </TabsContent>
 
-        <TabsContent value="logs">
+        <TabsContent value="logs" id="logs">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
                  <p className="text-muted-foreground text-center py-8">System log viewer coming soon.</p>
             </motion.div>
