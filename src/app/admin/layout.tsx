@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from '@/context/auth-context';
@@ -20,7 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserCircle, Settings, LogOut } from 'lucide-react';
 import AiAssistantOverlay from '@/components/ai-assistant/ai-assistant-overlay';
 import { motion } from 'framer-motion';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 
@@ -178,30 +179,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[256px_1fr] font-mono">
-      <div className={`fixed inset-0 z-40 bg-black/60 md:hidden ${isSidebarOpen ? 'block' : 'hidden'}`} onClick={() => setSidebarOpen(false)}></div>
-      <AdminSidebar />
-      <div className="flex flex-col">
-        <AdminHeader onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
-        <main className="flex-1 p-4 md:p-6 lg:p-8">
-          {children}
-        </main>
-        <FloatingActionButton onClick={() => setFabOpen(true)} />
-        {/* Modal for quick admin actions */}
-        <Dialog open={fabOpen} onOpenChange={setFabOpen}>
-          <DialogContent className="bg-card/80 border-accent/40 shadow-neon-accent rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="glow-accent">Quick Admin Actions</DialogTitle>
-            </DialogHeader>
-            <div className="flex flex-col gap-4">
-              <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">Add Product</Button>
-              <Button variant="outline" className="border-accent text-accent hover:bg-accent/10">View Logs</Button>
-              <Button variant="outline" className="border-secondary text-secondary hover:bg-secondary/10">Manage Users</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+    <TooltipProvider>
+      <div className="grid min-h-screen w-full md:grid-cols-[256px_1fr] font-mono">
+        <div className={`fixed inset-0 z-40 bg-black/60 md:hidden ${isSidebarOpen ? 'block' : 'hidden'}`} onClick={() => setSidebarOpen(false)}></div>
+        <AdminSidebar />
+        <div className="flex flex-col">
+          <AdminHeader onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
+          <main className="flex-1 p-4 md:p-6 lg:p-8">
+            {children}
+          </main>
+          <FloatingActionButton onClick={() => setFabOpen(true)} />
+          {/* Modal for quick admin actions */}
+          <Dialog open={fabOpen} onOpenChange={setFabOpen}>
+            <DialogContent className="bg-card/80 border-accent/40 shadow-neon-accent rounded-2xl">
+              <DialogHeader>
+                <DialogTitle className="glow-accent">Quick Admin Actions</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-4">
+                <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">Add Product</Button>
+                <Button variant="outline" className="border-accent text-accent hover:bg-accent/10">View Logs</Button>
+                <Button variant="outline" className="border-secondary text-secondary hover:bg-secondary/10">Manage Users</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+        <AiAssistantOverlay />
       </div>
-      <AiAssistantOverlay />
-    </div>
+    </TooltipProvider>
   );
 }
