@@ -4,8 +4,7 @@
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Loader2, Package, Users, Activity, Warehouse, PanelLeft, Bot, Bell } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, Warehouse, PanelLeft, Bot, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -25,8 +24,6 @@ import AiAssistantOverlay from '@/components/ai-assistant/ai-assistant-overlay';
 
 const navItems = [
     { href: "/admin", icon: Warehouse, label: "Dashboard" },
-    // The inventory, orders, etc are tabs inside the dashboard page for now
-    // If they become separate pages, they can be added here.
 ];
 
 
@@ -90,15 +87,9 @@ function AdminSidebar() {
     const pathname = usePathname();
     const { isSidebarOpen } = useAuth();
 
-    const sidebarVariants = {
-        open: { x: 0, transition: { type: 'spring', stiffness: 300, damping: 30 } },
-        closed: { x: '-100%', transition: { type: 'spring', stiffness: 300, damping: 30 } }
-    };
-
     return (
          <aside 
-            className="fixed inset-y-0 left-0 z-40 w-64 border-r border-primary/20 bg-background/90 backdrop-blur-lg md:static md:block md:w-64 transition-transform duration-300 ease-in-out md:translate-x-0"
-            style={{ transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)' }}
+            className={`fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-primary/20 bg-background/90 backdrop-blur-lg transition-transform duration-300 ease-in-out md:block ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
         >
             <div className="flex h-full max-h-screen flex-col gap-2">
                 <div className="flex h-16 items-center border-b border-primary/20 px-6">
