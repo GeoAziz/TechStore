@@ -36,6 +36,21 @@ export async function getProductById(id: string): Promise<Product | null> {
 }
 
 /**
+ * Fetches multiple products by their IDs.
+ * @param {string[]} ids - An array of product IDs.
+ * @returns {Promise<Product[]>} A promise that resolves to an array of products.
+ */
+export async function getProductsByIds(ids: string[]): Promise<Product[]> {
+    if (ids.length === 0) {
+        return [];
+    }
+    const productRefs = ids.map(id => db.collection('products').doc(id));
+    const productDocs = await db.getAll(...productRefs);
+    return productDocs.map(doc => ({ id: doc.id, ...doc.data() } as Product)).filter(p => p.name); // filter out non-existent products
+}
+
+
+/**
  * Fetches all products by a specific brand.
  * @param {string} brandName - The name of the brand.
  * @returns {Promise<Product[]>} A promise that resolves to an array of products.
@@ -208,7 +223,7 @@ export async function toggleWishlist(userId: string, productId: string) {
     
     revalidatePath('/product/[id]', 'page');
     revalidatePath('/');
-    revalidatePath('/dashboard/client');
+    revalidatePath('/dashboard');
     return { success: true, message, wishlist: newWishlist };
   } catch (error) {
     console.error("Error updating wishlist:", error);
