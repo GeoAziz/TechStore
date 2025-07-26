@@ -54,7 +54,11 @@ export interface Order {
   user: string;
 }
 
+<<<<<<< HEAD
 export type UserRole = 'admin' | 'vendor' | 'client' | 'vip' | 'premium' | 'inactive';
+=======
+export type UserRole = 'admin' | 'vendor' | 'client' | 'product_manager' | 'support';
+>>>>>>> b339c1cc4be16dac35b99fa70396f72f85b0c0c7
 
 export interface UserProfile {
     uid: string;
@@ -63,10 +67,14 @@ export interface UserProfile {
     role: UserRole;
     address?: string;
     photoURL?: string;
+<<<<<<< HEAD
     segment?: 'VIP' | 'New' | 'Inactive' | 'Regular';
     flagged?: boolean;
     failedLoginAttempts?: number;
     vendorUpgradeRequested?: boolean;
+=======
+    createdAt?: string | any;
+>>>>>>> b339c1cc4be16dac35b99fa70396f72f85b0c0c7
 }
 
 export interface CartItem {
@@ -87,6 +95,7 @@ export interface Review {
   timestamp: string; // ISO string date format
 }
 
+<<<<<<< HEAD
 export interface CustomerAuditLogEntry {
   id: string;
   timestamp: string;
@@ -94,4 +103,15 @@ export interface CustomerAuditLogEntry {
   action: string;
   customer: string;
   details: string;
+=======
+export interface AuditLog {
+  id: string;
+  adminId: string;
+  adminEmail: string;
+  action: string;
+  targetId: string;
+  targetType: 'product' | 'user' | 'order';
+  timestamp: string;
+  details: Record<string, any>;
+>>>>>>> b339c1cc4be16dac35b99fa70396f72f85b0c0c7
 }

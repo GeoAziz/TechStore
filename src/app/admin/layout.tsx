@@ -91,7 +91,7 @@ function FloatingActionButton({ onAddProductClick }: { onAddProductClick: () => 
             </Tooltip>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button variant="outline" className="h-24 flex-col gap-2 border-accent text-accent hover:bg-accent/10" onClick={() => router.push('/admin#logs')}>
+                    <Button variant="outline" className="h-24 flex-col gap-2 border-accent text-accent hover:bg-accent/10" onClick={() => {router.push('/admin#logs'); setFabOpen(false)}}>
                         <BarChart className="w-8 h-8" /> View Logs
                     </Button>
                 </TooltipTrigger>
@@ -99,7 +99,7 @@ function FloatingActionButton({ onAddProductClick }: { onAddProductClick: () => 
             </Tooltip>
              <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button variant="outline" className="h-24 flex-col gap-2 border-secondary text-secondary hover:bg-secondary/10" onClick={() => router.push('/admin#customers')}>
+                    <Button variant="outline" className="h-24 flex-col gap-2 border-secondary text-secondary hover:bg-secondary/10" onClick={() => {router.push('/admin#customers'); setFabOpen(false)}}>
                         <UsersIcon className="w-8 h-8" /> Manage Users
                     </Button>
                 </TooltipTrigger>

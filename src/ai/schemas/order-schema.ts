@@ -11,12 +11,12 @@ export const OrderInputSchema = z.object({
     email: z.string().email(),
   }),
   shipping: z.object({
-    firstName: z.string(),
-    lastName: z.string(),
-    address: z.string(),
-    city: z.string(),
-    state: z.string(),
-    zip: z.string(),
+    firstName: z.string().min(1, 'First name is required'),
+    lastName: z.string().min(1, 'Last name is required'),
+    address: z.string().min(1, 'Address is required'),
+    city: z.string().min(1, 'City is required'),
+    state: z.string().min(1, 'State is required'),
+    zip: z.string().min(1, 'ZIP code is required'),
   }),
   payment: z.object({
     cardNumber: z.string(),
