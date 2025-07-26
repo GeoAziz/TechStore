@@ -66,7 +66,7 @@ export default function AdminPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="container mx-auto py-10 flex justify-center items-center h-[50vh]">
+      <div className="container mx-auto py-10 flex justify-center items-center h-full">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
       </div>
     );
@@ -75,7 +75,7 @@ export default function AdminPage() {
   const totalSales = orders.reduce((acc, order) => acc + order.total, 0);
 
   return (
-    <div className="container mx-auto py-10">
+    <>
       <motion.h1 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -229,6 +229,6 @@ export default function AdminPage() {
         </TabsContent>
 
       </Tabs>
-    </div>
+    </>
   );
 }
