@@ -263,7 +263,7 @@ function ShopClientInternal({ products, searchParams: serverSearchParams }: { pr
           {/* -- Utility Bar: Search, Sort, View Toggle -- */}
            <motion.div
              layout
-             className="sticky top-0 left-0 w-full z-50 mb-6"
+             className="sticky top-20 z-40 mb-6"
              initial={{ y: -32, opacity: 0 }}
              animate={{ y: 0, opacity: 1 }}
              transition={{ type: 'spring', stiffness: 120, damping: 18 }}

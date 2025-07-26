@@ -115,7 +115,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
   if (viewMode === 'list') {
     return (
       <motion.div
-        whileHover={{ scale: 1.02, boxShadow: '0 0 32px #00fff7cc' }}
+        whileHover={{ scale: 1.02, boxShadow: '0 0 32px #00fff733' }}
         transition={{ type: 'spring', stiffness: 180 }}
         className="h-full"
       >
@@ -192,7 +192,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
   const { x, y, rotateX, rotateY } = use3DTilt();
   return (
     <motion.div
-      whileHover={{ scale: 1.06, rotateX: 2, rotateY: -2, boxShadow: '0 0 32px #00fff7, 0 0 64px #00fff7' }}
+      whileHover={{ scale: 1.06, boxShadow: '0 0 24px hsl(var(--primary) / 0.5)' }}
       style={{ perspective: 900 }}
       className="relative"
       onMouseMove={e => {
@@ -211,7 +211,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
         style={{ rotateX, rotateY }}
         className="h-full"
       >
-        <Card className="glass-panel overflow-hidden group card-glow h-full flex flex-col border border-cyan-400/40 shadow-[0_0_32px_#00fff7] transition-all font-[Orbitron,Space Grotesk,monospace]">
+        <Card className="glass-panel overflow-hidden group card-glow h-full flex flex-col border border-cyan-400/20 shadow-[0_0_24px_#00fff733] transition-all font-[Orbitron,Space Grotesk,monospace]">
           <Link href={`/product/${product.id}`} className="block">
             <div className="relative">
               <Image
@@ -219,17 +219,10 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
                 alt={product.name}
                 width={400}
                 height={300}
-                className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110 group-hover:brightness-110 group-hover:saturate-150"
+                className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
                 data-ai-hint={`${product.category.toLowerCase()} device`}
               />
-              <motion.div
-                className="absolute inset-0 pointer-events-none rounded-lg"
-                initial={{ opacity: 0 }}
-                whileHover={{ opacity: 1 }}
-                animate={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                style={{ boxShadow: '0 0 32px #00fff7, 0 0 64px #00fff7' }}
-              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/10 opacity-30 group-hover:opacity-60 transition-opacity"></div>
               {showTrending && (
                 <motion.div
                   className="absolute top-2 left-2"
@@ -255,7 +248,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
           <CardContent className="p-4 flex flex-col flex-grow">
             <div className='flex-grow'>
               <p className="text-xs text-muted-foreground">{product.category}</p>
-              <h3 className="text-base font-bold group-hover:text-primary transition-colors font-[Orbitron,Space Grotesk,monospace]">
+              <h3 className="text-base font-bold group-hover:text-primary transition-colors font-headline">
                 <Link href={`/product/${product.id}`}>{product.name}</Link>
               </h3>
               <div className="flex items-center gap-1 my-2">

@@ -68,7 +68,7 @@ export default async function Home() {
                     {displayedCategories.map((category) => {
                         const Icon = iconMap[category.name];
                         return (
-                        <Link href={category.href} key={category.name}>
+                        <Link href={`/shop?category=${category.name}`} key={category.name}>
                             <Card className="glass-panel hover:border-primary transition-all duration-300 card-glow group w-40 h-40">
                             <CardContent className="p-4 text-center flex flex-col items-center justify-center h-full">
                                 {Icon && <Icon className="w-10 h-10 mb-2 text-primary transition-transform group-hover:scale-110" />}

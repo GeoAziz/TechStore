@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -14,6 +15,7 @@ const navLinks = [
   { href: "/shop", label: "Shop" },
   { href: "/deals", label: "Deals" },
   { href: "/customizer", label: "Customizer" },
+  { href: "/compare", label: "Compare" },
 ];
 
 export default function Header() {
@@ -129,14 +131,14 @@ export default function Header() {
 
       {isMenuOpen && (
         <>
-          <div className="fixed inset-0 z-40 bg-[#0c0c1e]" onClick={() => setIsMenuOpen(false)} />
+          <div className="fixed inset-0 z-40 bg-[#0c0c1e]/80 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
           <div
             className="fixed inset-0 z-50 flex md:hidden"
             onClick={() => setIsMenuOpen(false)}
           >
             <div
               className="fixed left-0 top-0 h-full w-4/5 max-w-xs bg-[#10102a]/90 backdrop-blur-lg border-r border-cyan-400/20 p-6 shadow-2xl flex flex-col"
-              style={{ boxShadow: '0 0 48px #00fff7cc, 0 0 8px #00fff7' }}
+              style={{ boxShadow: '0 0 48px #00fff7, 0 0 8px #00fff7' }}
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-8">
@@ -152,7 +154,7 @@ export default function Header() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="text-lg font-bold tracking-wide font-[Orbitron,Space Grotesk,monospace] text-cyan-100 hover:text-cyan-400 transition-colors px-2 py-2 rounded-md hover:bg-cyan-400/10 focus:bg-cyan-400/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+                    className="text-lg font-bold tracking-wide font-headline text-cyan-100 hover:text-cyan-400 transition-colors px-2 py-2 rounded-md hover:bg-cyan-400/10 focus:bg-cyan-400/10 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {link.label}
@@ -162,11 +164,11 @@ export default function Header() {
               <div className="flex-1" />
               {!loading && (
                 user ? (
-                  <Button className="w-full mt-8 font-[Orbitron,Space Grotesk,monospace] bg-cyan-400/20 text-cyan-100 border-cyan-400/40 hover:bg-cyan-400/30" onClick={() => { handleLogout(); setIsMenuOpen(false); }}>
+                  <Button className="w-full mt-8 font-headline bg-cyan-400/20 text-cyan-100 border-cyan-400/40 hover:bg-cyan-400/30" onClick={() => { handleLogout(); setIsMenuOpen(false); }}>
                     Logout
                   </Button>
                 ) : (
-                  <Button className="w-full mt-8 font-[Orbitron,Space Grotesk,monospace] bg-cyan-400/20 text-cyan-100 border-cyan-400/40 hover:bg-cyan-400/30" asChild>
+                  <Button className="w-full mt-8 font-headline bg-cyan-400/20 text-cyan-100 border-cyan-400/40 hover:bg-cyan-400/30" asChild>
                     <Link href="/login" onClick={() => setIsMenuOpen(false)}>Login</Link>
                   </Button>
                 )
