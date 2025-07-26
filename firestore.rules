@@ -1,0 +1,77 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+    function isUserAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isRequestingUser(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function getUserRole(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    }
+
+    function isAdmin() {
+      return isUserAuthenticated() && getUserRole(request.auth.uid) == 'admin';
+    }
+
+    function isVendor() {
+      return isUserAuthenticated() && getUserRole(request.auth.uid) == 'vendor';
+    }
+
+    function isClient() {
+      return isUserAuthenticated() && getUserRole(request.auth.uid) == 'client';
+    }
+    
+    // --- USERS ---
+    // Admins can manage any user. Users can only manage their own document.
+    match /users/{userId} {
+      allow read: if isUserAuthenticated() && (isRequestingUser(userId) || isAdmin());
+      allow write: if isUserAuthenticated() && (isRequestingUser(userId) || isAdmin());
+      
+      // Cart: Only the user can access their own cart.
+      match /cart/{itemId} {
+        allow read, write: if isRequestingUser(userId);
+      }
+    }
+
+    // --- PRODUCTS ---
+    // Anyone can read products. Only admins can create, update, or delete them.
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+
+      // Reviews: Any authenticated user can create a review. 
+      // Users can only update/delete their own reviews. Admins can moderate.
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if isUserAuthenticated();
+        allow update, delete: if isUserAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
+      }
+    }
+
+    // --- ORDERS ---
+    // Users can create their own orders.
+    // Users can only read their own orders. Admins can read all orders.
+    // Only admins can update orders (e.g., change status).
+    match /orders/{orderId} {
+      allow create: if isClient();
+      allow read: if isUserAuthenticated() && (resource.data.user == request.auth.token.email || isAdmin());
+      allow update: if isAdmin();
+      allow delete: if false; // Orders should not be deleted.
+    }
+    
+    // --- NOTIFICATIONS (For Admin) ---
+    // Only admins can read notifications.
+    // The system (backend functions/webhooks) creates them, so no direct client creation.
+    match /notifications/{notificationId} {
+        allow read, update: if isAdmin();
+        allow create, delete: if false;
+    }
+  }
+}
