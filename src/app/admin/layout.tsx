@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { getOrders, getProducts, getUsers } from '@/lib/firestore-service';
 
 
 const navItems = [
@@ -35,6 +36,7 @@ const navItems = [
 
 function FloatingActionButton({ onAddProductClick }: { onAddProductClick: () => void }) {
   const [fabOpen, setFabOpen] = useState(false);
+  const router = useRouter();
   
   return (
     <>
@@ -73,7 +75,7 @@ function FloatingActionButton({ onAddProductClick }: { onAddProductClick: () => 
             </Tooltip>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button variant="outline" className="h-24 flex-col gap-2 border-accent text-accent hover:bg-accent/10">
+                    <Button variant="outline" className="h-24 flex-col gap-2 border-accent text-accent hover:bg-accent/10" onClick={() => router.push('/admin#logs')}>
                         <BarChart className="w-8 h-8" /> View Logs
                     </Button>
                 </TooltipTrigger>
@@ -81,7 +83,7 @@ function FloatingActionButton({ onAddProductClick }: { onAddProductClick: () => 
             </Tooltip>
              <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button variant="outline" className="h-24 flex-col gap-2 border-secondary text-secondary hover:bg-secondary/10">
+                    <Button variant="outline" className="h-24 flex-col gap-2 border-secondary text-secondary hover:bg-secondary/10" onClick={() => router.push('/admin#customers')}>
                         <UsersIcon className="w-8 h-8" /> Manage Users
                     </Button>
                 </TooltipTrigger>
@@ -95,39 +97,57 @@ function FloatingActionButton({ onAddProductClick }: { onAddProductClick: () => 
 }
 
 function SystemStatusBar() {
-    const [stats, setStats] = useState({ orders: 128, inventory: 42, users: 12 });
+    const [stats, setStats] = useState({ orders: 0, inventory: 0, users: 0, loading: true });
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            setStats(prev => ({
-                orders: prev.orders + Math.floor(Math.random() * 3) - 1,
-                inventory: prev.inventory + Math.floor(Math.random() * 3) - 1,
-                users: prev.users + (Math.random() > 0.8 ? 1 : 0),
-            }))
-        }, 3000);
+        const fetchStats = async () => {
+            try {
+                const [ordersData, productsData, usersData] = await Promise.all([
+                    getOrders(),
+                    getProducts(),
+                    getUsers(),
+                ]);
+                setStats({
+                    orders: ordersData.length,
+                    inventory: productsData.length,
+                    users: usersData.length,
+                    loading: false,
+                });
+            } catch (error) {
+                console.error("Failed to fetch system stats:", error);
+                setStats(prev => ({ ...prev, loading: false }));
+            }
+        };
+
+        fetchStats();
+        const interval = setInterval(fetchStats, 30000); // Refresh every 30 seconds
         return () => clearInterval(interval);
     }, []);
 
   return (
     <div className="hidden md:flex items-center gap-4 px-4 py-2 bg-background/80 font-mono text-xs">
       <Badge variant="secondary" className="animate-pulse">Online</Badge>
-      <span className="text-cyan-300">Orders: <span className="font-bold">{stats.orders}</span></span>
-      <span className="text-violet-400">Inventory: <span className="font-bold">{stats.inventory}</span></span>
-      <span className="text-green-400">Users: <span className="font-bold">{stats.users}</span></span>
-      <Activity className="w-4 h-4 text-accent animate-spin" />
+      {stats.loading ? (
+        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+      ) : (
+        <>
+          <span className="text-cyan-300">Orders: <span className="font-bold">{stats.orders}</span></span>
+          <span className="text-violet-400">Inventory: <span className="font-bold">{stats.inventory}</span></span>
+          <span className="text-green-400">Users: <span className="font-bold">{stats.users}</span></span>
+          <Activity className="w-4 h-4 text-accent animate-pulse" />
+        </>
+      )}
     </div>
   );
 }
 
-function ProfileDialog() {
+function ProfileDialog({onOpenChange}: {onOpenChange: (open: boolean) => void}) {
   const { user, updateUserProfile } = useAuth();
-  const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [imagePreview, setImagePreview] = useState<string | null>(user?.photoURL || null);
-  const [file, setFile] = useState<File | null>(null);
 
   useEffect(() => {
     setDisplayName(user?.displayName || '');
@@ -137,7 +157,6 @@ function ProfileDialog() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-        setFile(selectedFile);
         const reader = new FileReader();
         reader.onloadend = () => {
             setImagePreview(reader.result as string);
@@ -148,16 +167,10 @@ function ProfileDialog() {
   
   const handleSave = () => {
     startTransition(async () => {
-        let photoURL = user?.photoURL;
-        // In a real app, you'd upload the file to a storage bucket (e.g., Firebase Storage)
-        // and get a URL. For this demo, we'll just use the base64 data URI if a new file is chosen.
-        if (imagePreview && imagePreview !== user?.photoURL) {
-            photoURL = imagePreview;
-        }
-
         try {
-            await updateUserProfile({ displayName, photoURL });
+            await updateUserProfile({ displayName, photoURL: imagePreview || undefined });
             toast({ title: "Profile Updated", description: "Your changes have been saved." });
+            onOpenChange(false);
         } catch (error) {
             toast({ variant: 'destructive', title: "Update Failed", description: "Could not save your profile." });
         }
@@ -283,7 +296,7 @@ function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
-            <ProfileDialog />
+            <ProfileDialog onOpenChange={setIsProfileDialogOpen} />
         </Dialog>
       </div>
     </header>
