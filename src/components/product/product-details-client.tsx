@@ -171,7 +171,7 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
                 height={600}
                 className="w-full h-auto object-cover cursor-zoom-in transition-transform duration-300 group-hover:scale-105"
                 onClick={() => setZoomed(true)}
-                data-ai-hint={`${product.category.toLowerCase()} device`}
+                data-ai-hint={`${product.category.toLowerCase()} ${product.subcategory?.toLowerCase() || ''}`}
               />
               {product.stock < 10 && (
                 <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5 }}
@@ -215,14 +215,18 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
           <p className="text-3xl font-bold text-primary mb-4" aria-label="Product price">{product.price.toLocaleString()} {product.currency}</p>
           <p className="text-muted-foreground mb-6" aria-label="Product description">{product.description}</p>
           
-          {product.stock < 10 && (
+          {product.stock < 10 && product.stock > 0 && (
             <p className="text-accent font-bold mb-4">Only {product.stock} left in stock!</p>
+          )}
+
+          {product.stock === 0 && (
+            <p className="text-red-500 font-bold mb-4">Out of Stock</p>
           )}
 
           <Card className="glass-panel mb-6" aria-label="Product actions">
             <CardContent className="p-4 space-y-4">
                <div className="flex gap-4">
-                <Button size="lg" className={`flex-1 transition-colors ${inCart ? 'bg-green-600 hover:bg-green-700' : 'bg-primary/90 hover:bg-primary'} text-primary-foreground`} onClick={handleToggleCart} disabled={isPending} aria-label="Add to cart">
+                <Button size="lg" className={`flex-1 transition-colors ${inCart ? 'bg-green-600 hover:bg-green-700' : 'bg-primary/90 hover:bg-primary'} text-primary-foreground`} onClick={handleToggleCart} disabled={isPending || product.stock === 0} aria-label="Add to cart">
                   {isPending ? <Loader2 className="animate-spin" /> : (
                     inCart ? <><Check className="w-5 h-5 mr-2"/> In Cart</> : <><ShoppingCart className="w-5 h-5 mr-2"/> Add to Cart</>
                   )}
@@ -234,7 +238,7 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
                   <Scale className="w-6 h-6"/>
                 </Button>
               </div>
-              <Button size="lg" variant="outline" className="w-full border-accent text-accent hover:bg-accent hover:text-accent-foreground" onClick={handleBuyNow} disabled={isPending} aria-label="Buy now">
+              <Button size="lg" variant="outline" className="w-full border-accent text-accent hover:bg-accent hover:text-accent-foreground" onClick={handleBuyNow} disabled={isPending || product.stock === 0} aria-label="Buy now">
                 {isPending ? <Loader2 className="animate-spin" /> : "Buy Now"}
               </Button>
             </CardContent>
@@ -331,3 +335,5 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
     </div>
   );
 }
+
+    
