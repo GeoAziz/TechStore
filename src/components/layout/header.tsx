@@ -118,7 +118,7 @@ export default function Header() {
 
       {isMenuOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setIsMenuOpen(false)}>
-          <div className="fixed left-0 top-0 h-full w-4/5 max-w-xs bg-background/90 border-r border-border/40 p-6" onClick={e => e.stopPropagation()}>
+          <div className="fixed left-0 top-0 h-full w-4/5 max-w-xs bg-[#10102a]/90 backdrop-blur-lg border-r border-border/40 p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-8">
               <Link href="/">
                 <Logo className="h-6 w-auto" />
