@@ -33,8 +33,8 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [inCart, setInCart] = useState(false);
-
   const { compareItems, addToCompare, removeFromCompare } = useCompare();
+  const { x, y, rotateX, rotateY } = use3DTilt(); // Moved hook to be unconditional
   
   useEffect(() => {
     setIsClient(true);
@@ -113,7 +113,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
 
   // Animated badge logic
   const showLowStock = product.stock > 0 && product.stock < 8;
-  const showTrending = product.promoTag?.toLowerCase().includes('trend') || product.rating >= 4.7;
+  const showTrending = product.promoTag?.toLowerCase().includes('trend') || (product.rating && product.rating >= 4.7);
 
   if (viewMode === 'list') {
     return (
@@ -162,7 +162,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
               <div className="flex items-center gap-2 my-2">
                 <div className="flex items-center">
                   {Array.from({ length: 5 }).map((_, i: number) => (
-                    <Star key={i} className={`w-4 h-4 ${i < product.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
+                    <Star key={i} className={`w-4 h-4 ${product.rating && i < product.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
                   ))}
                 </div>
                 <span className="text-muted-foreground text-sm">({product.rating})</span>
@@ -192,7 +192,6 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
   }
 
   // Grid view
-  const { x, y, rotateX, rotateY } = use3DTilt();
   return (
     <motion.div
       whileHover={{ scale: 1.06, boxShadow: '0 0 24px hsl(var(--primary) / 0.5)' }}
@@ -266,7 +265,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
               </h3>
               <div className="flex items-center gap-1 my-2">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className={`w-4 h-4 ${i < product.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
+                  <Star key={i} className={`w-4 h-4 ${product.rating && i < product.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
                 ))}
                 <span className="text-xs text-muted-foreground ml-1">({product.rating})</span>
               </div>
