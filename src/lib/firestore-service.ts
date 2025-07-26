@@ -1,4 +1,3 @@
-
 'use server';
 
 import { db } from './firebase-admin';
@@ -73,8 +72,18 @@ export async function getOrders(): Promise<Order[]> {
   const snapshot = await ordersCol.orderBy('timestamp', 'desc').get();
   return snapshot.docs.map(doc => {
     const data = doc.data();
-    // Ensure timestamp is converted to a string right away
-    const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : new Date(data.timestamp._seconds * 1000).toISOString();
+    let timestamp;
+    if (data.timestamp && typeof data.timestamp.toDate === 'function') {
+      timestamp = data.timestamp.toDate().toISOString();
+    } else if (typeof data.timestamp === 'string') {
+      // Try to parse string timestamp
+      const parsed = new Date(data.timestamp);
+      timestamp = isNaN(parsed.getTime()) ? data.timestamp : parsed.toISOString();
+    } else if (data.timestamp && typeof data.timestamp._seconds === 'number') {
+      timestamp = new Date(data.timestamp._seconds * 1000).toISOString();
+    } else {
+      timestamp = '';
+    }
     return { 
       id: doc.id, 
       ...data,
@@ -465,4 +474,4 @@ export async function deleteUser(userId: string) {
     }
 }
 
-    
+
