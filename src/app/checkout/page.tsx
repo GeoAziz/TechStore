@@ -12,7 +12,8 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { OrderInputSchema, sendOrderToWebhook } from '@/ai/flows/send-order-webhook';
+import { sendOrderToWebhook } from '@/ai/flows/send-order-webhook';
+import { type OrderInput, OrderInputSchema } from '@/ai/schemas/order-schema';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
@@ -25,7 +26,7 @@ export default function CheckoutPage() {
   const shipping = 25.00;
   const total = subtotal + shipping;
 
-  const form = useForm<z.infer<typeof OrderInputSchema>>({
+  const form = useForm<OrderInput>({
     resolver: zodResolver(OrderInputSchema),
     defaultValues: {
       contact: { email: '' },
@@ -38,7 +39,7 @@ export default function CheckoutPage() {
 
   const { formState: { isSubmitting } } = form;
 
-  const onSubmit = async (data: z.infer<typeof OrderInputSchema>) => {
+  const onSubmit = async (data: OrderInput) => {
     try {
       const result = await sendOrderToWebhook(data);
       if (result.success) {
