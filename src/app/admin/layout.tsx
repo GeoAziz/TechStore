@@ -48,7 +48,7 @@ function FloatingActionButton({ onClick }: { onClick: () => void }) {
 
 function SystemStatusBar() {
   return (
-    <div className="flex items-center gap-4 px-4 py-2 bg-background/80 border-b border-primary/20 font-mono text-xs">
+    <div className="hidden md:flex items-center gap-4 px-4 py-2 bg-background/80 font-mono text-xs">
       <Badge variant="secondary" className="animate-pulse">Online</Badge>
       <span className="text-cyan-300">Orders: <span className="font-bold">128</span></span>
       <span className="text-violet-400">Inventory: <span className="font-bold">42</span></span>
@@ -85,15 +85,21 @@ function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const [profileOpen, setProfileOpen] = useState(false);
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-primary/20 bg-background/80 px-4 backdrop-blur-sm md:px-6">
-      <SystemStatusBar />
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" className="md:hidden" onClick={onToggleSidebar}>
           <PanelLeft className="h-6 w-6" />
           <span className="sr-only">Toggle Sidebar</span>
         </Button>
-        <Logo className="h-6 w-auto hidden md:block" />
+        <Link href="/" className="hidden md:flex items-center gap-2 font-semibold">
+          <Logo className="h-6 w-auto" />
+        </Link>
       </div>
-      <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
+      
+      <SystemStatusBar />
+
+      <div className="flex-grow"></div>
+      
+      <div className="flex items-center gap-2 md:gap-4">
         <Button variant="ghost" size="icon" className="rounded-full">
           <Bell className="h-5 w-5 text-cyan-300 animate-pulse" />
           <span className="sr-only">Toggle notifications</span>
@@ -123,7 +129,7 @@ function AdminSidebar() {
   const pathname = usePathname();
   const { isSidebarOpen } = useAuth();
   return (
-    <aside className={`fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-primary/20 bg-background/90 backdrop-blur-lg transition-transform duration-300 ease-in-out md:block`}>
+    <aside className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-primary/20 bg-background/90 backdrop-blur-lg transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="flex h-full max-h-screen flex-col gap-2">
         <div className="flex h-16 items-center border-b border-primary/20 px-6">
           <Link href="/" className="flex items-center gap-2 font-semibold">
@@ -180,10 +186,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
   return (
     <TooltipProvider>
-      <div className="grid min-h-screen w-full md:grid-cols-[256px_1fr] font-mono">
-        <div className={`fixed inset-0 z-40 bg-black/60 md:hidden ${isSidebarOpen ? 'block' : 'hidden'}`} onClick={() => setSidebarOpen(false)}></div>
-        <AdminSidebar />
-        <div className="flex flex-col">
+      <div className="grid min-h-screen w-full md:grid-cols-[256px_1fr]">
+        <div className={`fixed inset-0 z-30 bg-black/60 md:hidden ${isSidebarOpen ? 'block' : 'hidden'}`} onClick={() => setSidebarOpen(false)}></div>
+        <div className="hidden md:block">
+           <AdminSidebar />
+        </div>
+       
+        <div className="flex flex-col md:pl-[256px]">
           <AdminHeader onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
           <main className="flex-1 p-4 md:p-6 lg:p-8">
             {children}
@@ -205,6 +214,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         <AiAssistantOverlay />
       </div>
+       {/* Mobile Sidebar */}
+       <div className="md:hidden">
+          <AdminSidebar />
+       </div>
     </TooltipProvider>
   );
 }
