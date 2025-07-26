@@ -271,14 +271,14 @@ export default function AdminPage() {
                               <AlertDialogContent>
                                   <AlertDialogHeader>
                                       <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                      <AlertDialogDescription>
+                                      <DialogDescription>
                                           This will permanently delete {selectedProducts.length} selected products. This action cannot be undone.
-                                      </AlertDialogDescription>
+                                      </DialogDescription>
                                   </AlertDialogHeader>
-                                  <AlertDialogFooter>
+                                  <DialogFooter>
                                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                                       <AlertDialogAction onClick={handleBulkDeleteProducts}>Continue</AlertDialogAction>
-                                  </AlertDialogFooter>
+                                  </DialogFooter>
                               </AlertDialogContent>
                            </AlertDialog>
                         ) : (
