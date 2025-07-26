@@ -121,12 +121,14 @@ function CheckoutForm({ total, cartItems }: { total: number; cartItems: CartItem
       if (paymentIntent?.status !== 'succeeded') {
         throw new Error('Payment was not successful.');
       }
-
+      
       // 3. Payment successful, now send order to n8n webhook (without sensitive payment data)
+      const paymentMethod = await stripe.retrievePaymentMethod(paymentIntent.payment_method as string);
+      
       const orderDataForWebhook: OrderInput = {
         ...data,
         payment: {
-            cardNumber: `**** **** **** ${paymentIntent.payment_method_details?.card?.last4 || ''}`,
+            cardNumber: `**** **** **** ${paymentMethod.paymentMethod?.card?.last4 || ''}`,
             expiryDate: 'N/A',
             cvc: 'N/A'
         }
