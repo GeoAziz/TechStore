@@ -129,7 +129,7 @@ function AdminSidebar() {
   const pathname = usePathname();
   const { isSidebarOpen } = useAuth();
   return (
-    <aside className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-primary/20 bg-background/90 backdrop-blur-lg transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-primary/20 bg-background/90 backdrop-blur-lg transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="flex h-full max-h-screen flex-col gap-2">
         <div className="flex h-16 items-center border-b border-primary/20 px-6">
           <Link href="/" className="flex items-center gap-2 font-semibold">
@@ -186,13 +186,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
   return (
     <TooltipProvider>
-      <div className="grid min-h-screen w-full md:grid-cols-[256px_1fr]">
+      <div className="grid min-h-screen w-full">
         <div className={`fixed inset-0 z-30 bg-black/60 md:hidden ${isSidebarOpen ? 'block' : 'hidden'}`} onClick={() => setSidebarOpen(false)}></div>
-        <div className="hidden md:block">
-           <AdminSidebar />
-        </div>
+        <AdminSidebar />
        
-        <div className="flex flex-col md:pl-[256px]">
+        <div className="flex flex-col">
           <AdminHeader onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
           <main className="flex-1 p-4 md:p-6 lg:p-8">
             {children}
@@ -214,10 +212,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         <AiAssistantOverlay />
       </div>
-       {/* Mobile Sidebar */}
-       <div className="md:hidden">
-          <AdminSidebar />
-       </div>
     </TooltipProvider>
   );
 }

@@ -1,123 +1,193 @@
-import { useState } from 'react';
-import { UserCircle, LogOut, Settings, Bell, Plus, MessageCircle, Home, Package, Users, BarChart } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
-import { ReactNode } from 'react';
+"use client";
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+import { useAuth } from '@/context/auth-context';
+import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import {
+  PanelLeft, Rocket, Bell, UserCircle, LogOut, Activity, Bot, Warehouse
+} from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle
+} from '@/components/ui/dialog';
+import {
+  Tooltip, TooltipTrigger, TooltipContent, TooltipProvider
+} from '@/components/ui/tooltip';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Badge } from '@/components/ui/badge';
+import Logo from '@/components/layout/logo';
+import AiAssistantOverlay from '@/components/ai-assistant/ai-assistant-overlay';
+import { Loader2 } from 'lucide-react';
+
+const navItems = [
+  { href: "/admin", icon: Warehouse, label: "Dashboard" },
+  // Add more links here
+];
+
+function AdminSidebar({ isOpen }: { isOpen: boolean }) {
+  const pathname = usePathname();
+  return (
+    <aside className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-primary/20 bg-background/90 backdrop-blur-lg transition-transform duration-300 md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className="flex h-full flex-col">
+        <div className="flex h-16 items-center border-b border-primary/20 px-6">
+          <Link href="/" className="flex items-center gap-2 font-semibold">
+            <Logo className="h-6 w-auto" />
+          </Link>
+        </div>
+        <nav className="flex-1 overflow-y-auto py-4 px-4 text-sm font-mono font-bold">
+          {navItems.map(item => (
+            <motion.div key={item.href} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+              <Link href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-accent hover:bg-accent/10 ${pathname === item.href ? 'bg-muted text-primary neon-glow' : 'text-muted-foreground'}`}>
+                <item.icon className="h-5 w-5 neon-glow" />
+                {item.label}
+              </Link>
+            </motion.div>
+          ))}
+        </nav>
+        <div className="p-4">
+          <Button variant="outline" className="w-full border-accent text-accent hover:bg-accent/10">
+            <Bot className="w-4 h-4 mr-2 animate-pulse" /> AI Assistant
+          </Button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
+  const { user, handleLogout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [aiOpen, setAiOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#10102a] font-[Space Mono,Orbitron,monospace] text-cyan-100">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between px-8 py-4 border-b border-cyan-400/20 bg-[#18182c]/90 shadow-[0_0_24px_#00fff7cc]">
-        <div className="flex items-center gap-6">
-          <span className="text-xl font-bold tracking-widest text-cyan-300">ZIZO Admin</span>
-          <div className="flex gap-2">
-            <motion.div whileHover={{ scale: 1.2 }} className="relative">
-              <Bell className="h-6 w-6 text-pink-400 animate-pulse cursor-pointer" />
-              <span className="absolute -top-2 -right-2 bg-pink-600 text-white text-xs rounded-full px-2 shadow-[0_0_8px_#ff00c8]">3</span>
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-primary/20 bg-background/80 px-4 backdrop-blur-sm md:px-6">
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" className="md:hidden" onClick={onToggleSidebar}>
+          <PanelLeft className="h-6 w-6" />
+        </Button>
+        <Link href="/" className="hidden md:flex items-center gap-2 font-semibold">
+          <Logo className="h-6 w-auto" />
+        </Link>
+      </div>
+      <div className="hidden md:flex items-center gap-4 px-4 py-2 font-mono text-xs">
+        <Badge variant="secondary" className="animate-pulse">Online</Badge>
+        <span className="text-cyan-300">Orders: <span className="font-bold">128</span></span>
+        <span className="text-violet-400">Inventory: <span className="font-bold">42</span></span>
+        <span className="text-green-400">Users: <span className="font-bold">12</span></span>
+        <Activity className="w-4 h-4 text-accent animate-spin" />
+      </div>
+      <div className="flex-grow" />
+      <div className="flex items-center gap-2 md:gap-4">
+        <Button variant="ghost" size="icon" className="rounded-full">
+          <Bell className="h-5 w-5 text-cyan-300 animate-pulse" />
+        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <motion.div whileHover={{ scale: 1.1 }}>
+              <Button variant="ghost" size="icon" className="rounded-full neon-glow" onClick={() => setProfileOpen(true)}>
+                <UserCircle className="h-8 w-8 text-cyan-300" />
+              </Button>
             </motion.div>
-            {/* System status badges */}
-            <span className="bg-cyan-400/20 text-cyan-100 px-3 py-1 rounded-full text-xs font-bold shadow-[0_0_8px_#00fff7]">All Systems Nominal</span>
-          </div>
-        </div>
-        {/* Profile Icon & Dropdown */}
-        <div className="relative">
-          <motion.div whileHover={{ scale: 1.1 }}>
-            <UserCircle className="h-8 w-8 text-cyan-300 cursor-pointer drop-shadow-[0_0_8px_#00fff7]" onClick={() => setProfileOpen(v => !v)} />
-          </motion.div>
-          <AnimatePresence>
-            {profileOpen && (
-              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                className="absolute right-0 mt-2 w-48 bg-[#18182c] border border-cyan-400/30 rounded-lg shadow-xl z-50 p-4 flex flex-col gap-2 neon-glow">
+          </TooltipTrigger>
+          <TooltipContent>Profile & Settings</TooltipContent>
+        </Tooltip>
+        <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+          <DialogContent className="bg-card/80 border-accent/40 shadow-neon-accent rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="glow-accent">Profile Settings</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <UserCircle className="w-10 h-10 text-cyan-300" />
                 <div>
-                  <button className="flex items-center gap-2 hover:text-cyan-400 transition-colors" onClick={() => setSettingsOpen(true)}>
-                    <Settings className="h-5 w-5" /> Profile
-                  </button>
-                  <button className="flex items-center gap-2 hover:text-pink-400 transition-colors" onClick={() => {/* logout logic */}}>
-                    <LogOut className="h-5 w-5" /> Logout
-                  </button>
+                  <div className="font-bold text-cyan-200">{user?.displayName || 'Admin User'}</div>
+                  <div className="text-muted-foreground text-xs">{user?.email}</div>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* Sidebar Navigation */}
-      <div className="flex">
-        <motion.nav initial={{ x: -40 }} animate={{ x: 0 }} className="w-24 min-h-screen bg-[#18182c]/80 border-r border-cyan-400/20 flex flex-col items-center py-8 gap-8 shadow-[0_0_24px_#00fff7cc]">
-          <Link href="/admin" className="group">
-            <Home className="h-7 w-7 text-cyan-300 group-hover:text-cyan-400 transition-colors" />
-            <span className="text-xs mt-1 group-hover:text-cyan-400">Dashboard</span>
-          </Link>
-          <Link href="/admin/products" className="group">
-            <Package className="h-7 w-7 text-violet-400 group-hover:text-violet-300 transition-colors" />
-            <span className="text-xs mt-1 group-hover:text-violet-300">Products</span>
-          </Link>
-          <Link href="/admin/orders" className="group">
-            <BarChart className="h-7 w-7 text-pink-400 group-hover:text-pink-300 transition-colors" />
-            <span className="text-xs mt-1 group-hover:text-pink-300">Orders</span>
-          </Link>
-          <Link href="/admin/users" className="group">
-            <Users className="h-7 w-7 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
-            <span className="text-xs mt-1 group-hover:text-cyan-300">Users</span>
-          </Link>
-        </motion.nav>
-
-        {/* Main Content */}
-        <main className="flex-1 p-10">
-          {children}
-        </main>
-      </div>
-
-      {/* Floating Action Button */}
-      <motion.button whileHover={{ scale: 1.2 }} className="fixed bottom-8 right-8 bg-violet-600 text-white rounded-full shadow-[0_0_24px_#7f00ff] p-4 z-50 flex items-center gap-2 animate-bounce hover:bg-violet-400">
-        <Plus className="h-6 w-6" />
-        <span className="font-bold">Quick Add</span>
-      </motion.button>
-
-      {/* AI Assistant Button */}
-      <motion.button whileHover={{ scale: 1.1 }} className="fixed bottom-8 left-8 bg-cyan-400 text-[#10102a] rounded-full shadow-[0_0_24px_#00fff7] p-4 z-50 flex items-center gap-2 animate-pulse" onClick={() => setAiOpen(true)}>
-        <MessageCircle className="h-6 w-6" />
-        <span className="font-bold">AI</span>
-      </motion.button>
-      <AnimatePresence>
-        {aiOpen && (
-          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
-            className="fixed bottom-24 left-8 bg-[#18182c] border border-cyan-400/30 rounded-xl shadow-2xl p-6 w-96 z-50 neon-glow">
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-bold text-cyan-300">AI Assistant</span>
-              <button onClick={() => setAiOpen(false)} className="text-cyan-400 hover:text-pink-400">✕</button>
+              </div>
+              <Button variant="outline" className="border-accent text-accent hover:bg-accent/10">Edit Profile</Button>
             </div>
-            <div className="text-cyan-100">How can I help you today, Commander?</div>
-            {/* Chat UI goes here */}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </DialogContent>
+        </Dialog>
+        <Button variant="ghost" size="icon" className="rounded-full neon-glow" onClick={handleLogout}>
+          <LogOut className="h-6 w-6 text-accent" />
+        </Button>
+      </div>
+    </header>
+  );
+}
 
-      {/* Profile/Settings Modal */}
-      <AnimatePresence>
-        {settingsOpen && (
-          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center">
-            <motion.div initial={{ y: 40 }} animate={{ y: 0 }} exit={{ y: 40 }}
-              className="bg-[#18182c] border border-cyan-400/30 rounded-2xl shadow-2xl p-10 w-[400px] neon-glow">
-              <h2 className="text-2xl font-bold text-cyan-300 mb-4">Profile & Settings</h2>
-              <div className="text-cyan-100 mb-4">(Profile details and settings form here)</div>
-              <button className="bg-cyan-400 text-[#18182c] px-4 py-2 rounded font-bold hover:bg-pink-400 transition-colors" onClick={() => setSettingsOpen(false)}>Close</button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+function FloatingActionButton({ onClick }: { onClick: () => void }) {
+  return (
+    <motion.button
+      className="fixed bottom-8 right-8 z-[100] bg-accent/90 hover:bg-accent text-white rounded-full p-4 shadow-neon-accent border-2 border-accent flex items-center justify-center"
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      whileHover={{ scale: 1.08 }}
+      transition={{ type: 'spring', stiffness: 300 }}
+      onClick={onClick}
+      aria-label="Quick Admin Actions"
+    >
+      <Rocket className="w-7 h-7 animate-pulse" />
+    </motion.button>
+  );
+}
 
-      <style jsx global>{`
-        body { background: #10102a; font-family: 'Space Mono', 'Orbitron', monospace; }
-        .neon-glow { box-shadow: 0 0 24px #00fff7cc, 0 0 8px #7f00ff; }
-      `}</style>
-    </div>
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const { user, loading, role, isSidebarOpen, setSidebarOpen } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [fabOpen, setFabOpen] = useState(false);
+
+  useEffect(() => {
+    if (!loading && !user) router.push('/login');
+    if (!loading && role !== 'admin') router.push('/dashboard');
+  }, [user, loading, role]);
+
+  useEffect(() => {
+    if (isSidebarOpen && window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  }, [pathname]);
+
+  if (loading || !user || role !== 'admin') {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      {/* Overlay for mobile sidebar */}
+      {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/60 md:hidden" onClick={() => setSidebarOpen(false)} />}
+
+      <div className="grid min-h-screen w-full md:grid-cols-[256px_1fr]">
+        <AdminSidebar isOpen={isSidebarOpen} />
+        <div className="flex flex-col md:pl-[256px]">
+          <AdminHeader onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
+          <main className="flex-1 p-4 md:p-6 lg:p-8">
+            {children}
+          </main>
+          <FloatingActionButton onClick={() => setFabOpen(true)} />
+          <Dialog open={fabOpen} onOpenChange={setFabOpen}>
+            <DialogContent className="bg-card/80 border-accent/40 shadow-neon-accent rounded-2xl">
+              <DialogHeader>
+                <DialogTitle className="glow-accent">Quick Admin Actions</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-4">
+                <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">Add Product</Button>
+                <Button variant="outline" className="border-accent text-accent hover:bg-accent/10">View Logs</Button>
+                <Button variant="outline" className="border-secondary text-secondary hover:bg-secondary/10">Manage Users</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+        <AiAssistantOverlay />
+      </div>
+    </TooltipProvider>
   );
 }
