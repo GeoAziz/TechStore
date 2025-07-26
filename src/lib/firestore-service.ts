@@ -134,6 +134,19 @@ export async function getOrdersByVendor(brandName: string): Promise<Order[]> {
 // --- User Interaction Functions (Cart, Wishlist, Reviews, Profile) ---
 
 /**
+ * Checks if a product is in the user's cart.
+ * @param userId The user's ID.
+ * @param productId The product's ID.
+ * @returns A promise that resolves to a boolean.
+ */
+export async function isInCart(userId: string, productId: string): Promise<boolean> {
+  if (!userId) return false;
+  const cartRef = db.collection('users').doc(userId).collection('cart').doc(productId);
+  const doc = await cartRef.get();
+  return doc.exists;
+}
+
+/**
  * Adds a product to a user's cart.
  * @param {string} userId - The ID of the user.
  * @param {string} productId - The ID of the product to add.
@@ -184,6 +197,7 @@ export async function removeFromCart(userId: string, productId: string) {
     try {
         await cartRef.delete();
         revalidatePath('/checkout');
+        revalidatePath('/product/[id]', 'page');
         return { success: true, message: "Item removed from cart." };
     } catch (error) {
         console.error("Error removing from cart:", error);

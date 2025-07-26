@@ -9,12 +9,12 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import type { Product, Review } from '@/lib/types';
 import AiEnhancer from './ai-enhancer';
-import { Star, ShoppingCart, Heart, ShieldCheck, Truck, CheckCircle, Scale, Send } from 'lucide-react';
+import { Star, ShoppingCart, Heart, ShieldCheck, Truck, CheckCircle, Scale, Send, Loader2, Check } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { addToCart, toggleWishlist, addReview, getReviewsByProductId, getWishlist } from '@/lib/firestore-service';
-import { useEffect, useState, useRef } from 'react';
+import { addToCart, removeFromCart, toggleWishlist, addReview, getReviewsByProductId, getWishlist, isInCart } from '@/lib/firestore-service';
+import { useEffect, useState, useRef, useTransition } from 'react';
 import { useCompare } from '@/context/compare-context';
 import { Textarea } from '../ui/textarea';
 
@@ -23,21 +23,14 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [isAdding, setIsAdding] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const { compareItems, addToCompare, removeFromCompare } = useCompare();
   const [reviews, setReviews] = useState(initialReviews);
   const [newReviewText, setNewReviewText] = useState('');
   const [newReviewRating, setNewReviewRating] = useState(0);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      getWishlist(user.uid).then(wishlist => {
-        setIsInWishlist(wishlist.includes(product.id));
-      });
-    }
-  }, [user, product.id]);
+  const [inCart, setInCart] = useState(false);
 
   const reviewTextareaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -45,6 +38,20 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
       reviewTextareaRef.current.blur();
     }
   }, [isSubmittingReview]);
+  
+  useEffect(() => {
+    if (user) {
+      const checkStatus = async () => {
+        const [wishlist, cartStatus] = await Promise.all([
+          getWishlist(user.uid),
+          isInCart(user.uid, product.id)
+        ]);
+        setIsInWishlist(wishlist.includes(product.id));
+        setInCart(cartStatus);
+      };
+      checkStatus();
+    }
+  }, [user, product.id]);
 
   const isProductInCompare = compareItems.some(item => item.id === product.id);
 
@@ -58,24 +65,24 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
     }
   };
 
-  const handleAddToCart = async () => {
+  const handleToggleCart = () => {
     if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Authentication Required",
-        description: "Please log in to add items to your cart.",
-      });
+      toast({ variant: "destructive", title: "Authentication Required", description: "Please log in to manage your cart." });
       router.push('/login');
       return;
     }
-    setIsAdding(true);
-    const result = await addToCart(user.uid, product.id);
-    if (result.success) {
-      toast({ title: "Success", description: result.message });
-    } else {
-      toast({ variant: "destructive", title: "Error", description: result.message });
-    }
-    setIsAdding(false);
+    startTransition(async () => {
+      const result = inCart 
+        ? await removeFromCart(user.uid, product.id)
+        : await addToCart(user.uid, product.id);
+        
+      if (result.success) {
+        setInCart(!inCart);
+        toast({ title: "Success", description: result.message });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: result.message });
+      }
+    });
   };
   
   const handleBuyNow = async () => {
@@ -84,33 +91,35 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
         router.push('/login');
         return;
     }
-    setIsAdding(true);
-    const result = await addToCart(user.uid, product.id);
-    if (result.success) {
+    startTransition(async () => {
+      if (!inCart) {
+        const result = await addToCart(user.uid, product.id);
+        if (result.success) {
+          router.push('/checkout');
+        } else {
+          toast({ variant: "destructive", title: "Error", description: result.message });
+        }
+      } else {
         router.push('/checkout');
-    } else {
-        toast({ variant: "destructive", title: "Error", description: result.message });
-        setIsAdding(false);
-    }
+      }
+    });
   };
 
   const handleToggleWishlist = async () => {
     if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Authentication Required",
-        description: "Please log in to manage your wishlist.",
-      });
+      toast({ variant: "destructive", title: "Authentication Required", description: "Please log in to manage your wishlist." });
       router.push('/login');
       return;
     }
-    const result = await toggleWishlist(user.uid, product.id);
-     if (result.success) {
-      setIsInWishlist(result.wishlist?.includes(product.id) ?? false);
-      toast({ title: "Wishlist Updated", description: result.message });
-    } else {
-      toast({ variant: "destructive", title: "Error", description: result.message });
-    }
+    startTransition(async () => {
+      const result = await toggleWishlist(user.uid, product.id);
+      if (result.success) {
+        setIsInWishlist(prev => !prev);
+        toast({ title: "Wishlist Updated", description: result.message });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: result.message });
+      }
+    });
   };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
@@ -213,19 +222,20 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
           <Card className="glass-panel mb-6" aria-label="Product actions">
             <CardContent className="p-4 space-y-4">
                <div className="flex gap-4">
-                <Button size="lg" className="flex-1 bg-primary/90 hover:bg-primary text-primary-foreground" onClick={handleAddToCart} disabled={isAdding} aria-label="Add to cart">
-                  <ShoppingCart className="w-5 h-5 mr-2"/>
-                  Add to Cart
+                <Button size="lg" className={`flex-1 transition-colors ${inCart ? 'bg-green-600 hover:bg-green-700' : 'bg-primary/90 hover:bg-primary'} text-primary-foreground`} onClick={handleToggleCart} disabled={isPending} aria-label="Add to cart">
+                  {isPending ? <Loader2 className="animate-spin" /> : (
+                    inCart ? <><Check className="w-5 h-5 mr-2"/> In Cart</> : <><ShoppingCart className="w-5 h-5 mr-2"/> Add to Cart</>
+                  )}
                 </Button>
-                <Button size="icon" variant="outline" className="h-auto px-3" onClick={handleToggleWishlist} aria-label="Toggle wishlist">
+                <Button size="icon" variant="outline" className="h-auto px-3" onClick={handleToggleWishlist} disabled={isPending} aria-label="Toggle wishlist">
                    <Heart className={`w-6 h-6 transition-colors ${isInWishlist ? 'text-red-500 fill-red-500' : ''}`} />
                 </Button>
                  <Button size="icon" variant={isProductInCompare ? "secondary" : "outline"} className="h-auto px-3" onClick={handleToggleCompare} aria-label="Toggle compare">
                   <Scale className="w-6 h-6"/>
                 </Button>
               </div>
-              <Button size="lg" variant="outline" className="w-full border-accent text-accent hover:bg-accent hover:text-accent-foreground" onClick={handleBuyNow} disabled={isAdding} aria-label="Buy now">
-                Buy Now
+              <Button size="lg" variant="outline" className="w-full border-accent text-accent hover:bg-accent hover:text-accent-foreground" onClick={handleBuyNow} disabled={isPending} aria-label="Buy now">
+                {isPending ? <Loader2 className="animate-spin" /> : "Buy Now"}
               </Button>
             </CardContent>
           </Card>
