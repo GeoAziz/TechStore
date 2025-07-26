@@ -1,7 +1,8 @@
+
 "use client";
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, X, Loader2 } from 'lucide-react';
+import { Bot, X, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const SUGGESTIONS = [
@@ -33,7 +34,8 @@ export default function AiAssistantOverlay() {
         });
 
         if (!res.ok) {
-            throw new Error('AI backend error.');
+            const errorData = await res.json();
+            throw new Error(errorData.error || 'AI backend error.');
         }
 
         const data = await res.json();
@@ -65,6 +67,7 @@ export default function AiAssistantOverlay() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={() => setOpen(false)}
           >
             <motion.div
               className="relative w-full max-w-md bg-[#10102a] border border-cyan-400/30 rounded-2xl shadow-[0_0_32px_#00fff7] p-6 mx-2 mb-8 md:mb-0"
@@ -72,6 +75,7 @@ export default function AiAssistantOverlay() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 80, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 180 }}
+              onClick={(e) => e.stopPropagation()}
             >
               <button
                 className="absolute top-3 right-3 text-cyan-400 hover:text-cyan-200"
@@ -86,7 +90,7 @@ export default function AiAssistantOverlay() {
               </div>
               <div className="min-h-[120px] max-h-48 overflow-y-auto mb-4 space-y-2 text-cyan-100 text-sm font-mono pr-2">
                 {history.length === 0 && (
-                  <div className="text-cyan-400/70">Ask me anything about Tech Store, e.g.:</div>
+                  <div className="text-cyan-400/70">Ask me anything about Zizo_OrderVerse...</div>
                 )}
                 {history.map((msg, i) => (
                   <div key={i} className={`whitespace-pre-wrap ${msg.type === 'user' ? 'text-right' : ''}`}>
@@ -117,8 +121,8 @@ export default function AiAssistantOverlay() {
                   autoFocus
                   disabled={loading}
                 />
-                <Button type="submit" className="bg-cyan-400 text-black hover:bg-cyan-300 font-bold px-4 py-2 rounded-lg shadow-[0_0_8px_#00fff7]" disabled={loading}>
-                  {loading ? <Loader2 className="animate-spin" /> : "Send"}
+                <Button type="submit" className="bg-cyan-400 text-black hover:bg-cyan-300 font-bold px-4 py-2 rounded-lg shadow-[0_0_8px_#00fff7]" disabled={loading} aria-label="Send message">
+                  {loading ? <Loader2 className="animate-spin" /> : <Sparkles />}
                 </Button>
               </form>
             </motion.div>

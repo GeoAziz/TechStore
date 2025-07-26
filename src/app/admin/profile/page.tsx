@@ -114,6 +114,7 @@ export default function AdminProfilePage() {
                                     <DialogTrigger asChild>
                                     <Button
                                         size="icon"
+                                        aria-label="Change Avatar"
                                         className="absolute bottom-1 right-1 rounded-full w-8 h-8 bg-accent hover:bg-accent/80"
                                     >
                                         <Pen className="w-4 h-4" />
@@ -149,16 +150,16 @@ export default function AdminProfilePage() {
                                 <Input id="email" value={user?.email || ''} disabled />
                              </div>
                              <div className="flex items-center justify-between">
-                                <Label>Interface Theme</Label>
+                                <Label htmlFor="theme-switch">Interface Theme</Label>
                                 <div className="flex items-center gap-2">
                                     <span>Light</span>
-                                    <Switch checked={isDarkTheme} onCheckedChange={setIsDarkTheme} />
+                                    <Switch id="theme-switch" checked={isDarkTheme} onCheckedChange={setIsDarkTheme} aria-label="Toggle theme" />
                                     <span>Dark</span>
                                 </div>
                              </div>
                              <div className="flex items-center justify-between">
-                                <Label>Push Notifications</Label>
-                                <Switch defaultChecked />
+                                <Label htmlFor="notifications-switch">Push Notifications</Label>
+                                <Switch id="notifications-switch" defaultChecked aria-label="Toggle push notifications" />
                              </div>
                         </CardContent>
                         <CardHeader>
