@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/auth-context";
 import { auth, app } from "@/lib/firebase"; // Import app
-import { getFirestore, collection, onSnapshot } from 'firebase/firestore'; // Import firestore functions
-import { getCart } from "@/lib/firestore-service";
+import { getFirestore, collection, onSnapshot, doc } from 'firebase/firestore'; // Import firestore functions
 
 const navLinks = [
   { href: "/shop", label: "Shop" },
@@ -22,19 +21,32 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, loading } = useAuth();
   const [cartCount, setCartCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
 
   useEffect(() => {
     if (user) {
       const db = getFirestore(app);
-      const cartRef = collection(db, 'users', user.uid, 'cart');
       
-      const unsubscribe = onSnapshot(cartRef, (snapshot) => {
-        setCartCount(snapshot.docs.length);
+      // Cart count listener
+      const cartRef = collection(db, 'users', user.uid, 'cart');
+      const unsubscribeCart = onSnapshot(cartRef, (snapshot) => {
+        setCartCount(snapshot.size);
       });
 
-      return () => unsubscribe();
+      // Wishlist count listener
+      const userDocRef = doc(db, 'users', user.uid);
+      const unsubscribeWishlist = onSnapshot(userDocRef, (doc) => {
+          const data = doc.data();
+          setWishlistCount(data?.wishlist?.length || 0);
+      });
+
+      return () => {
+        unsubscribeCart();
+        unsubscribeWishlist();
+      };
     } else {
       setCartCount(0);
+      setWishlistCount(0);
     }
   }, [user]);
 
@@ -74,9 +86,14 @@ export default function Header() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cyan-400/80" />
             <Input placeholder="Search transmissions..." className="pl-10 font-[Orbitron,Space Grotesk,monospace] bg-[#18182c]/80 border-cyan-400/30 focus:border-cyan-400 text-cyan-100 placeholder:text-cyan-400/40 shadow-[0_0_8px_#00fff733]" />
           </div>
-          <Button variant="ghost" size="icon" asChild className="hover:bg-cyan-400/10">
+          <Button variant="ghost" size="icon" asChild className="relative hover:bg-cyan-400/10">
             <Link href="/wishlist">
               <Heart className="h-6 w-6 text-cyan-300" />
+               {wishlistCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-600 text-xs font-bold text-white shadow-[0_0_8px_#ff00c8]">
+                    {wishlistCount}
+                  </span>
+                )}
               <span className="sr-only">Wishlist</span>
             </Link>
           </Button>
