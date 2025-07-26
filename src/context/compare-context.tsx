@@ -19,17 +19,26 @@ const CompareContext = createContext<CompareContextType | undefined>(undefined);
 export const CompareProvider = ({ children }: { children: ReactNode }) => {
   const [compareItems, setCompareItems] = useState<Product[]>([]);
   const { toast } = useToast();
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    const storedItems = localStorage.getItem('compareItems');
-    if (storedItems) {
-      setCompareItems(JSON.parse(storedItems));
+    try {
+      const storedItems = localStorage.getItem('compareItems');
+      if (storedItems) {
+        setCompareItems(JSON.parse(storedItems));
+      }
+    } catch (error) {
+      console.error("Failed to parse compare items from localStorage", error);
+      setCompareItems([]);
     }
+    setIsInitialized(true);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('compareItems', JSON.stringify(compareItems));
-  }, [compareItems]);
+    if (isInitialized) {
+      localStorage.setItem('compareItems', JSON.stringify(compareItems));
+    }
+  }, [compareItems, isInitialized]);
 
   const addToCompare = (product: Product) => {
     if (compareItems.length >= MAX_COMPARE_ITEMS) {

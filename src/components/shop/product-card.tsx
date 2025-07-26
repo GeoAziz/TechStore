@@ -7,12 +7,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { Product } from '@/lib/types';
-import { ShoppingCart, Heart, Eye, Star, Scale } from 'lucide-react';
+import { ShoppingCart, Heart, Eye, Star, Scale, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { addToCart, toggleWishlist } from '@/lib/firestore-service';
-import { useState } from 'react';
+import { addToCart, removeFromCart, toggleWishlist, getWishlist, isInCart } from '@/lib/firestore-service';
+import { useState, useEffect, useTransition } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { useCompare } from '@/context/compare-context';
 
@@ -29,8 +29,27 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [isAdding, setIsAdding] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const [inCart, setInCart] = useState(false);
+
   const { compareItems, addToCompare, removeFromCompare } = useCompare();
+  
+  useEffect(() => {
+    setIsClient(true);
+    if (user) {
+      const checkStatus = async () => {
+        const [wishlist, cartStatus] = await Promise.all([
+          getWishlist(user.uid),
+          isInCart(user.uid, product.id)
+        ]);
+        setIsInWishlist(wishlist.includes(product.id));
+        setInCart(cartStatus);
+      };
+      checkStatus();
+    }
+  }, [user, product.id]);
 
   const isProductInCompare = compareItems.some(item => item.id === product.id);
 
@@ -45,44 +64,48 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
     }
   };
 
-  const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleToggleCart = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Authentication Required",
-        description: "Please log in to add items to your cart.",
-      });
       router.push('/login');
       return;
     }
-    setIsAdding(true);
-    const result = await addToCart(user.uid, product.id);
-    if (result.success) {
-      toast({ title: "Success", description: result.message });
-    } else {
-      toast({ variant: "destructive", title: "Error", description: result.message });
-    }
-    setIsAdding(false);
+    startTransition(async () => {
+      if (inCart) {
+        const result = await removeFromCart(user.uid, product.id);
+        if (result.success) {
+          setInCart(false);
+          toast({ title: "Removed from cart" });
+        } else {
+          toast({ variant: 'destructive', title: "Error", description: result.message });
+        }
+      } else {
+        const result = await addToCart(user.uid, product.id);
+        if (result.success) {
+          setInCart(true);
+          toast({ title: "Added to cart" });
+        } else {
+          toast({ variant: 'destructive', title: "Error", description: result.message });
+        }
+      }
+    });
   };
 
   const handleToggleWishlist = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Authentication Required",
-        description: "Please log in to manage your wishlist.",
-      });
       router.push('/login');
       return;
     }
-    const result = await toggleWishlist(user.uid, product.id);
-    if (result.success) {
-      toast({ title: "Wishlist Updated", description: result.message });
-    } else {
-      toast({ variant: "destructive", title: "Error", description: result.message });
-    }
+    startTransition(async () => {
+      const result = await toggleWishlist(user.uid, product.id);
+      if (result.success) {
+        setIsInWishlist(prev => !prev);
+        toast({ title: "Wishlist Updated", description: result.message });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: result.message });
+      }
+    });
   };
 
   // Animated badge logic
@@ -128,7 +151,6 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
             )}
           </Link>
           <CardContent className="p-4 flex flex-col flex-grow sm:w-2/3">
-            {/* ...existing code... */}
             <div className='flex-grow'>
               <p className="text-xs text-muted-foreground">{product.category}</p>
               <h3 className="text-lg font-bold group-hover:text-primary transition-colors font-headline">
@@ -150,13 +172,13 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
               </p>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="icon" className="w-8 h-8" onClick={handleToggleWishlist} title="Add to Wishlist">
-                  <Heart className="w-4 h-4" />
+                  <Heart className={`w-4 h-4 transition-all ${isInWishlist ? 'text-red-500 fill-red-500' : ''}`} />
                 </Button>
                 <Button variant={isProductInCompare ? "secondary" : "outline"} size="icon" className="w-8 h-8" onClick={handleToggleCompare} title="Compare">
                   <Scale className="w-4 h-4" />
                 </Button>
-                <Button size="sm" className="bg-primary/80 hover:bg-primary text-primary-foreground" onClick={handleAddToCart} disabled={isAdding}>
-                  <ShoppingCart className="w-4 h-4 mr-2" /> Cart
+                <Button size="sm" className={`min-w-[90px] ${inCart ? 'bg-green-600 hover:bg-green-700' : 'bg-primary/80 hover:bg-primary'} text-primary-foreground`} onClick={handleToggleCart} disabled={isPending}>
+                  {isPending ? <Loader2 className="animate-spin" /> : inCart ? <><Check className="mr-2"/> In Cart</> : <><ShoppingCart className="w-4 h-4 mr-2" /> Cart</>}
                 </Button>
               </div>
             </div>
@@ -167,7 +189,6 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
   }
 
   // Grid view
-  // 3D tilt and neon ring for grid view
   const { x, y, rotateX, rotateY } = use3DTilt();
   return (
     <motion.div
@@ -201,7 +222,6 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
                 className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110 group-hover:brightness-110 group-hover:saturate-150"
                 data-ai-hint={`${product.category.toLowerCase()} device`}
               />
-              {/* Neon glow ring on hover */}
               <motion.div
                 className="absolute inset-0 pointer-events-none rounded-lg"
                 initial={{ opacity: 0 }}
@@ -233,7 +253,6 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
             </div>
           </Link>
           <CardContent className="p-4 flex flex-col flex-grow">
-            {/* ...existing code... */}
             <div className='flex-grow'>
               <p className="text-xs text-muted-foreground">{product.category}</p>
               <h3 className="text-base font-bold group-hover:text-primary transition-colors font-[Orbitron,Space Grotesk,monospace]">
@@ -248,16 +267,16 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
             </div>
             <div className="flex justify-between items-center mt-4">
               <p className="text-lg font-bold text-primary">{product.price.toLocaleString()} {product.currency}</p>
-              <Button variant="ghost" size="icon" onClick={handleAddToCart} disabled={isAdding} className="w-9 h-9">
-                <ShoppingCart className="w-5 h-5" />
+              <Button variant="ghost" size="icon" onClick={handleToggleCart} disabled={isPending} className="w-9 h-9">
+                {isPending ? <Loader2 className="animate-spin" /> : inCart ? <Check className="text-green-500" /> : <ShoppingCart className="w-5 h-5" />}
               </Button>
             </div>
             <div className="flex gap-2 mt-2">
               <Button variant={isProductInCompare ? "secondary" : "outline"} size="sm" className="w-full" onClick={handleToggleCompare}>
                 <Scale className="w-4 h-4 mr-2" /> {isProductInCompare ? 'Comparing' : 'Compare'}
               </Button>
-              <Button variant="outline" size="sm" className="w-full" onClick={handleToggleWishlist}>
-                <Heart className="w-4 h-4 mr-2" /> Wishlist
+              <Button variant="outline" size="sm" className="w-full" onClick={handleToggleWishlist} disabled={isPending}>
+                 <Heart className={`w-4 h-4 mr-2 transition-all ${isInWishlist ? 'text-red-500 fill-red-500' : ''}`} /> Wishlist
               </Button>
             </div>
           </CardContent>
@@ -266,5 +285,3 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
     </motion.div>
   );
 }
-
-    

@@ -3,40 +3,13 @@
  * @fileOverview A flow to send order details to a webhook.
  *
  * - sendOrderToWebhook - A function that sends order data to a configured webhook URL.
- * - OrderInputSchema - The input type for the sendOrderToWebhook function.
+ * - OrderInput - The input type for the sendOrderToWebhook function.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
+import { OrderInputSchema, type OrderInput } from '@/ai/schemas/order-schema';
 
-const CartItemSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  price: z.number(),
-});
-
-export const OrderInputSchema = z.object({
-  contact: z.object({
-    email: z.string().email(),
-  }),
-  shipping: z.object({
-    firstName: z.string(),
-    lastName: z.string(),
-    address: z.string(),
-    city: z.string(),
-    state: z.string(),
-    zip: z.string(),
-  }),
-  payment: z.object({
-    cardNumber: z.string(),
-    expiryDate: z.string(),
-    cvc: z.string(),
-  }),
-  cart: z.array(CartItemSchema),
-  total: z.number(),
-});
-
-export type OrderInput = z.infer<typeof OrderInputSchema>;
 
 export async function sendOrderToWebhook(input: OrderInput): Promise<{ success: boolean; message: string }> {
   return sendOrderWebhookFlow(input);

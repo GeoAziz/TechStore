@@ -5,31 +5,59 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import Logo from '../layout/logo';
 
+// Define a type for a single particle's properties
+type Particle = {
+  id: number;
+  width: number;
+  height: number;
+  left: string;
+  top: string;
+  yAnimate: number[];
+  duration: number;
+  delay: number;
+};
+
 // Simple particle field background
 function ParticleField() {
-  const particles = Array.from({ length: 36 });
+  const [particles, setParticles] = useState<Particle[]>([]);
+
+  useEffect(() => {
+    // Generate particle data only on the client-side
+    const newParticles = Array.from({ length: 36 }).map((_, i) => ({
+      id: i,
+      width: Math.random() * 6 + 2,
+      height: Math.random() * 6 + 2,
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      yAnimate: [0, Math.random() * 40 - 20, 0],
+      duration: Math.random() * 3 + 2,
+      delay: Math.random() * 2,
+    }));
+    setParticles(newParticles);
+  }, []); // Empty dependency array ensures this runs only once on mount
+
   return (
     <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-      {particles.map((_, i) => (
+      {particles.map((p) => (
         <motion.div
-          key={i}
+          key={p.id}
           className="absolute rounded-full bg-cyan-400/10 shadow-lg"
           style={{
-            width: `${Math.random() * 6 + 2}px`,
-            height: `${Math.random() * 6 + 2}px`,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            filter: 'blur(1.5px)'
+            width: `${p.width}px`,
+            height: `${p.height}px`,
+            left: p.left,
+            top: p.top,
+            filter: 'blur(1.5px)',
           }}
           animate={{
-            y: [0, Math.random() * 40 - 20, 0],
+            y: p.yAnimate,
             opacity: [0.5, 1, 0.5],
           }}
           transition={{
-            duration: Math.random() * 3 + 2,
+            duration: p.duration,
             repeat: Infinity,
             repeatType: 'mirror',
-            delay: Math.random() * 2
+            delay: p.delay,
           }}
         />
       ))}

@@ -2,7 +2,7 @@
 'use server';
 
 import { db } from './firebase-admin';
-import type { Product, Order, CartItem, Review, OrderStatus } from './types';
+import type { Product, Order, CartItem, Review, OrderStatus, UserProfile } from './types';
 import { FieldValue } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 
@@ -36,6 +36,21 @@ export async function getProductById(id: string): Promise<Product | null> {
 }
 
 /**
+ * Fetches multiple products by their IDs.
+ * @param {string[]} ids - An array of product IDs.
+ * @returns {Promise<Product[]>} A promise that resolves to an array of products.
+ */
+export async function getProductsByIds(ids: string[]): Promise<Product[]> {
+    if (ids.length === 0) {
+        return [];
+    }
+    const productRefs = ids.map(id => db.collection('products').doc(id));
+    const productDocs = await db.getAll(...productRefs);
+    return productDocs.map(doc => ({ id: doc.id, ...doc.data() } as Product)).filter(p => p.name); // filter out non-existent products
+}
+
+
+/**
  * Fetches all products by a specific brand.
  * @param {string} brandName - The name of the brand.
  * @returns {Promise<Product[]>} A promise that resolves to an array of products.
@@ -59,7 +74,7 @@ export async function getOrders(): Promise<Order[]> {
   return snapshot.docs.map(doc => {
     const data = doc.data();
     // Ensure timestamp is converted to a string right away
-    const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : data.timestamp;
+    const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : new Date(data.timestamp._seconds * 1000).toISOString();
     return { 
       id: doc.id, 
       ...data,
@@ -78,8 +93,7 @@ export async function getOrdersByUser(userEmail: string): Promise<Order[]> {
     const snapshot = await ordersCol.where('user', '==', userEmail).orderBy('timestamp', 'desc').get();
     return snapshot.docs.map(doc => {
       const data = doc.data();
-      // Ensure timestamp is converted to a string right away
-      const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : data.timestamp;
+      const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : new Date(data.timestamp._seconds * 1000).toISOString();
       return { 
         id: doc.id, 
         ...data,
@@ -107,8 +121,7 @@ export async function getOrdersByVendor(brandName: string): Promise<Order[]> {
   
   return snapshot.docs.map(doc => {
       const data = doc.data();
-      // Ensure timestamp is converted to a string right away
-      const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : data.timestamp;
+      const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : new Date(data.timestamp._seconds * 1000).toISOString();
       return { 
         id: doc.id, 
         ...data,
@@ -119,6 +132,19 @@ export async function getOrdersByVendor(brandName: string): Promise<Order[]> {
 
 
 // --- User Interaction Functions (Cart, Wishlist, Reviews, Profile) ---
+
+/**
+ * Checks if a product is in the user's cart.
+ * @param userId The user's ID.
+ * @param productId The product's ID.
+ * @returns A promise that resolves to a boolean.
+ */
+export async function isInCart(userId: string, productId: string): Promise<boolean> {
+  if (!userId) return false;
+  const cartRef = db.collection('users').doc(userId).collection('cart').doc(productId);
+  const doc = await cartRef.get();
+  return doc.exists;
+}
 
 /**
  * Adds a product to a user's cart.
@@ -158,6 +184,29 @@ export async function addToCart(userId: string, productId: string) {
 }
 
 /**
+ * Removes a product from a user's cart.
+ * @param {string} userId - The ID of the user.
+ * @param {string} productId - The ID of the product to remove.
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function removeFromCart(userId: string, productId: string) {
+    if (!userId) {
+        return { success: false, message: "User not authenticated." };
+    }
+    const cartRef = db.collection('users').doc(userId).collection('cart').doc(productId);
+    try {
+        await cartRef.delete();
+        revalidatePath('/checkout');
+        revalidatePath('/product/[id]', 'page');
+        return { success: true, message: "Item removed from cart." };
+    } catch (error) {
+        console.error("Error removing from cart:", error);
+        return { success: false, message: "Failed to remove item from cart." };
+    }
+}
+
+
+/**
  * Toggles a product in a user's wishlist.
  * @param {string} userId - The ID of the user.
  * @param {string} productId - The ID of the product to toggle.
@@ -173,22 +222,31 @@ export async function toggleWishlist(userId: string, productId: string) {
   try {
     const userDoc = await userRef.get();
     const currentWishlist = userDoc.data()?.wishlist || [];
-    let newWishlist: string[];
     let message = '';
 
     if (currentWishlist.includes(productId)) {
-      await userRef.update({ wishlist: FieldValue.arrayRemove(productId) });
-      newWishlist = currentWishlist.filter((id: string) => id !== productId);
+      // Use set with merge to avoid errors on non-existent documents
+      await userRef.set({
+        wishlist: FieldValue.arrayRemove(productId)
+      }, { merge: true });
       message = 'Removed from wishlist.';
     } else {
-      await userRef.update({ wishlist: FieldValue.arrayUnion(productId) });
-      newWishlist = [...currentWishlist, productId];
+      // Use set with merge to avoid errors on non-existent documents
+      await userRef.set({
+        wishlist: FieldValue.arrayUnion(productId)
+      }, { merge: true });
       message = 'Added to wishlist.';
     }
     
     revalidatePath('/product/[id]', 'page');
     revalidatePath('/');
-    revalidatePath('/dashboard/client');
+    revalidatePath('/dashboard');
+    revalidatePath('/wishlist');
+
+    // Refetch the latest wishlist state to return it
+    const updatedUserDoc = await userRef.get();
+    const newWishlist = updatedUserDoc.data()?.wishlist || [];
+
     return { success: true, message, wishlist: newWishlist };
   } catch (error) {
     console.error("Error updating wishlist:", error);
@@ -254,8 +312,7 @@ export async function getReviewsByProductId(productId: string): Promise<Review[]
 
   return snapshot.docs.map(doc => {
     const data = doc.data();
-    // Ensure timestamp is converted to a string right away
-    const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : data.timestamp;
+    const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : new Date(data.timestamp._seconds * 1000).toISOString();
     return {
       id: doc.id,
       ...data,
@@ -351,12 +408,12 @@ export async function updateOrderStatus(orderId: string, status: string) {
 }
 
 
-// --- Admin Product Management ---
+// --- Admin Product & User Management ---
 
 export async function addProduct(product: Omit<Product, 'id'>) {
     try {
         const newProductRef = await db.collection('products').add(product);
-        revalidatePath('/dashboard/admin');
+        revalidatePath('/admin');
         return { success: true, message: "Product added.", productId: newProductRef.id };
     } catch (error) {
         return { success: false, message: "Failed to add product." };
@@ -366,7 +423,7 @@ export async function addProduct(product: Omit<Product, 'id'>) {
 export async function updateProduct(productId: string, updates: Partial<Product>) {
     try {
         await db.collection('products').doc(productId).update(updates);
-        revalidatePath('/dashboard/admin');
+        revalidatePath('/admin');
         return { success: true, message: "Product updated." };
     } catch (error) {
         return { success: false, message: "Failed to update product." };
@@ -376,18 +433,32 @@ export async function updateProduct(productId: string, updates: Partial<Product>
 export async function deleteProduct(productId: string) {
     try {
         await db.collection('products').doc(productId).delete();
-        revalidatePath('/dashboard/admin');
+        revalidatePath('/admin');
         return { success: true, message: "Product deleted." };
     } catch (error) {
         return { success: false, message: "Failed to delete product." };
     }
 }
 
+export async function getUsers(): Promise<UserProfile[]> {
+  const usersCol = db.collection('users');
+  const snapshot = await usersCol.get();
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+        uid: doc.id,
+        email: data.email || '',
+        displayName: data.displayName || '',
+        role: data.role || 'client',
+    } as UserProfile;
+  });
+}
+
 export async function deleteUser(userId: string) {
     try {
         await db.collection('users').doc(userId).delete();
         // Note: This does not delete the Firebase Auth user.
-        revalidatePath('/dashboard/admin');
+        revalidatePath('/admin');
         return { success: true, message: "User data deleted." };
     } catch (error) {
         return { success: false, message: "Failed to delete user data." };
