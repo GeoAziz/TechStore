@@ -1,6 +1,6 @@
 
 
-export type ProductCategory = 'Laptops' | 'Desktops' | 'Monitors' | 'Keyboards' | 'Mice' | 'Headphones' | 'Webcams' | 'Storage Drives' | 'Graphic Cards' | 'Processors' | 'RAM Modules' | 'Motherboards' | 'Power Supplies' | 'Coolers/Fans';
+export type ProductCategory = 'Laptops' | 'Desktops' | 'Monitors' | 'Keyboards' | 'Mice' | 'Headphones' | 'Webcams' | 'Storage Drives' | 'Graphic Cards' | 'Processors' | 'RAM Modules' | 'Motherboards' | 'Power Supplies' | 'Coolers/Fans' | 'Phones' | 'Accessories' | 'Networking' | 'Smart Tech';
 
 export interface Product {
   id: string;
@@ -16,13 +16,14 @@ export interface Product {
   imageUrl: string;
   tags?: string[];
   specs?: { [key: string]: string };
+  color?: string;
   
   // Flags & Metrics
   isFeatured?: boolean;
   
   // Timestamps (as ISO strings)
-  createdAt: string; 
-  updatedAt?: string;
+  createdAt: string | any;
+  updatedAt?: string | any;
 
   // Metrics for "Trending"
   views?: number;
