@@ -123,12 +123,14 @@ function CheckoutForm({ total, cartItems }: { total: number; cartItems: CartItem
       }
       
       // 3. Payment successful, now send order to n8n webhook (without sensitive payment data)
-      const paymentMethod = await stripe.retrievePaymentMethod(paymentIntent.payment_method as string);
+      const { paymentMethod } = await stripe.retrievePaymentMethod(
+        paymentIntent.payment_method as string
+      );
       
       const orderDataForWebhook: OrderInput = {
         ...data,
         payment: {
-            cardNumber: `**** **** **** ${paymentMethod.paymentMethod?.card?.last4 || ''}`,
+            cardNumber: `**** **** **** ${paymentMethod?.card?.last4 || ''}`,
             expiryDate: 'N/A',
             cvc: 'N/A'
         }
