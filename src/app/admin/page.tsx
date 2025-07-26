@@ -8,36 +8,61 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
-import { getProducts, getOrders } from '@/lib/firestore-service';
+import { getProducts, getOrders, deleteProduct as serverDeleteProduct } from '@/lib/firestore-service';
 import type { Product, Order } from '@/lib/types';
-import { Loader2, Package, Users, Activity, DollarSign, Warehouse } from 'lucide-react';
+import { Loader2, Package, Users, Activity, DollarSign, Warehouse, Edit, Trash2, PlusCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import Image from 'next/image';
 
 export default function AdminPage() {
   const { user, loading: authLoading, role } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    setLoading(true);
+    const [productsData, ordersData] = await Promise.all([
+      getProducts(),
+      getOrders()
+    ]);
+    setProducts(productsData);
+    setOrders(ordersData);
+    setLoading(false);
+  };
 
   useEffect(() => {
     if (!authLoading) {
       if (!user || role !== 'admin') {
         router.push('/login');
       } else {
-        const fetchData = async () => {
-          setLoading(true);
-          const [productsData, ordersData] = await Promise.all([
-            getProducts(),
-            getOrders()
-          ]);
-          setProducts(productsData);
-          setOrders(ordersData);
-          setLoading(false);
-        };
         fetchData();
       }
     }
   }, [user, authLoading, role, router]);
+  
+  const handleDeleteProduct = async (productId: string) => {
+    if(!confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
+
+    const result = await serverDeleteProduct(productId);
+    if(result.success) {
+      toast({ title: 'Success', description: 'Product successfully deleted.'});
+      fetchData(); // Refresh data
+    } else {
+      toast({ variant: 'destructive', title: 'Error', description: result.message });
+    }
+  }
 
   if (authLoading || loading) {
     return (
@@ -104,44 +129,90 @@ export default function AdminPage() {
 
         <TabsContent value="inventory">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map(product => (
-                <Card key={product.id} className="glass-panel card-glow">
-                  <CardContent className="p-6 flex flex-col gap-2">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-bold text-cyan-300">{product.name}</span>
-                      <Badge variant="secondary" className={`text-xs px-2 py-1 rounded-full ${product.stock > 0 ? 'bg-green-400/20 text-green-300 border-green-400/40' : 'bg-red-400/20 text-red-300 border-red-400/40'}`}>{product.stock > 0 ? `In Stock (${product.stock})` : 'Out of Stock'}</Badge>
-                    </div>
-                    <div className="text-lg font-bold text-cyan-200 mt-2">{product.price.toLocaleString()} {product.currency}</div>
-                    <div className="flex gap-2 mt-3">
-                      <Button variant="outline" className="border-cyan-400/40 text-cyan-200 hover:bg-cyan-400/10">Edit</Button>
-                      <Button variant="outline" className="border-red-400/40 text-red-400 hover:bg-red-400/10">Remove</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            <Button className="mt-6 border-cyan-400/40 bg-cyan-400/10 text-cyan-200 hover:bg-cyan-400/20">Add New Product</Button>
+            <Card className="glass-panel">
+               <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Manage Products</CardTitle>
+                  <Button variant="outline" className="border-cyan-400/40 text-cyan-200 hover:bg-cyan-400/10">
+                    <PlusCircle className="w-4 h-4 mr-2" /> Add New Product
+                  </Button>
+               </CardHeader>
+               <CardContent>
+                 <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Image</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Stock</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {products.map(product => (
+                        <TableRow key={product.id} className="hover:bg-primary/5">
+                          <TableCell>
+                            <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="rounded-md" />
+                          </TableCell>
+                          <TableCell className="font-medium text-cyan-200">{product.name}</TableCell>
+                          <TableCell>KES {product.price.toLocaleString()}</TableCell>
+                          <TableCell>
+                             <Badge variant="secondary" className={`text-xs px-2 py-1 rounded-full ${product.stock > 0 ? 'bg-green-400/20 text-green-300 border-green-400/40' : 'bg-red-400/20 text-red-300 border-red-400/40'}`}>
+                              {product.stock > 0 ? `In Stock (${product.stock})` : 'Out of Stock'}
+                             </Badge>
+                          </TableCell>
+                          <TableCell>{product.category}</TableCell>
+                          <TableCell>
+                             <div className="flex gap-2">
+                              <Button variant="ghost" size="icon" className="text-cyan-300 hover:text-cyan-100"><Edit className="w-4 h-4" /></Button>
+                              <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-300" onClick={() => handleDeleteProduct(product.id)}><Trash2 className="w-4 h-4" /></Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+               </CardContent>
+            </Card>
           </motion.div>
         </TabsContent>
 
         <TabsContent value="orders">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {orders.map(order => (
-                <Card key={order.id} className="glass-panel card-glow">
-                  <CardContent className="p-6 flex flex-col gap-2">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-bold text-cyan-300">{order.id}</span>
-                      <Badge variant="secondary" className="text-xs px-2 py-1 rounded-full bg-cyan-400/20 text-cyan-200 border-cyan-400/40">{order.status}</Badge>
-                    </div>
-                    <div className="text-sm text-cyan-100">Date: {new Date(order.timestamp).toLocaleDateString()}</div>
-                     <div className="text-sm text-cyan-100">User: {order.user}</div>
-                    <div className="text-lg font-bold text-cyan-200 mt-2">{order.total.toLocaleString()} KES</div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+             <Card className="glass-panel">
+               <CardHeader><CardTitle>Manage Orders</CardTitle></CardHeader>
+               <CardContent>
+                 <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Order ID</TableHead>
+                        <TableHead>User</TableHead>
+                        <TableHead>Product</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {orders.map(order => (
+                        <TableRow key={order.id} className="hover:bg-primary/5">
+                          <TableCell className="font-medium text-primary">{order.id}</TableCell>
+                          <TableCell>{order.user}</TableCell>
+                          <TableCell>{order.productName}</TableCell>
+                          <TableCell>
+                            <Badge variant={order.status === 'Delivered' ? 'default' : order.status === 'Processing' ? 'secondary' : 'destructive'} 
+                              className={order.status === 'Delivered' ? 'bg-green-500/20 text-green-400 border-green-500/30' : order.status === 'Processing' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}>
+                              {order.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{new Date(order.timestamp).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-right">KES {order.total.toLocaleString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+               </CardContent>
+            </Card>
           </motion.div>
         </TabsContent>
 
