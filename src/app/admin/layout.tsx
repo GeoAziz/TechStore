@@ -326,7 +326,12 @@ function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
                             {!notif.read && (
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <button onClick={() => markAsRead(notif.id)} className="p-1 rounded-full hover:bg-muted">
+                                        <button
+                                            onClick={() => markAsRead(notif.id)}
+                                            className="p-1 rounded-full hover:bg-muted"
+                                            aria-label="Mark notification as read"
+                                            title="Mark as read"
+                                        >
                                             <CheckCheck className="w-4 h-4 text-primary" />
                                         </button>
                                     </TooltipTrigger>

@@ -10,7 +10,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "db:seed": "node --import tsx src/scripts/seed.mjs"
+    "db:seed": "node --import tsx src/scripts/seed.mjs",
+    "test": "jest"
   },
   "dependencies": {
     "@genkit-ai/firebase": "^1.15.4",
@@ -40,8 +41,10 @@
     "@radix-ui/react-tabs": "^1.1.3",
     "@radix-ui/react-toast": "^1.2.6",
     "@radix-ui/react-tooltip": "^1.1.8",
+    "@sentry/nextjs": "^9.42.0",
     "@stripe/react-stripe-js": "^2.9.0",
     "@stripe/stripe-js": "^4.10.0",
+    "@types/ws": "^8.18.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -63,21 +66,35 @@
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.19.0",
+    "ws": "^8.18.3",
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.6.3",
+    "@babel/plugin-proposal-class-properties": "^7.18.6",
+    "@babel/plugin-transform-typescript": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "@babel/preset-react": "^7.27.1",
+    "@testing-library/jest-dom": "^6.6.4",
+    "@testing-library/react": "^16.3.0",
     "@types/jest": "^30.0.0",
     "@types/next": "^8.0.7",
     "@types/node": "^20.19.9",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18",
     "@types/recharts": "^1.8.29",
+    "@types/supertest": "^6.0.3",
     "@types/testing-library__jest-dom": "^5.14.9",
     "@types/testing-library__react": "^10.0.1",
+    "babel-jest": "^30.0.5",
     "genkit-cli": "^1.15.4",
+    "identity-obj-proxy": "^3.0.0",
+    "jest": "^30.0.5",
+    "jest-environment-jsdom": "^30.0.5",
+    "node-mocks-http": "^1.17.2",
     "postcss": "^8",
+    "supertest": "^7.1.4",
     "tailwindcss": "^3.4.1",
+    "ts-jest": "^29.4.0",
     "typescript": "^5"
   }
 }

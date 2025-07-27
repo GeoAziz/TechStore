@@ -27,6 +27,9 @@ const sendOrderWebhookFlow = ai.defineFlow(
   },
   async (order) => {
     const webhookUrl = process.env.N8N_WEBHOOK_URL;
+    const secureToken = process.env.N8N_WEBHOOK_TOKEN || 'YOUR_SECRET_TOKEN';
+    // Add role for RBAC validation
+    const payload = { ...order, role: 'client' };
 
     if (!webhookUrl) {
       console.error('N8N_WEBHOOK_URL is not set.');
@@ -41,8 +44,9 @@ const sendOrderWebhookFlow = ai.defineFlow(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-zizo-key': secureToken,
         },
-        body: JSON.stringify(order),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

@@ -5,7 +5,9 @@
 - Splash Screen Animation: Implement a futuristic splash screen with animated holographic HUD intro and brand logo.
 - Product Marketplace: Develop a responsive product marketplace with category browsing, filtering, and add-to-cart functionality.
 - Product Detail Page: Create a detailed product page with 3D renders, specs, and add-to-cart options.
-- Checkout Flow: Implement a checkout page that sends order information to the n8n backend via a secure webhook API.
+- Checkout Flow: Implement a checkout page that sends order information to the n8n backend via a secure webhook API (with token and RBAC validation).
+  - **Security:** All webhook calls must include `N8N_WEBHOOK_TOKEN` and user role for RBAC validation. Never expose secrets to the frontend.
+  - **API Contract:** POST to `N8N_WEBHOOK_URL` with order payload and token in header. Response: `{ success: boolean, message: string }`
 - Order Success Page: Design a futuristic order success screen with order details and estimated shipping time.
 - AI Enhanced Product Info: Integrate an AI-powered tool on the product pages to enhance descriptions or provide comparative stats based on component selection.
 - Role Based Dashboards: Role-based dashboards (client/vendor/admin) to track orders, manage inventory, and monitor system logs.

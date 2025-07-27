@@ -1,4 +1,3 @@
-
 "use client";
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -69,6 +68,8 @@ export default function AdminPage() {
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [selectedRole, setSelectedRole] = useState<UserRole>('client');
 
+  const [actionStatus, setActionStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   const handleUpdateUserRole = async () => {
     if (!editingUser) return;
     await serverUpdateUserRole(editingUser.uid, selectedRole, currentUser?.uid || '', currentUser?.email || '');
@@ -112,45 +113,72 @@ export default function AdminPage() {
   const handleDeleteProduct = async (productId: string) => {
     if(!confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
     if (!currentUser) return;
-    const result = await serverDeleteProduct(productId, currentUser.uid, currentUser.email || '');
-    if(result.success) {
-      toast({ title: 'Success', description: 'Product successfully deleted.'});
-      fetchData(); 
-    } else {
-      toast({ variant: 'destructive', title: 'Error', description: result.message });
+    try {
+      const result = await serverDeleteProduct(productId, currentUser.uid, currentUser.email || '');
+      if(result.success) {
+        setActionStatus({ type: 'success', message: 'Product successfully deleted.' });
+        toast({ title: 'Success', description: 'Product successfully deleted.'});
+        fetchData(); 
+      } else {
+        setActionStatus({ type: 'error', message: result.message });
+        toast({ variant: 'destructive', title: 'Error', description: result.message });
+      }
+    } catch (err) {
+      setActionStatus({ type: 'error', message: 'Unexpected error occurred.' });
+      // Monitoring/logging hook: send error to n8n or external service
+      // logErrorToMonitoringService(err)
+      toast({ variant: 'destructive', title: 'Error', description: 'Unexpected error occurred.' });
     }
   }
   
   const handleBulkDeleteProducts = async () => {
      if (!currentUser) return;
-     const result = await deleteMultipleProducts(selectedProducts, currentUser.uid, currentUser.email || '');
-     if(result.success) {
-        toast({ title: 'Success', description: `${selectedProducts.length} products deleted.`});
-        setSelectedProducts([]);
-        fetchData();
-     } else {
-        toast({ variant: 'destructive', title: 'Error', description: result.message });
+     try {
+       const result = await deleteMultipleProducts(selectedProducts, currentUser.uid, currentUser.email || '');
+       if(result.success) {
+          setActionStatus({ type: 'success', message: `${selectedProducts.length} products deleted.` });
+          toast({ title: 'Success', description: `${selectedProducts.length} products deleted.`});
+          setSelectedProducts([]);
+          fetchData();
+       } else {
+          setActionStatus({ type: 'error', message: result.message });
+          toast({ variant: 'destructive', title: 'Error', description: result.message });
+       }
+     } catch (err) {
+       setActionStatus({ type: 'error', message: 'Unexpected error occurred.' });
+       // Monitoring/logging hook: send error to n8n or external service
+       // logErrorToMonitoringService(err)
+       toast({ variant: 'destructive', title: 'Error', description: 'Unexpected error occurred.' });
      }
   }
   
   const handleProductSubmit = async (productData: Omit<Product, 'id'> | Product) => {
     if (!currentUser) return;
     const isEditing = 'id' in productData;
-    const result = isEditing 
-        ? await serverUpdateProduct(productData.id, productData, currentUser.uid, currentUser.email || '') 
-        : await serverAddProduct({ ...productData, isFeatured: false } as Omit<Product, 'id'>, currentUser.uid, currentUser.email || '');
+    try {
+      const result = isEditing 
+          ? await serverUpdateProduct(productData.id, productData, currentUser.uid, currentUser.email || '') 
+          : await serverAddProduct({ ...productData, isFeatured: false } as Omit<Product, 'id'>, currentUser.uid, currentUser.email || '');
 
-    if(result.success) {
-        toast({ title: 'Success', description: `Product successfully ${isEditing ? 'updated' : 'added'}.`});
-        fetchData();
-        if (isEditing) {
-            setIsEditDialogOpen(false);
-            setEditingProduct(null);
-        } else {
-            setAddProductDialogOpen(false);
-        }
-    } else {
-        toast({ variant: 'destructive', title: 'Error', description: result.message });
+      if(result.success) {
+          setActionStatus({ type: 'success', message: `Product successfully ${isEditing ? 'updated' : 'added'}.` });
+          toast({ title: 'Success', description: `Product successfully ${isEditing ? 'updated' : 'added'}.`});
+          fetchData();
+          if (isEditing) {
+              setIsEditDialogOpen(false);
+              setEditingProduct(null);
+          } else {
+              setAddProductDialogOpen(false);
+          }
+      } else {
+          setActionStatus({ type: 'error', message: result.message });
+          toast({ variant: 'destructive', title: 'Error', description: result.message });
+      }
+    } catch (err) {
+      setActionStatus({ type: 'error', message: 'Unexpected error occurred.' });
+      // Monitoring/logging hook: send error to n8n or external service
+      // logErrorToMonitoringService(err)
+      toast({ variant: 'destructive', title: 'Error', description: 'Unexpected error occurred.' });
     }
   }
 
@@ -186,6 +214,44 @@ export default function AdminPage() {
   };
 
   const totalSales = orders.reduce((acc, order) => acc + order.total, 0);
+
+  // Real-time polling for orders and audit logs
+  useEffect(() => {
+    if (!authLoading && currentUser && role === 'admin') {
+      const interval = setInterval(() => {
+        fetchData();
+      }, 10000); // Poll every 10 seconds
+      return () => clearInterval(interval);
+    }
+  }, [authLoading, currentUser, role]);
+
+  // WebSocket client for real-time updates
+  useEffect(() => {
+    let ws: WebSocket | null = null;
+    if (typeof window !== 'undefined') {
+      // Use wss://yourdomain:4001 in production, ws://localhost:4001 in development
+      const wsUrl = process.env.NODE_ENV === 'production'
+        ? 'wss://yourdomain.com:4001'
+        : 'ws://localhost:4001';
+      ws = new WebSocket(wsUrl);
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'order' || data.type === 'log') {
+          fetchData(); // Refresh data on update
+          toast({ title: 'Real-time Update', description: data.message || 'Order/log updated.' });
+        }
+      };
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+      };
+      ws.onerror = (err) => {
+        console.error('WebSocket error:', err);
+      };
+    }
+    return () => {
+      if (ws) ws.close();
+    };
+  }, []);
 
   if (authLoading || loading) {
     return (
@@ -548,6 +614,23 @@ export default function AdminPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Status feedback UI */}
+      {actionStatus && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded shadow-lg ${actionStatus.type === 'success' ? 'bg-green-700 text-green-100' : 'bg-red-700 text-red-100'}`}>
+          {actionStatus.message}
+        </div>
+      )}
     </div>
   );
 }
+
+/**
+ * Documentation: API contract for n8n webhook
+ * POST /api/order-webhook
+ * Payload: { orderId, userId, products, total, ... }
+ * Response: { success: boolean, message: string }
+ * Documentation: Real-time polling implemented for admin dashboard. For production, consider websockets or server-sent events for efficiency.
+ * Documentation: WebSocket client added for true real-time updates. Connects to ws://localhost:4001 in development and wss://yourdomain.com:4001 in production.
+ * Production Step: To enable secure WebSocket (wss://), obtain a trusted SSL certificate (e.g., Let's Encrypt), set SSL_KEY_PATH and SSL_CERT_PATH in your environment, and update your frontend WebSocket URL to use wss://yourdomain.com:4001.
+ */
