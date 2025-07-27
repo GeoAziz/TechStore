@@ -10,7 +10,9 @@ jest.mock('../firebase-admin', () => ({
 jest.mock('next/cache', () => ({
     revalidatePath: jest.fn(),
 }));
-
+jest.mock('@/lib/firebase', () => ({
+  db: require('../__mocks__/firestore-mock').mockDb,
+}));
 
 import { getProducts, getOrders, getCompatibilityReport, getCustomizerSuggestions } from '../firestore-service';
 

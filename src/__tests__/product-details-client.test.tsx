@@ -1,7 +1,22 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
 import ProductDetailsClient from '../components/product/product-details-client';
 import { Product, Review } from '../lib/types';
+
+jest.mock('@/lib/firebase', () => ({
+  db: require('../lib/__mocks__/firestore-mock').mockDb,
+  auth: {},
+}));
+
+jest.mock('@/lib/firebase-admin', () => ({
+  getServiceAccount: jest.fn(() => ({})),
+}));
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), prefetch: jest.fn(), back: jest.fn(), forward: jest.fn(), reload: jest.fn(), events: { on: jest.fn(), off: jest.fn() } }),
+  usePathname: () => '/',
+}));
 
 describe('ProductDetailsClient', () => {
   const product: Product = {
@@ -15,8 +30,8 @@ describe('ProductDetailsClient', () => {
     category: 'Laptops',
     subcategory: 'Gaming',
     stock: 5,
-    rating: 4,
-    featured: true,
+    isFeatured: true,
+    createdAt: new Date().toISOString(), // or new Date(), depending on your Product type
   };
   const reviews: Review[] = [];
 

@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import AdminPage from './page';
 import { AuthProvider } from '@/context/auth-context';
 import { useAuth } from '@/context/auth-context';
+import React from 'react';
 
 // Mock the firestore service to return mock data
 jest.mock('@/lib/firestore-service', () => ({
@@ -33,6 +34,11 @@ jest.mock('next/navigation', () => ({
     push: jest.fn(),
   }),
   usePathname: () => '/admin',
+}));
+
+jest.mock('@/lib/firebase', () => ({
+  db: require('../../lib/__mocks__/firestore-mock').mockDb,
+  auth: {}, // add more mocks if needed
 }));
 
 describe('AdminPage', () => {
