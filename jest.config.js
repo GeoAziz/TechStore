@@ -7,24 +7,18 @@ module.exports = {
     '@/(.*)': '<rootDir>/src/$1',
   },
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', {
+    '^.+\\.(js|jsx|ts|tsx)$': ['ts-jest', {
       tsconfig: 'tsconfig.json'
-    }],
-    '^.+\\.(js|jsx)$': ['babel-jest', {
-      presets: [
-        '@babel/preset-env',
-        ['@babel/preset-react', { runtime: 'automatic' }],
-        '@babel/preset-typescript'
-      ],
-      plugins: [
-        '@babel/plugin-proposal-class-properties'
-      ]
     }],
   },
   transformIgnorePatterns: [
     '/node_modules/',
   ],
-  testPathIgnorePatterns: ['/node_modules/', '/.next/'],
+  testPathIgnorePatterns: [
+    '/node_modules/', 
+    '/.next/',
+    '/src/__tests__/setupTests.ts' // Ignore setup file from being tested
+  ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx,js,jsx}',
     '!src/**/*.d.ts',

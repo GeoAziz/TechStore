@@ -15,6 +15,7 @@ jest.mock('@/lib/firestore-service', () => ({
   getUsers: jest.fn(() => Promise.resolve([
     { uid: '1', email: 'test@test.com', role: 'client' }
   ])),
+  getAuditLogs: jest.fn(() => Promise.resolve([])),
   addProduct: jest.fn(() => Promise.resolve({ success: true })),
   updateProduct: jest.fn(() => Promise.resolve({ success: true })),
   deleteProduct: jest.fn(() => Promise.resolve({ success: true })),
@@ -31,6 +32,7 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: jest.fn(),
   }),
+  usePathname: () => '/admin',
 }));
 
 describe('AdminPage', () => {
@@ -64,7 +66,7 @@ describe('AdminPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Total Revenue')).toBeInTheDocument();
       expect(screen.getByText('Total Orders')).toBeInTheDocument();
-      expect(screen.getByText('Products in Stock')).toBeInTheDocument();
+      expect(screen.getByText('Total Users')).toBeInTheDocument();
     });
   });
 
