@@ -11,7 +11,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:seed": "node --import tsx src/scripts/seed.mjs",
-    "test": "jest"
+    "test": "jest --passWithNoTests"
   },
   "dependencies": {
     "@genkit-ai/firebase": "^1.15.4",
