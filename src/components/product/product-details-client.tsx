@@ -1,3 +1,4 @@
+import React from 'react';
 
 "use client";
 
@@ -207,15 +208,15 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
         </div>
         
         <div>
-          {product.featured && <Badge className="mb-2 bg-accent text-accent-foreground">Featured</Badge>}
+          {product.isFeatured && <Badge className="mb-2 bg-accent text-accent-foreground">Featured</Badge>}
           <h1 className="text-3xl md:text-4xl font-bold tracking-tighter mb-2 glow-primary" tabIndex={0}>{product.name}</h1>
           <div className="flex items-center gap-2 mb-4" aria-label="Product rating">
             <div className="flex items-center">
               {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className={`w-5 h-5 ${i < product.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
+                <Star key={i} className={`w-5 h-5 ${i < (reviews.length > 0 ? Math.round(reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) : 0) ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
               ))}
             </div>
-            <span className="text-muted-foreground">({product.rating} stars / {reviews.length} reviews)</span>
+            <span className="text-muted-foreground">({reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : '0'} stars / {reviews.length} reviews)</span>
           </div>
 
           <p className="text-3xl font-bold text-primary mb-4" aria-label="Product price">{product.price.toLocaleString()} {product.currency}</p>

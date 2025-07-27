@@ -1,7 +1,6 @@
-
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import type { Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -21,6 +20,8 @@ export const CompareProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // Removed stray/invalid useEffect and catch block
+// ...existing code...
   useEffect(() => {
     try {
       const storedItems = localStorage.getItem('compareItems');

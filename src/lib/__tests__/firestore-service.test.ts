@@ -1,11 +1,6 @@
 // Mock the 'firebase-admin' module before any other imports
 jest.mock('../firebase-admin', () => ({
-  db: {
-    collection: jest.fn().mockReturnThis(),
-    doc: jest.fn().mockReturnThis(),
-    get: jest.fn().mockResolvedValue({ exists: false, data: () => ({}) }),
-    // Add any other Firestore methods you use in the service file
-  },
+  db: require('../__mocks__/firestore-mock').mockDb,
 }));
 jest.mock('next/cache', () => ({
     revalidatePath: jest.fn(),

@@ -1,5 +1,6 @@
 
 "use client"
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartConfig } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell, Line, LineChart, ResponsiveContainer } from "recharts";
@@ -36,8 +37,10 @@ export default function AnalyticsCharts({ products, orders, users }: { products:
     }).reverse();
 
     users.forEach(user => {
-      if (user.createdAt) {
-        const userDate = new Date(user.createdAt);
+      // Use the correct property name from UserProfile, e.g. 'createdAt'
+      const registeredDate = user.createdAt; // Use the correct property name from UserProfile for registration date
+      if (registeredDate) {
+        const userDate = new Date(registeredDate);
         const dateStr = format(userDate, 'MMM dd');
         const entry = last30Days.find(d => d.date === dateStr);
         if (entry) {

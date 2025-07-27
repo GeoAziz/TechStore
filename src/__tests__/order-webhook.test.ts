@@ -1,5 +1,6 @@
 import handler from '../pages/api/order-webhook';
 import { createMocks } from 'node-mocks-http';
+// @ts-ignore
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 // Mock dependencies that are not relevant to the test

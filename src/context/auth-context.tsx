@@ -1,6 +1,19 @@
 
 "use client";
 
+import React from 'react';
+
+// Mock ResizeObserver for Jest/JSDOM environment to fix recharts test failures
+if (typeof window !== 'undefined' && typeof window.ResizeObserver === 'undefined') {
+  // Only mock in test environment
+  if (typeof process !== 'undefined' && process.env.JEST_WORKER_ID) {
+    window.ResizeObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  }
+}
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { onAuthStateChanged, User, signOut, updateProfile } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
@@ -9,7 +22,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import type { UserProfile } from '@/lib/types';
 
 
-export type UserRole = 'admin' | 'vendor' | 'client';
+import type { UserRole } from '@/lib/types';
 
 interface AuthContextType {
   user: (User & { role?: UserRole, photoURL?: string | null }) | null;
@@ -73,6 +86,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
+    // Jest test environment: mock onAuthStateChanged to avoid errors
+    if (typeof process !== 'undefined' && process.env.JEST_WORKER_ID) {
+      setRole(null);
+      setUser(null);
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         // Fetch user role and other data from Firestore

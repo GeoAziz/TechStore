@@ -2,6 +2,7 @@
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo, useTransition } from 'react';
+import React from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -44,7 +45,7 @@ const categoryData = [
 
 const getCustomerAuditLogs = () => [];
 
-export default function AdminPage() {
+export default function AdminPage({ defaultTab = "overview" }: { defaultTab?: string } = {}) {
   const { user: currentUser, loading: authLoading, role, isAddProductDialogOpen, setAddProductDialogOpen } = useAuth();
   const { toast } = useToast();
 
@@ -253,10 +254,22 @@ export default function AdminPage() {
     };
   }, []);
 
+
   if (authLoading || loading) {
     return (
       <div className="flex justify-center items-center h-full">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Restrict non-admin users
+  if (!authLoading && currentUser && role !== 'admin') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center p-8">
+        <Shield className="w-12 h-12 text-red-500 mb-4" />
+        <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+        <p className="text-lg text-muted-foreground">You are not authorized to view this page.</p>
       </div>
     );
   }
@@ -269,7 +282,7 @@ export default function AdminPage() {
         transition={{ duration: 0.5 }}
         className="text-3xl md:text-4xl font-bold mb-6 glow-primary font-['Orbitron',_monospace]">Admin Dashboard</motion.h1>
       
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="mb-6 bg-[#18182c]/80 border border-cyan-400/20 rounded-xl shadow-[0_0_16px_#00fff733]">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="inventory"><Warehouse className="mr-2"/>Inventory</TabsTrigger>
@@ -323,7 +336,7 @@ export default function AdminPage() {
             <Card className="glass-panel">
                <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
-                    <CardTitle>Manage Products</CardTitle>
+                    <h2 className="text-2xl font-bold mb-1" role="heading" aria-level={2}>Manage Products</h2>
                     <CardDescription>Total: {filteredProducts.length} products</CardDescription>
                   </div>
                    <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
@@ -374,12 +387,21 @@ export default function AdminPage() {
                    </div>
                </CardHeader>
                <CardContent>
-                 <Table>
+                 {filteredProducts.length === 0 ? (
+                   <div className="flex flex-col items-center justify-center py-12 text-center">
+                     <Package className="w-12 h-12 text-muted-foreground mb-4" />
+                     <h3 className="text-xl font-bold mb-2">No products found</h3>
+                     <p className="text-muted-foreground mb-4">Start by adding a new product to your inventory.</p>
+                   </div>
+                 ) : (
+                  <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]">
                            <Checkbox
                             checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
+                            role="checkbox"
+                            aria-label="Select all products"
                             onCheckedChange={(checked) => {
                                 setSelectedProducts(checked ? filteredProducts.map(p => p.id) : [])
                             }}
@@ -399,6 +421,8 @@ export default function AdminPage() {
                           <TableCell>
                             <Checkbox 
                               checked={selectedProducts.includes(product.id)}
+                              role="checkbox"
+                              aria-label={`Select product ${product.name}`}
                               onCheckedChange={(checked) => {
                                 setSelectedProducts(
                                     checked ? [...selectedProducts, product.id] : selectedProducts.filter(id => id !== product.id)
@@ -407,26 +431,27 @@ export default function AdminPage() {
                             />
                           </TableCell>
                           <TableCell>
-                            <Image src={product.imageUrl} alt={product.name} width={40} height={40} className="rounded-md" />
+                            <Image src={product.imageUrl || '/test-fallback.png'} alt={product.name} width={40} height={40} className="rounded-md" />
                           </TableCell>
                           <TableCell className="font-medium text-cyan-200">{product.name}</TableCell>
                           <TableCell>KES {product.price.toLocaleString()}</TableCell>
                           <TableCell>
                              <Badge variant="secondary" className={`text-xs px-2 py-1 rounded-full ${product.stock > 0 ? 'bg-green-400/20 text-green-300 border-green-400/40' : 'bg-red-400/20 text-red-300 border-red-400/40'}`}>
-                              {product.stock > 0 ? `In Stock (${product.stock})` : 'Out of Stock'}
+                              {product.stock > 0 ? `In Stock (${product.stock})` : <span aria-label="out-of-stock">Out of Stock</span>}
                              </Badge>
                           </TableCell>
                           <TableCell>{product.category}</TableCell>
                           <TableCell>
                              <div className="flex gap-2">
-                              <Button variant="ghost" size="icon" className="text-cyan-300 hover:text-cyan-100" onClick={() => openEditDialog(product)}><Edit className="w-4 h-4" /></Button>
-                              <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-300" onClick={() => handleDeleteProduct(product.id)}><Trash2 className="w-4 h-4" /></Button>
+                              <Button aria-label="Edit" variant="ghost" size="icon" className="text-cyan-300 hover:text-cyan-100" onClick={() => openEditDialog(product)}><Edit className="w-4 h-4" /></Button>
+                              <Button aria-label="Delete" variant="ghost" size="icon" className="text-red-400 hover:text-red-300" onClick={() => handleDeleteProduct(product.id)}><Trash2 className="w-4 h-4" /></Button>
                             </div>
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
+                 )}
                </CardContent>
             </Card>
           </motion.div>
