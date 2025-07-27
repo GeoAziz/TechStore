@@ -7,6 +7,10 @@ jest.mock('../firebase-admin', () => ({
     // Add any other Firestore methods you use in the service file
   },
 }));
+jest.mock('next/cache', () => ({
+    revalidatePath: jest.fn(),
+}));
+
 
 import { getProducts, getOrders, getCompatibilityReport, getCustomizerSuggestions } from '../firestore-service';
 
