@@ -8,8 +8,12 @@ import Logo from "./logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/auth-context";
-import { auth, app } from "@/lib/firebase"; // Import app
-import { getFirestore, collection, onSnapshot, doc } from 'firebase/firestore'; // Import firestore functions
+import { auth } from "@/lib/firebase";
+import { useCart } from "@/context/cart-context";
+import { getWishlist } from "@/lib/firestore-service";
+import { onSnapshot, doc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
 
 const navLinks = [
   { href: "/shop", label: "Shop" },
@@ -21,23 +25,11 @@ const navLinks = [
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, loading } = useAuth();
-  const [cartCount, setCartCount] = useState(0);
+  const { cartCount } = useCart();
   const [wishlistCount, setWishlistCount] = useState(0);
 
   useEffect(() => {
     if (user) {
-      const db = getFirestore(app);
-      
-      // Cart count listener
-      const cartRef = collection(db, 'users', user.uid, 'cart');
-      const unsubscribeCart = onSnapshot(cartRef, (snapshot) => {
-        let count = 0;
-        snapshot.forEach(doc => {
-            count += doc.data().quantity || 1;
-        });
-        setCartCount(count);
-      });
-
       // Wishlist count listener
       const userDocRef = doc(db, 'users', user.uid);
       const unsubscribeWishlist = onSnapshot(userDocRef, (doc) => {
@@ -46,11 +38,9 @@ export default function Header() {
       });
 
       return () => {
-        unsubscribeCart();
         unsubscribeWishlist();
       };
     } else {
-      setCartCount(0);
       setWishlistCount(0);
     }
   }, [user]);

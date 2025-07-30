@@ -11,16 +11,18 @@ import { Rocket, Loader2, ShieldCheck, X, Lock } from 'lucide-react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { sendOrderToWebhook } from '@/ai/flows/send-order-webhook';
-import { type OrderInput, OrderInputSchema } from '@/ai/schemas/order-schema';
+import { OrderInputSchema } from '@/ai/schemas/order-schema';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import { getCart, removeFromCart } from '@/lib/firestore-service';
 import type { CartItem } from '@/lib/types';
-
-import { loadStripe, Stripe } from '@stripe/stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { useCart } from '@/context/cart-context';
+import { clearCart, getProductById } from '@/lib/firestore-service';
+import { sendOrderToWebhook } from '@/ai/flows/send-order-webhook';
+import { OrderInput } from '@/ai/schemas/order-schema';
+
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -42,48 +44,43 @@ const CARD_ELEMENT_OPTIONS = {
   },
 };
 
-function CheckoutForm({ total, cartItems }: { total: number; cartItems: CartItem[] }) {
+function CheckoutForm() {
   const stripe = useStripe();
   const elements = useElements();
   const { toast } = useToast();
   const router = useRouter();
   const { user } = useAuth();
+  const { cartItems, total, clearClientCart } = useCart();
   
-  const form = useForm<Omit<OrderInput, 'payment'>>({
-    resolver: zodResolver(OrderInputSchema.omit({ payment: true })),
+  const form = useForm<Omit<OrderInput, 'payment' | 'cart' | 'total'>>({
+    resolver: zodResolver(OrderInputSchema.omit({ payment: true, cart: true, total: true})),
     defaultValues: {
       contact: { email: user?.email || '' },
       shipping: { firstName: '', lastName: '', address: '', city: '', state: '', zip: '' },
-      cart: [],
-      total: 0,
     },
   });
-
-  const { formState: { isSubmitting }, reset } = form;
+  
+  const { formState: { isSubmitting }, reset, getValues } = form;
 
   useEffect(() => {
-    if (cartItems.length > 0) {
+    if (user?.email) {
       reset({
-        contact: { email: user?.email || '' },
-        shipping: form.getValues('shipping'),
-        cart: cartItems.map(item => ({ id: item.productId, name: item.name, price: item.price })),
-        total: total,
+        contact: { email: user.email },
+        shipping: getValues('shipping'),
       });
     }
-  }, [cartItems, user, total, reset, form]);
-
-  const onSubmit = async (data: Omit<OrderInput, 'payment'>) => {
-    if (!stripe || !elements || !user) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Payment system is not ready.' });
+  }, [user, reset, getValues]);
+  
+  const onSubmit = async (data: Omit<OrderInput, 'payment' | 'cart' | 'total'>) => {
+    if (!stripe || !elements || !user || cartItems.length === 0) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Payment system is not ready or cart is empty.' });
       return;
     }
-
     const cardElement = elements.getElement(CardElement);
     if (!cardElement) {
-       toast({ variant: 'destructive', title: 'Error', description: 'Card details are missing.' });
-       return;
+      toast({ variant: 'destructive', title: 'Error', description: 'Card details are missing.' });
+      return;
     }
-
     try {
       // 1. Create PaymentIntent on the server
       const res = await fetch('/api/create-payment-intent', {
@@ -92,11 +89,9 @@ function CheckoutForm({ total, cartItems }: { total: number; cartItems: CartItem
         body: JSON.stringify({ amount: Math.round(total * 100) }), // amount in cents
       });
       const { clientSecret } = await res.json();
-      
       if(!clientSecret) {
-          throw new Error('Could not retrieve payment secret from server.');
+        throw new Error('Could not retrieve payment secret from server.');
       }
-
       // 2. Confirm the payment on the client
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
@@ -105,47 +100,43 @@ function CheckoutForm({ total, cartItems }: { total: number; cartItems: CartItem
             name: `${data.shipping.firstName} ${data.shipping.lastName}`,
             email: data.contact.email,
             address: {
-                line1: data.shipping.address,
-                city: data.shipping.city,
-                state: data.shipping.state,
-                postal_code: data.shipping.zip
+              line1: data.shipping.address,
+              city: data.shipping.city,
+              state: data.shipping.state,
+              postal_code: data.shipping.zip
             }
           },
         },
       });
-
       if (stripeError) {
         throw new Error(stripeError.message);
       }
-      
       if (paymentIntent?.status !== 'succeeded') {
         throw new Error('Payment was not successful.');
       }
-      
-      // 3. Payment successful, now send order to n8n webhook (without sensitive payment data)
-      const { paymentMethod } = await stripe.retrievePaymentMethod(
-        paymentIntent.payment_method as string
-      );
-      
-      const orderDataForWebhook: OrderInput = {
+
+      const { last4 } = paymentIntent.payment_method?.card || {};
+
+      const orderData: OrderInput = {
         ...data,
+        cart: cartItems.map(item => ({ id: item.productId, name: item.name, price: item.price })),
+        total,
         payment: {
-            cardNumber: `**** **** **** ${paymentMethod?.card?.last4 || ''}`,
-            expiryDate: 'N/A',
-            cvc: 'N/A'
+            cardNumber: `**** **** **** ${last4}`,
+            expiryDate: "N/A", // Not available on client
+            cvc: "N/A"
         }
       };
       
-      const webhookResult = await sendOrderToWebhook(orderDataForWebhook);
+      // 3. Send order to fulfillment webhook
+      await sendOrderToWebhook(orderData);
       
-      if (webhookResult.success) {
-        // Typically, you would clear the user's cart here.
-        toast({ title: "Order Submitted", description: "Your order has been sent for processing." });
-        router.push('/order-success');
-      } else {
-        throw new Error(webhookResult.message || "Failed to send order to fulfillment.");
-      }
-
+      // 4. Clear the cart in Firestore
+      await clearCart(user.uid);
+      
+      clearClientCart();
+      toast({ title: "Order Submitted", description: "Your order has been sent for processing." });
+      router.push('/order-success');
     } catch (error) {
       toast({
         variant: "destructive",
@@ -273,9 +264,8 @@ function CheckoutForm({ total, cartItems }: { total: number; cartItems: CartItem
               <CardTitle>Order Summary</CardTitle>
             </CardHeader>
             <CardContent>
-              {/* Order summary part remains similar */}
-              <OrderSummary cartItems={cartItems} total={total} />
-              <Button type="submit" size="lg" className="w-full mt-6 group" disabled={isSubmitting || !stripe}>
+              <OrderSummary />
+              <Button type="submit" size="lg" className="w-full mt-6 group" disabled={isSubmitting || !stripe || cartItems.length === 0}>
                 {isSubmitting ? (
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                 ) : (
@@ -295,31 +285,36 @@ function CheckoutForm({ total, cartItems }: { total: number; cartItems: CartItem
   );
 }
 
-function OrderSummary({ cartItems, total }: { cartItems: CartItem[], total: number }) {
+function OrderSummary() {
+  const { cartItems, total, subtotal, removeFromCart, loading } = useCart();
   const { toast } = useToast();
-  const { user } = useAuth();
-  const router = useRouter();
-  const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const shipping = total - subtotal;
   
   const handleRemoveItem = async (productId: string) => {
-    if (!user) return;
-    await removeFromCart(user.uid, productId);
+    await removeFromCart(productId);
     toast({ title: "Item Removed" });
-    router.refresh(); // Refresh page to update cart state
   };
   
+  const shipping = total - subtotal;
+
+  if (loading) {
+    return (
+        <div className="flex justify-center items-center py-8">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
   return (
     <>
       {cartItems.length > 0 ? (
         <>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
             {cartItems.map(item => (
               <div key={item.productId} className="flex items-center gap-4">
                 <Image src={item.imageUrl} alt={item.name} width={64} height={64} className="rounded-md border border-border" />
                 <div className="flex-1">
-                  <p className="font-semibold">{item.name}</p>
-                  <p className="text-sm text-muted-foreground">{item.price.toLocaleString()} KES x {item.quantity}</p>
+                  <p className="font-semibold text-sm">{item.name}</p>
+                  <p className="text-xs text-muted-foreground">{item.price.toLocaleString()} KES x {item.quantity}</p>
                 </div>
                 <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-destructive" onClick={() => handleRemoveItem(item.productId)}>
                   <X className="w-4 h-4" />
@@ -333,9 +328,9 @@ function OrderSummary({ cartItems, total }: { cartItems: CartItem[], total: numb
               <span>Subtotal</span>
               <span>{subtotal.toLocaleString()} KES</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between text-muted-foreground text-sm">
               <span>Shipping</span>
-              <span>{shipping.toLocaleString()} KES</span>
+              <span>{shipping > 0 ? `${shipping.toLocaleString()} KES` : 'Free'}</span>
             </div>
           </div>
           <Separator className="my-4" />
@@ -353,33 +348,16 @@ function OrderSummary({ cartItems, total }: { cartItems: CartItem[], total: numb
 
 export default function CheckoutPage() {
   const { user, loading: authLoading } = useAuth();
+  const { loading: cartLoading } = useCart();
   const router = useRouter();
-
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [loadingCart, setLoadingCart] = useState(true);
-
-  const fetchCartItems = useCallback(async () => {
-    if (user) {
-      setLoadingCart(true);
-      const items = await getCart(user.uid);
-      setCartItems(items);
-      setLoadingCart(false);
-    }
-  }, [user]);
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/login');
-    } else {
-      fetchCartItems();
+      router.push('/login?redirect=/checkout');
     }
-  }, [user, authLoading, router, fetchCartItems]);
+  }, [user, authLoading, router]);
 
-  const shipping = 2500;
-  const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const total = subtotal + shipping;
-  
-  if (authLoading || loadingCart) {
+  if (authLoading || cartLoading) {
     return (
         <div className="container mx-auto py-10 flex justify-center items-center h-[50vh]">
             <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -391,7 +369,7 @@ export default function CheckoutPage() {
     <div className="container py-12">
       <h1 className="text-4xl font-bold tracking-tighter mb-8 glow-primary">Checkout</h1>
       <Elements stripe={stripePromise}>
-        <CheckoutForm total={total} cartItems={cartItems} />
+        <CheckoutForm />
       </Elements>
     </div>
   );

@@ -109,10 +109,11 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
       } else {
         router.push('/checkout');
       }
+      // Do not return anything here
     });
   };
 
-  const handleToggleWishlist = async () => {
+  const handleToggleWishlist = () => {
     if (!user) {
       toast({ variant: "destructive", title: "Authentication Required", description: "Please log in to manage your wishlist." });
       router.push('/login');
@@ -126,6 +127,7 @@ export default function ProductDetailsClient({ product, initialReviews }: { prod
       } else {
         toast({ variant: "destructive", title: "Error", description: result.message });
       }
+      // Do not return anything here
     });
   };
 

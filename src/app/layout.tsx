@@ -6,6 +6,7 @@ import AppWrapper from '@/components/layout/app-wrapper';
 import { AuthProvider } from '@/context/auth-context';
 import { Inter, Space_Grotesk, Orbitron } from 'next/font/google';
 import { CompareProvider } from '@/context/compare-context';
+import { CartProvider } from '@/context/cart-context';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk' });
@@ -26,11 +27,13 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.variable} ${spaceGrotesk.variable} ${orbitron.variable} font-body antialiased`}>
         <AuthProvider>
-          <CompareProvider>
-            <AppWrapper>
-              {children}
-            </AppWrapper>
-          </CompareProvider>
+          <CartProvider>
+            <CompareProvider>
+              <AppWrapper>
+                {children}
+              </AppWrapper>
+            </CompareProvider>
+          </CartProvider>
         </AuthProvider>
         <Toaster />
       </body>

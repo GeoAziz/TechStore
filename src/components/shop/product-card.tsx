@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -40,10 +39,8 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
     setIsClient(true);
     if (user) {
       const checkStatus = async () => {
-        const [wishlist, cartStatus] = await Promise.all([
-          getWishlist(user.uid),
-          isInCart(user.uid, product.id)
-        ]);
+        const wishlist = await getWishlist(user.uid);
+        const cartStatus = await isInCart(user.uid, product.id);
         setIsInWishlist(wishlist.includes(product.id));
         setInCart(cartStatus);
       };
@@ -113,7 +110,7 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
 
   // Animated badge logic
   const showLowStock = product.stock > 0 && product.stock < 8;
-  const showTrending = product.promoTag?.toLowerCase().includes('trend') || (product.rating && product.rating >= 4.7);
+  const showTrending = product.promoTag?.toLowerCase().includes('trend') || (product.averageRating && product.averageRating >= 4.7);
 
   if (viewMode === 'list') {
     return (
@@ -155,18 +152,16 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
           </Link>
           <CardContent className="p-4 flex flex-col flex-grow sm:w-2/3">
             <div className='flex-grow'>
-              <p className="text-xs text-muted-foreground">{product.category}</p>
-              <h3 className="text-lg font-bold group-hover:text-primary transition-colors font-headline">
-                <Link href={`/product/${product.id}`}>{product.name}</Link>
-              </h3>
-              <div className="flex items-center gap-2 my-2">
-                <div className="flex items-center">
-                  {Array.from({ length: 5 }).map((_, i: number) => (
-                    <Star key={i} className={`w-4 h-4 ${product.rating && i < product.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
-                  ))}
-                </div>
-                <span className="text-muted-foreground text-sm">({product.rating})</span>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star key={i} className={`w-4 h-4 ${product.averageRating && i < product.averageRating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
+              ))}
+              <span className="text-muted-foreground text-sm">({product.averageRating})</span>
+              <div className="flex items-center">
+                {Array.from({ length: 5 }).map((_, i: number) => (
+                  <Star key={i} className={`w-4 h-4 ${product.averageRating && i < product.averageRating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
+                ))}
               </div>
+              <span className="text-muted-foreground text-sm">({product.averageRating})</span>
               <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{product.description}</p>
             </div>
             <div className="flex justify-between items-end mt-4">
@@ -265,9 +260,9 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
               </h3>
               <div className="flex items-center gap-1 my-2">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className={`w-4 h-4 ${product.rating && i < product.rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
+                  <Star key={i} className={`w-4 h-4 ${product.averageRating && i < product.averageRating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
                 ))}
-                <span className="text-xs text-muted-foreground ml-1">({product.rating})</span>
+                <span className="text-xs text-muted-foreground ml-1">({product.averageRating})</span>
               </div>
             </div>
             <div className="flex justify-between items-center mt-4">

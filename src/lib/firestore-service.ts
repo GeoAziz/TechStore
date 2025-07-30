@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from './firebase-admin';
@@ -270,13 +271,22 @@ export async function addToCart(userId: string, productId: string) {
   const cartRef = userRef.collection('cart').doc(productId);
 
   try {
-    await cartRef.set({
-      productId: product.id,
-      quantity: 1, 
-      name: product.name,
-      price: product.price,
-      imageUrl: product.imageUrl,
-    }, { merge: true });
+    const cartDoc = await cartRef.get();
+    if (cartDoc.exists) {
+        // If item already in cart, increment quantity
+        await cartRef.update({
+            quantity: FieldValue.increment(1)
+        });
+    } else {
+        // Otherwise, add new item
+        await cartRef.set({
+          productId: product.id,
+          quantity: 1, 
+          name: product.name,
+          price: product.price,
+          imageUrl: product.imageUrl,
+        });
+    }
 
     revalidatePath('/product/[id]', 'page');
     revalidatePath('/');
@@ -307,6 +317,23 @@ export async function removeFromCart(userId: string, productId: string) {
         console.error("Error removing from cart:", error);
         return { success: false, message: "Failed to remove item from cart." };
     }
+}
+
+/**
+ * Clears all items from a user's cart.
+ * @param userId The user's ID.
+ */
+export async function clearCart(userId: string) {
+  if (!userId) return;
+  const cartCollectionRef = db.collection('users').doc(userId).collection('cart');
+  const snapshot = await cartCollectionRef.get();
+  
+  const batch = db.batch();
+  snapshot.docs.forEach(doc => {
+    batch.delete(doc.ref);
+  });
+  
+  await batch.commit();
 }
 
 
