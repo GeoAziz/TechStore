@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -16,7 +15,7 @@ import { type OrderInput, OrderInputSchema } from '@/ai/schemas/order-schema';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import { getCart, removeFromCart } from '@/lib/firestore-service';
+import { getCart, removeFromCart, checkout } from '@/lib/firestore-cart';
 import type { CartItem } from '@/lib/types';
 
 import { loadStripe, Stripe } from '@stripe/stripe-js';
@@ -77,13 +76,11 @@ function CheckoutForm({ total, cartItems }: { total: number; cartItems: CartItem
       toast({ variant: 'destructive', title: 'Error', description: 'Payment system is not ready.' });
       return;
     }
-
     const cardElement = elements.getElement(CardElement);
     if (!cardElement) {
-       toast({ variant: 'destructive', title: 'Error', description: 'Card details are missing.' });
-       return;
+      toast({ variant: 'destructive', title: 'Error', description: 'Card details are missing.' });
+      return;
     }
-
     try {
       // 1. Create PaymentIntent on the server
       const res = await fetch('/api/create-payment-intent', {
@@ -92,11 +89,9 @@ function CheckoutForm({ total, cartItems }: { total: number; cartItems: CartItem
         body: JSON.stringify({ amount: Math.round(total * 100) }), // amount in cents
       });
       const { clientSecret } = await res.json();
-      
       if(!clientSecret) {
-          throw new Error('Could not retrieve payment secret from server.');
+        throw new Error('Could not retrieve payment secret from server.');
       }
-
       // 2. Confirm the payment on the client
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
@@ -105,47 +100,27 @@ function CheckoutForm({ total, cartItems }: { total: number; cartItems: CartItem
             name: `${data.shipping.firstName} ${data.shipping.lastName}`,
             email: data.contact.email,
             address: {
-                line1: data.shipping.address,
-                city: data.shipping.city,
-                state: data.shipping.state,
-                postal_code: data.shipping.zip
+              line1: data.shipping.address,
+              city: data.shipping.city,
+              state: data.shipping.state,
+              postal_code: data.shipping.zip
             }
           },
         },
       });
-
       if (stripeError) {
         throw new Error(stripeError.message);
       }
-      
       if (paymentIntent?.status !== 'succeeded') {
         throw new Error('Payment was not successful.');
       }
-      
-      // 3. Payment successful, now send order to n8n webhook (without sensitive payment data)
-      const { paymentMethod } = await stripe.retrievePaymentMethod(
-        paymentIntent.payment_method as string
-      );
-      
-      const orderDataForWebhook: OrderInput = {
-        ...data,
-        payment: {
-            cardNumber: `**** **** **** ${paymentMethod?.card?.last4 || ''}`,
-            expiryDate: 'N/A',
-            cvc: 'N/A'
-        }
-      };
-      
-      const webhookResult = await sendOrderToWebhook(orderDataForWebhook);
-      
-      if (webhookResult.success) {
-        // Typically, you would clear the user's cart here.
-        toast({ title: "Order Submitted", description: "Your order has been sent for processing." });
-        router.push('/order-success');
-      } else {
-        throw new Error(webhookResult.message || "Failed to send order to fulfillment.");
-      }
-
+      // 3. Payment successful, now perform checkout in Firestore
+      await checkout(user.uid, {
+        ...data.shipping,
+        email: data.contact.email,
+      });
+      toast({ title: "Order Submitted", description: "Your order has been sent for processing." });
+      router.push('/order-success');
     } catch (error) {
       toast({
         variant: "destructive",
@@ -299,7 +274,8 @@ function OrderSummary({ cartItems, total }: { cartItems: CartItem[], total: numb
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
-  const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const cartArray = Array.isArray(cartItems) ? cartItems : [];
+  const subtotal = cartArray.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const shipping = total - subtotal;
   
   const handleRemoveItem = async (productId: string) => {
@@ -362,7 +338,7 @@ export default function CheckoutPage() {
     if (user) {
       setLoadingCart(true);
       const items = await getCart(user.uid);
-      setCartItems(items);
+      setCartItems(items as CartItem[]);
       setLoadingCart(false);
     }
   }, [user]);
@@ -376,7 +352,8 @@ export default function CheckoutPage() {
   }, [user, authLoading, router, fetchCartItems]);
 
   const shipping = 2500;
-  const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const cartArray = Array.isArray(cartItems) ? cartItems : [];
+  const subtotal = cartArray.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const total = subtotal + shipping;
   
   if (authLoading || loadingCart) {
