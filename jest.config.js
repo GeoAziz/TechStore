@@ -8,7 +8,7 @@ module.exports = {
     '@/(.*)': '<rootDir>/src/$1',
   },
   transform: {
-    '^.+\\.(ts|tsx|js|jsx)$': 'ts-jest',
+    '^.+\\.(ts|tsx|js|jsx)$': ['ts-jest', { tsconfig: { jsx: 'react-jsx' } }],
   },
   transformIgnorePatterns: [
     '/node_modules/',
@@ -16,7 +16,7 @@ module.exports = {
   testPathIgnorePatterns: [
     '/node_modules/', 
     '/.next/',
-    '/src/__tests__/setupTests.ts' // Ignore setup file from being tested
+    '/src/__tests__/setupTests.ts'
   ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx,js,jsx}',
@@ -26,11 +26,4 @@ module.exports = {
     customExportConditions: [''],
   },
   setupFiles: ['<rootDir>/jest.setup.js'],
-  globals: {
-    'ts-jest': {
-      tsconfig: {
-        jsx: 'react-jsx',
-      },
-    },
-  },
 };

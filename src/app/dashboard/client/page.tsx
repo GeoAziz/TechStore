@@ -82,7 +82,7 @@ export default function ClientDashboardPage() {
   const profile = {
     name: user?.displayName || 'Commander Zizo',
     email: user?.email || 'zizo@techverse.com',
-    joined: user?.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : '2024-11-12',
+    joined: user?.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : '2024-11-12',
   };
 
   return (

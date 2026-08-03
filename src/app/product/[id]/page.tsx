@@ -11,9 +11,10 @@ export async function generateStaticParams() {
   }));
 }
 
-export default async function ProductPage({ params }: { params: { id: string } }) {
-  const productPromise = getProductById(params.id);
-  const reviewsPromise = getReviewsByProductId(params.id);
+export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const productPromise = getProductById(id);
+  const reviewsPromise = getReviewsByProductId(id);
   
   const [product, reviews] = await Promise.all([productPromise, reviewsPromise]);
 
@@ -33,10 +34,11 @@ export default async function ProductPage({ params }: { params: { id: string } }
     stock: product.stock,
     description: product.description,
     imageUrl: product.imageUrl,
-    featured: product.featured,
-    rating: product.rating,
+    isFeatured: product.isFeatured,
+    averageRating: product.averageRating,
     subcategory: product.subcategory,
     promoTag: product.promoTag,
+    createdAt: product.createdAt,
   };
 
   return <ProductDetailsClient product={productData} initialReviews={reviews as Review[]} />;

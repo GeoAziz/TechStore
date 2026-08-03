@@ -1,6 +1,6 @@
-import React from 'react';
-
 "use client";
+
+import React from 'react';
 
 import { useState } from 'react';
 import { enhanceProductInfo, EnhanceProductInfoOutput } from '@/ai/flows/ai-enhance-product-info';

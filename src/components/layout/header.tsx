@@ -11,8 +11,6 @@ import { useAuth } from "@/context/auth-context";
 import { auth } from "@/lib/firebase";
 import { useCart } from "@/context/cart-context";
 import { getWishlist } from "@/lib/firestore-service";
-import { onSnapshot, doc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 
 const navLinks = [
@@ -30,16 +28,7 @@ export default function Header() {
 
   useEffect(() => {
     if (user) {
-      // Wishlist count listener
-      const userDocRef = doc(db, 'users', user.uid);
-      const unsubscribeWishlist = onSnapshot(userDocRef, (doc) => {
-          const data = doc.data();
-          setWishlistCount(data?.wishlist?.length || 0);
-      });
-
-      return () => {
-        unsubscribeWishlist();
-      };
+      getWishlist(user.uid).then(ids => setWishlistCount(ids.length)).catch(() => setWishlistCount(0));
     } else {
       setWishlistCount(0);
     }
@@ -71,7 +60,7 @@ export default function Header() {
         </div>
         
         <div className="md:hidden">
-          <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(true)}>
+          <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(true)} aria-label="Open menu" aria-expanded={isMenuOpen}>
             <Menu className="h-6 w-6" />
           </Button>
         </div>
@@ -79,7 +68,7 @@ export default function Header() {
         <div className="flex flex-1 items-center justify-end space-x-2">
           <div className="relative w-full max-w-sm hidden sm:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cyan-400/80" />
-            <Input placeholder="Search transmissions..." className="pl-10 font-[Orbitron,Space Grotesk,monospace] bg-[#18182c]/80 border-cyan-400/30 focus:border-cyan-400 text-cyan-100 placeholder:text-cyan-400/40 shadow-[0_0_8px_#00fff733]" />
+            <Input aria-label="Search products" placeholder="Search transmissions..." className="pl-10 font-[Orbitron,Space Grotesk,monospace] bg-[#18182c]/80 border-cyan-400/30 focus:border-cyan-400 text-cyan-100 placeholder:text-cyan-400/40 shadow-[0_0_8px_#00fff733]" />
           </div>
           <Button variant="ghost" size="icon" asChild className="relative hover:bg-cyan-400/10">
             <Link href="/wishlist">
@@ -135,7 +124,7 @@ export default function Header() {
                 <Link href="/">
                   <Logo className="h-6 w-auto" />
                 </Link>
-                <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(false)}>
+                <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(false)} aria-label="Close menu">
                   <X className="h-6 w-6 text-cyan-300" />
                 </Button>
               </div>

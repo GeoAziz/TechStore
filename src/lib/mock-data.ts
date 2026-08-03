@@ -1,41 +1,16 @@
 
 import type { Product, Order, ProductCategory } from './types';
+import seedProducts from './seed-database';
 
 // This file can be used for fallback data or component testing,
 // but the main application should now fetch from firestore-service.ts
 
-export const products: Product[] = [
-  {
-    id: 'hp-pavilion-15',
-    name: 'HP Pavilion 15 i5 11th Gen',
-    category: 'Laptops',
-    subcategory: 'Business',
-    brand: 'HP',
-    price: 74999,
-    currency: 'KES',
-    stock: 12,
-    description: 'Powerful laptop with 11th Gen Intel Core i5, 8GB RAM, 512GB SSD for work and entertainment.',
-    imageUrl: 'https://placehold.co/600x600.png',
-    isFeatured: true,
-    averageRating: 4.6,
-    promoTag: 'Top Rated',
-    createdAt: new Date(),
-  },
-  {
-    id: 'mx-master-3s',
-    name: 'Logitech MX Master 3S Wireless Mouse',
-    category: 'Mice',
-    brand: 'Logitech',
-    price: 12800,
-    currency: 'KES',
-    stock: 25,
-    description: 'Advanced wireless mouse with ergonomic design, quiet clicks, and 8K DPI sensor for precision.',
-    imageUrl: 'https://placehold.co/600x600.png',
-    isFeatured: true,
-    averageRating: 4.9,
-    createdAt: new Date(),
-  },
-];
+// Convert seed products to mock products with IDs
+export const products: Product[] = seedProducts.map((p, idx) => ({
+  id: `product-${idx + 1}`,
+  ...p,
+  createdAt: p.createdAt || new Date(),
+})) as Product[];
 
 
 export const orders: Order[] = [

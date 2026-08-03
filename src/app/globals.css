@@ -4,38 +4,6 @@
 
 @layer base {
   :root {
-    --background: 228 56% 8%; /* Deep Space Blue */
-    --foreground: 210 40% 98%;
-
-    --card: 228 50% 12%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 228 50% 12%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 178 100% 50%; /* Neon Cyan */
-    --primary-foreground: 228 56% 4%;
-
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 330 100% 50%; /* Plasma Pink */
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 178 100% 50% / 0.2;
-    --input: 228 50% 12%;
-    --ring: 178 100% 50%;
-
-    --radius: 0.8rem;
-  }
- 
-  .dark {
     --background: 228 56% 8%;
     --foreground: 210 40% 98%;
 
@@ -63,18 +31,20 @@
     --border: 178 100% 50% / 0.2;
     --input: 228 50% 12%;
     --ring: 178 100% 50%;
+
+    --radius: 0.8rem;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Space Grotesk', 'Rajdhani', 'Orbitron', monospace;
     background-image: radial-gradient(hsl(var(--primary) / 0.05) 1px, transparent 1px);
     background-size: 20px 20px;
-    background-attachment: fixed;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -99,5 +69,11 @@
   }
   .glass-panel {
     @apply bg-card/50 backdrop-blur-sm border border-primary/20 rounded-lg;
+  }
+  .bg-grid-pattern {
+    background-image:
+      linear-gradient(hsl(var(--primary) / 0.05) 1px, transparent 1px),
+      linear-gradient(to right, hsl(var(--primary) / 0.05) 1px, transparent 1px);
+    background-size: 30px 30px;
   }
 }

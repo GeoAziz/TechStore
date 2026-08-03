@@ -29,11 +29,18 @@ service cloud.firestore {
     }
     
     // --- USERS ---
-    // Admins can manage any user. Users can only manage their own document.
+    // Admins can manage any user. Users can only edit safe fields in their own document.
     match /users/{userId} {
       allow read: if isUserAuthenticated() && (isRequestingUser(userId) || isAdmin());
-      allow write: if isUserAuthenticated() && (isRequestingUser(userId) || isAdmin());
-      
+      allow write: if isAdmin();
+
+      // Users can only update their own safe profile fields
+      allow update: if isUserAuthenticated() && isRequestingUser(userId) &&
+                       request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['displayName', 'photoURL', 'address', 'phone']);
+
+      allow delete: if false; // Users cannot delete their own profile
+
       // Cart: Only the user can access their own cart.
       match /cart/{itemId} {
         allow read, write: if isRequestingUser(userId);

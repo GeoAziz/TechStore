@@ -22,6 +22,7 @@ import { useCart } from '@/context/cart-context';
 import { clearCart, getProductById } from '@/lib/firestore-service';
 import { sendOrderToWebhook } from '@/ai/flows/send-order-webhook';
 import { OrderInput } from '@/ai/schemas/order-schema';
+import { getAuth } from 'firebase/auth';
 
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -82,12 +83,28 @@ function CheckoutForm() {
       return;
     }
     try {
-      // 1. Create PaymentIntent on the server
+      // 1. Create PaymentIntent on the server with authentication
+      const auth = getAuth();
+      const idToken = await auth.currentUser?.getIdToken();
+
+      if (!idToken) {
+        throw new Error('Authentication token not available.');
+      }
+
       const res = await fetch('/api/create-payment-intent', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
         body: JSON.stringify({ amount: Math.round(total * 100) }), // amount in cents
       });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to create payment intent.');
+      }
+
       const { clientSecret } = await res.json();
       if(!clientSecret) {
         throw new Error('Could not retrieve payment secret from server.');
@@ -115,16 +132,13 @@ function CheckoutForm() {
         throw new Error('Payment was not successful.');
       }
 
-      const { last4 } = paymentIntent.payment_method?.card || {};
-
       const orderData: OrderInput = {
         ...data,
         cart: cartItems.map(item => ({ id: item.productId, name: item.name, price: item.price })),
         total,
         payment: {
-            cardNumber: `**** **** **** ${last4}`,
-            expiryDate: "N/A", // Not available on client
-            cvc: "N/A"
+            method: 'card',
+            last4: (paymentIntent.payment_method as any)?.card?.last4,
         }
       };
       

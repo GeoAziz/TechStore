@@ -1,9 +1,9 @@
 
 'use server';
 
-import { db } from './firebase-admin';
+import { db, auth } from './firebase-admin';
 import type { Product, Order, CartItem, Review, OrderStatus, UserProfile, UserRole } from './types';
-// Define AuditLog type here since it's missing from types
+
 export type AuditLog = {
   id: string;
   adminId: string;
@@ -17,15 +17,25 @@ export type AuditLog = {
 
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
-// Remove or stub missing genkit import
-// import { runGenkitFlow } from './genkit'; // hypothetical Genkit SDK wrapper
+import { cookies } from 'next/headers';
+
 const runGenkitFlow = async (flow: string, params: Record<string, any>) => {
-  // Stub: return mock result
   return { success: true, flow, params };
 };
 
-// Re-export types for convenience
-export type { Product, Order, CartItem, Review };
+async function getVerifiedUserId(): Promise<string | null> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('__session')?.value;
+    if (!token) return null;
+    const decoded = await auth.verifyIdToken(token);
+    return decoded.uid;
+  } catch {
+    return null;
+  }
+}
+
+
 
 
 // Helper function to safely convert Firestore Timestamps
@@ -37,6 +47,19 @@ function serializeTimestamp(data: { [key: string]: any }): { [key: string]: any 
     }
   }
   return serializedData;
+}
+
+// Helper function to verify admin role
+async function verifyAdminRole(adminId: string): Promise<boolean> {
+  try {
+    const adminDoc = await db.collection('users').doc(adminId).get();
+    if (!adminDoc.exists) return false;
+    const role = adminDoc.data()?.role;
+    return role === 'admin';
+  } catch (error) {
+    console.error('Error verifying admin role:', error);
+    return false;
+  }
 }
 
 
@@ -200,6 +223,8 @@ export async function getOrdersByUser(userEmail: string): Promise<Order[]> {
  */
 export async function getOrdersByUserId(userId: string): Promise<Order[]> {
     if (!userId) return [];
+    const verifiedUid = await getVerifiedUserId();
+    if (!verifiedUid || verifiedUid !== userId) return [];
     // First, get the user's email as orders are keyed by email currently
     const userDoc = await db.collection('users').doc(userId).get();
     const userEmail = userDoc.data()?.email;
@@ -261,6 +286,11 @@ export async function addToCart(userId: string, productId: string) {
   if (!userId) {
     return { success: false, message: "User not authenticated." };
   }
+
+  const verifiedUid = await getVerifiedUserId();
+  if (!verifiedUid || verifiedUid !== userId) {
+    return { success: false, message: "Unauthorized: cannot modify another user's cart." };
+  }
   
   const product = await getProductById(productId);
   if (!product) {
@@ -307,6 +337,10 @@ export async function removeFromCart(userId: string, productId: string) {
     if (!userId) {
         return { success: false, message: "User not authenticated." };
     }
+    const verifiedUid = await getVerifiedUserId();
+    if (!verifiedUid || verifiedUid !== userId) {
+        return { success: false, message: "Unauthorized: cannot modify another user's cart." };
+    }
     const cartRef = db.collection('users').doc(userId).collection('cart').doc(productId);
     try {
         await cartRef.delete();
@@ -325,6 +359,8 @@ export async function removeFromCart(userId: string, productId: string) {
  */
 export async function clearCart(userId: string) {
   if (!userId) return;
+  const verifiedUid = await getVerifiedUserId();
+  if (!verifiedUid || verifiedUid !== userId) return;
   const cartCollectionRef = db.collection('users').doc(userId).collection('cart');
   const snapshot = await cartCollectionRef.get();
   
@@ -346,6 +382,11 @@ export async function clearCart(userId: string) {
 export async function toggleWishlist(userId: string, productId: string) {
   if (!userId) {
     return { success: false, message: "User not authenticated." };
+  }
+
+  const verifiedUid = await getVerifiedUserId();
+  if (!verifiedUid || verifiedUid !== userId) {
+    return { success: false, message: "Unauthorized: cannot modify another user's wishlist." };
   }
 
   const userRef = db.collection('users').doc(userId);
@@ -390,6 +431,8 @@ export async function toggleWishlist(userId: string, productId: string) {
  */
 export async function getCart(userId: string): Promise<CartItem[]> {
   if (!userId) return [];
+  const verifiedUid = await getVerifiedUserId();
+  if (!verifiedUid || verifiedUid !== userId) return [];
   const cartSnapshot = await db.collection('users').doc(userId).collection('cart').get();
   if (cartSnapshot.empty) {
     return [];
@@ -409,15 +452,37 @@ export async function addReview(productId: string, reviewData: Omit<Review, 'id'
     return { success: false, message: "User not authenticated." };
   }
 
+  // Validate rating
+  if (!Number.isInteger(reviewData.rating) || reviewData.rating < 1 || reviewData.rating > 5) {
+    return { success: false, message: "Rating must be an integer between 1 and 5." };
+  }
+
+  // Validate review text
+  if (!reviewData.text || typeof reviewData.text !== 'string') {
+    return { success: false, message: "Review text is required." };
+  }
+
+  const trimmedText = reviewData.text.trim();
+  if (trimmedText.length === 0 || trimmedText.length > 1000) {
+    return { success: false, message: "Review text must be between 1 and 1000 characters." };
+  }
+
+  // Validate product exists
+  const productDoc = await db.collection('products').doc(productId).get();
+  if (!productDoc.exists) {
+    return { success: false, message: "Product not found." };
+  }
+
   const reviewWithTimestamp = {
     ...reviewData,
+    text: trimmedText,
     timestamp: FieldValue.serverTimestamp(),
   };
 
   try {
     const reviewsCol = db.collection('products').doc(productId).collection('reviews');
     await reviewsCol.add(reviewWithTimestamp);
-    
+
     revalidatePath(`/product/${productId}`);
     return { success: true, message: "Review added successfully." };
   } catch (error) {
@@ -457,6 +522,8 @@ export async function getReviewsByProductId(productId: string): Promise<Review[]
  */
 export async function getWishlist(userId: string): Promise<string[]> {
     if (!userId) return [];
+    const verifiedUid = await getVerifiedUserId();
+    if (!verifiedUid || verifiedUid !== userId) return [];
     const userDoc = await db.collection('users').doc(userId).get();
     return userDoc.data()?.wishlist || [];
 }
@@ -468,8 +535,13 @@ export async function getWishlist(userId: string): Promise<string[]> {
  */
 export async function updateUserProfile(userId: string, profileData: Partial<UserProfile>) {
     if (!userId) return { success: false, message: "User not authenticated." };
+    const verifiedUid = await getVerifiedUserId();
+    if (!verifiedUid || verifiedUid !== userId) {
+        return { success: false, message: "Unauthorized: cannot modify another user's profile." };
+    }
     try {
-        await db.collection('users').doc(userId).set(profileData, { merge: true });
+        const { role, uid, createdAt, ...safeData } = profileData as any;
+        await db.collection('users').doc(userId).set(safeData, { merge: true });
         // Log audit action for profile update
         await logAdminAction(userId, profileData.email || '', 'update profile', profileData, 'user');
         revalidatePath('/admin/profile');
@@ -487,7 +559,15 @@ export async function updateUserProfile(userId: string, profileData: Partial<Use
  * @param orderId The ID of the order to cancel.
  */
 export async function cancelOrder(orderId: string) {
+    const verifiedUid = await getVerifiedUserId();
+    if (!verifiedUid) return { success: false, message: "User not authenticated." };
     try {
+        const orderDoc = await db.collection('orders').doc(orderId).get();
+        if (!orderDoc.exists) return { success: false, message: "Order not found." };
+        const orderData = orderDoc.data();
+        if (orderData?.userId !== verifiedUid) {
+            return { success: false, message: "Unauthorized: cannot cancel another user's order." };
+        }
         await db.collection('orders').doc(orderId).update({ status: 'Cancelled' });
         revalidatePath('/dashboard/client');
         return { success: true, message: "Order cancelled." };
@@ -502,10 +582,15 @@ export async function cancelOrder(orderId: string) {
  * @param orderId The ID of the order to reorder.
  */
 export async function reorder(orderId: string) {
+    const verifiedUid = await getVerifiedUserId();
+    if (!verifiedUid) return { success: false, message: "User not authenticated." };
     try {
         const orderDoc = await db.collection('orders').doc(orderId).get();
         const order = orderDoc.data();
         if (!order) return { success: false, message: "Order not found." };
+        if (order.userId !== verifiedUid) {
+            return { success: false, message: "Unauthorized: cannot reorder another user's order." };
+        }
         
         const newOrder = {
             ...order,
@@ -526,8 +611,19 @@ export async function reorder(orderId: string) {
  * @param orderId The ID of the order.
  * @param status The new status.
  */
+const VALID_ORDER_STATUSES: OrderStatus[] = ['Delivered', 'Processing', 'Failed', 'Cancelled'];
+
 export async function updateOrderStatus(orderId: string, status: string, adminId: string, adminEmail: string) {
     try {
+        // Verify admin authorization
+        if (!await verifyAdminRole(adminId)) {
+            return { success: false, message: "Unauthorized: Admin role required." };
+        }
+
+        if (!VALID_ORDER_STATUSES.includes(status as OrderStatus)) {
+            return { success: false, message: `Invalid status. Must be one of: ${VALID_ORDER_STATUSES.join(', ')}` };
+        }
+
         await db.collection('orders').doc(orderId).update({ status: status as OrderStatus });
         await logAdminAction(adminId, adminEmail, 'update order status', { orderId, newStatus: status }, 'order');
         revalidatePath('/admin');
@@ -543,6 +639,11 @@ export async function updateOrderStatus(orderId: string, status: string, adminId
 
 export async function addProduct(product: Omit<Product, 'id'>, adminId: string, adminEmail: string) {
     try {
+        // Verify admin authorization
+        if (!await verifyAdminRole(adminId)) {
+            return { success: false, message: "Unauthorized: Admin role required." };
+        }
+
         const newProductRef = await db.collection('products').add({
             ...product,
             createdAt: FieldValue.serverTimestamp(),
@@ -559,6 +660,11 @@ export async function addProduct(product: Omit<Product, 'id'>, adminId: string, 
 
 export async function updateProduct(productId: string, updates: Partial<Product>, adminId: string, adminEmail: string) {
     try {
+        // Verify admin authorization
+        if (!await verifyAdminRole(adminId)) {
+            return { success: false, message: "Unauthorized: Admin role required." };
+        }
+
         await db.collection('products').doc(productId).update({
             ...updates,
             updatedAt: FieldValue.serverTimestamp(),
@@ -575,6 +681,11 @@ export async function updateProduct(productId: string, updates: Partial<Product>
 
 export async function deleteProduct(productId: string, adminId: string, adminEmail: string) {
     try {
+        // Verify admin authorization
+        if (!await verifyAdminRole(adminId)) {
+            return { success: false, message: "Unauthorized: Admin role required." };
+        }
+
         await db.collection('products').doc(productId).delete();
         await logAdminAction(adminId, adminEmail, 'delete product', { productId }, 'product');
         revalidatePath('/admin');
@@ -585,8 +696,18 @@ export async function deleteProduct(productId: string, adminId: string, adminEma
     }
 }
 
+const MAX_BULK_DELETE = 500;
+
 export async function deleteMultipleProducts(productIds: string[], adminId: string, adminEmail: string) {
     try {
+        if (!await verifyAdminRole(adminId)) {
+            return { success: false, message: "Unauthorized: Admin role required." };
+        }
+
+        if (!Array.isArray(productIds) || productIds.length === 0 || productIds.length > MAX_BULK_DELETE) {
+            return { success: false, message: `Must provide 1-${MAX_BULK_DELETE} product IDs.` };
+        }
+
         const batch = db.batch();
         productIds.forEach(id => {
             batch.delete(db.collection('products').doc(id));
@@ -620,6 +741,11 @@ export async function getUsers(): Promise<UserProfile[]> {
 export async function updateUserRole(userId: string, role: UserRole, adminId: string, adminEmail: string) {
     if (!userId) return { success: false, message: "User ID is required." };
     try {
+        // Verify admin authorization
+        if (!await verifyAdminRole(adminId)) {
+            return { success: false, message: "Unauthorized: Admin role required." };
+        }
+
         await db.collection('users').doc(userId).update({ role });
         await logAdminAction(adminId, adminEmail, 'update user role', { userId, newRole: role }, 'user');
         revalidatePath('/admin');
@@ -633,6 +759,11 @@ export async function updateUserRole(userId: string, role: UserRole, adminId: st
 export async function deleteUser(userId: string, adminId: string, adminEmail: string) {
     if (!userId) return { success: false, message: "User ID is required." };
     try {
+        // Verify admin authorization
+        if (!await verifyAdminRole(adminId)) {
+            return { success: false, message: "Unauthorized: Admin role required." };
+        }
+
         // Note: This does not delete the Firebase Auth user. That requires a separate SDK call and elevated privileges.
         await db.collection('users').doc(userId).delete();
         await logAdminAction(adminId, adminEmail, 'delete user', { userId }, 'user');
@@ -646,6 +777,14 @@ export async function deleteUser(userId: string, adminId: string, adminEmail: st
 
 export async function deleteMultipleUsers(userIds: string[], adminId: string, adminEmail: string) {
     try {
+        if (!await verifyAdminRole(adminId)) {
+            return { success: false, message: "Unauthorized: Admin role required." };
+        }
+
+        if (!Array.isArray(userIds) || userIds.length === 0 || userIds.length > MAX_BULK_DELETE) {
+            return { success: false, message: `Must provide 1-${MAX_BULK_DELETE} user IDs.` };
+        }
+
         const batch = db.batch();
         userIds.forEach(id => {
             batch.delete(db.collection('users').doc(id));

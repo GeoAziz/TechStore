@@ -31,7 +31,7 @@ const jobPostings = [
   },
 ];
 
-function Bot(props) {
+function Bot(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}

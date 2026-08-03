@@ -27,9 +27,7 @@ const sendOrderWebhookFlow = ai.defineFlow(
   },
   async (order) => {
     const webhookUrl = process.env.N8N_WEBHOOK_URL;
-    const secureToken = process.env.N8N_WEBHOOK_TOKEN || 'YOUR_SECRET_TOKEN';
-    // Add role for RBAC validation
-    const payload = { ...order, role: 'client' };
+    const secureToken = process.env.N8N_WEBHOOK_TOKEN;
 
     if (!webhookUrl) {
       console.error('N8N_WEBHOOK_URL is not set.');
@@ -38,6 +36,16 @@ const sendOrderWebhookFlow = ai.defineFlow(
         message: 'Webhook URL is not configured.',
       };
     }
+
+    if (!secureToken) {
+      console.error('N8N_WEBHOOK_TOKEN is not set.');
+      return {
+        success: false,
+        message: 'Webhook token is not configured.',
+      };
+    }
+
+    const payload = { ...order, role: 'client' };
 
     try {
       const response = await fetch(webhookUrl, {

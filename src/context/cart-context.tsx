@@ -1,11 +1,11 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, ReactNode } from "react";
 import type { CartItem } from '@/lib/types';
 import { useAuth } from './auth-context';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { removeFromCart as serverRemoveFromCart } from "@/lib/firestore-service";
 
@@ -26,6 +26,8 @@ const SHIPPING_COST = 2500;
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,13 +35,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (user) {
       setLoading(true);
       const cartRef = collection(db, 'users', user.uid, 'cart');
-      const unsubscribe = onSnapshot(cartRef, (snapshot) => {
-        const items = snapshot.docs.map(doc => ({ ...doc.data() } as CartItem));
+      const unsubscribe = onSnapshot(cartRef, (snapshot: any) => {
+        const items = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as CartItem));
         setCartItems(items);
         setLoading(false);
-      }, (error) => {
+      }, (error: any) => {
         console.error("Error fetching cart:", error);
-        toast({ variant: "destructive", title: "Error", description: "Could not load cart items." });
+        toastRef.current({ variant: "destructive", title: "Error", description: "Could not load cart items." });
         setLoading(false);
       });
 
@@ -48,7 +50,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       setCartItems([]);
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user]);
   
   const clearClientCart = useCallback(() => {
     setCartItems([]);
@@ -56,19 +58,26 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   
   const removeFromCart = useCallback(async (productId: string) => {
     if (!user) {
-      toast({ variant: "destructive", title: "Error", description: "You must be logged in." });
+      toastRef.current({ variant: "destructive", title: "Error", description: "You must be logged in." });
       return;
     }
-    await serverRemoveFromCart(user.uid, productId);
-    // The onSnapshot listener will automatically update the local state.
-  }, [user, toast]);
+    try {
+      await serverRemoveFromCart(user.uid, productId);
+    } catch (error) {
+      toastRef.current({ variant: "destructive", title: "Error", description: "Failed to remove item from cart." });
+    }
+  }, [user]);
 
-  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-  const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const cartCount = useMemo(() => cartItems.reduce((acc, item) => acc + item.quantity, 0), [cartItems]);
+  const subtotal = useMemo(() => cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0), [cartItems]);
   const total = subtotal > 0 ? subtotal + SHIPPING_COST : 0;
 
+  const contextValue = useMemo(() => ({
+    cartItems, cartCount, subtotal, total, loading, clearClientCart, removeFromCart
+  }), [cartItems, cartCount, subtotal, total, loading, clearClientCart, removeFromCart]);
+
   return (
-    <CartContext.Provider value={{ cartItems, cartCount, subtotal, total, loading, clearClientCart, removeFromCart }}>
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );

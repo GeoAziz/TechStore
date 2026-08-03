@@ -45,9 +45,14 @@ const categoryData = [
 
 const getCustomerAuditLogs = () => [];
 
-export default function AdminPage({ defaultTab = "overview" }: { defaultTab?: string } = {}) {
+export default function AdminPage({ searchParams }: { searchParams?: Promise<{ tab?: string }> }) {
   const { user: currentUser, loading: authLoading, role, isAddProductDialogOpen, setAddProductDialogOpen } = useAuth();
   const { toast } = useToast();
+  const [defaultTab, setDefaultTab] = useState("overview");
+
+  useEffect(() => {
+    searchParams?.then(p => { if (p?.tab) setDefaultTab(p.tab); });
+  }, [searchParams]);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);

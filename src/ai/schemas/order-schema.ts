@@ -19,9 +19,8 @@ export const OrderInputSchema = z.object({
     zip: z.string().min(1, 'ZIP code is required'),
   }),
   payment: z.object({
-    cardNumber: z.string(),
-    expiryDate: z.string(),
-    cvc: z.string(),
+    method: z.enum(['card', 'mpesa', 'bank_transfer']),
+    last4: z.string().optional(),
   }),
   cart: z.array(CartItemSchema),
   total: z.number(),

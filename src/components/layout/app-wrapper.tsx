@@ -15,17 +15,16 @@ export default function AppWrapper({ children }: { children: React.ReactNode }) 
   // This effect will be triggered once on component mount.
   // The SplashScreen component will call onFinished when its animation is complete.
   useEffect(() => {
-    // This is a failsafe in case the splash screen's internal logic doesn't hide it
     const timer = setTimeout(() => {
         if (showSplash) {
             setShowSplash(false);
         }
-    }, 4000); // Hide after 4 seconds regardless
+    }, 4000);
     return () => clearTimeout(timer);
-  }, [showSplash]);
+  }, []);
 
   // Don't show the main app wrapper for admin pages
-  if (pathname.startsWith('/admin')) {
+  if (pathname?.startsWith('/admin')) {
     return <>{children}</>;
   }
 

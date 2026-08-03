@@ -10,7 +10,7 @@ const subcategories = [
   'Audio',
 ];
 
-export default function SubcategoryTabs({ onSelect }) {
+export default function SubcategoryTabs({ onSelect }: { onSelect: (value: string) => void }) {
   const [active, setActive] = useState('All');
   return (
     <div className="flex gap-2 py-4 px-2 bg-glass rounded-xl shadow-neon overflow-x-auto">

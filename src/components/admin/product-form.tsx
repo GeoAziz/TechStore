@@ -18,7 +18,7 @@ interface ProductFormProps {
   onSubmit: (data: Omit<Product, 'id'> | Product) => void;
 }
 
-const initialProductState: Omit<Product, 'id' | 'rating' | 'featured'> = {
+const initialProductState: Omit<Product, 'id' | 'averageRating' | 'isFeatured'> = {
   name: '',
   description: '',
   price: 0,
@@ -27,6 +27,7 @@ const initialProductState: Omit<Product, 'id' | 'rating' | 'featured'> = {
   category: 'Laptops',
   brand: '',
   imageUrl: '',
+  createdAt: new Date().toISOString(),
 };
 
 export default function ProductForm({ product, onSubmit }: ProductFormProps) {

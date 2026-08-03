@@ -63,8 +63,8 @@ export default function Footer() {
           <div className="grid grid-cols-2 gap-6 col-span-2 sm:grid-cols-3">
             {Object.entries(footerNavLinks).map(([section, links], idx) => (
               <div key={idx}>
-                <h3 className="font-bold text-cyan-200 text-sm mb-3 tracking-wide uppercase glow-accent">{section}</h3>
-                <ul className="space-y-2 text-sm">
+                <h3 id={`footer-heading-${section}`} className="font-bold text-cyan-200 text-sm mb-3 tracking-wide uppercase glow-accent">{section}</h3>
+                <ul aria-labelledby={`footer-heading-${section}`} className="space-y-2 text-sm">
                   {links.map((link, i) => (
                     <li key={`${link.label}-${i}`}><Link href={link.href} className="hover:text-primary transition-colors">{link.label}</Link></li>
                   ))}
@@ -77,8 +77,10 @@ export default function Footer() {
           <div className="space-y-4">
             <h3 className="font-bold text-cyan-200 glow-accent tracking-wide uppercase text-sm">Join the Mission</h3>
             <p className="text-muted-foreground text-sm">Get exclusive deals and tech updates delivered to your inbox.</p>
-            <form className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <form onSubmit={(e) => e.preventDefault()} className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <label htmlFor="newsletter-email" className="sr-only">Email address</label>
               <Input
+                id="newsletter-email"
                 type="email"
                 placeholder="agent@zizo.net"
                 className="flex-1 bg-[#18182c]/80 border-cyan-400/30 focus:border-cyan-400 text-cyan-100 placeholder:text-muted-foreground"

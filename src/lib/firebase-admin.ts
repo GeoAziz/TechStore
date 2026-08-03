@@ -1,9 +1,11 @@
 
 import { initializeApp, getApps, App, cert, ServiceAccount } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
+import { getAuth, Auth } from 'firebase-admin/auth';
 
 let app: App;
 let db: Firestore;
+let auth: Auth;
 
 const getServiceAccount = (): ServiceAccount => {
   const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -25,9 +27,11 @@ if (!getApps().length) {
     credential: cert(getServiceAccount()),
   });
   db = getFirestore(app);
+  auth = getAuth(app);
 } else {
   app = getApps()[0];
   db = getFirestore(app);
+  auth = getAuth(app);
 }
 
-export { db };
+export { db, auth };

@@ -247,7 +247,7 @@ function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
     const q = query(collection(db, "notifications"), orderBy("timestamp", "desc"), limit(20));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const notifs: Notification[] = [];
-        querySnapshot.forEach((doc) => {
+        querySnapshot.forEach((doc: any) => {
             notifs.push({ id: doc.id, ...doc.data() } as Notification);
         });
         setNotifications(notifs);
