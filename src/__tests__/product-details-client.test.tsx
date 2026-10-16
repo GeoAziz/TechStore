@@ -54,4 +54,23 @@ describe('ProductDetailsClient', () => {
     );
     expect(screen.getByLabelText('Review form')).toBeInTheDocument();
   });
+
+  it('renders inspiration sections: Trust Badges, Why Product, and FAQ', () => {
+    render(
+      <CompareProvider>
+        <ProductDetailsClient product={product} initialReviews={reviews} />
+      </CompareProvider>
+    );
+    // Trust Badges
+    expect(screen.getByText('Secure Checkout')).toBeInTheDocument();
+    expect(screen.getByText('Fast Shipping')).toBeInTheDocument();
+    expect(screen.getByText('30-Day Money Back')).toBeInTheDocument();
+    expect(screen.getByText('2-Year Warranty')).toBeInTheDocument();
+
+    // Value Prop Header
+    expect(screen.getByText('WHY Test Product?')).toBeInTheDocument();
+
+    // FAQ Section
+    expect(screen.getByText('Frequently Asked Questions')).toBeInTheDocument();
+  });
 });

@@ -12,6 +12,18 @@ import type { UserProfile } from '@/lib/types';
 
 import type { UserRole } from '@/lib/types';
 
+function setSessionCookies(token: string | null) {
+  if (typeof document === 'undefined') return;
+  const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+  if (token) {
+    document.cookie = `__session=${token}; path=/; max-age=3600; SameSite=Lax${isSecure}`;
+    document.cookie = `firebaseAuthSession=${token}; path=/; max-age=3600; SameSite=Lax${isSecure}`;
+  } else {
+    document.cookie = `__session=; path=/; max-age=0; SameSite=Lax${isSecure}`;
+    document.cookie = `firebaseAuthSession=; path=/; max-age=0; SameSite=Lax${isSecure}`;
+  }
+}
+
 interface AuthContextType {
   user: (User & { role?: UserRole, photoURL?: string | null }) | null;
   loading: boolean;
@@ -49,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   const handleLogout = async () => {
+    setSessionCookies(null);
     await signOut(auth);
     router.push('/login');
   };
@@ -74,10 +87,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const token = await firebaseUser.getIdToken();
+          setSessionCookies(token);
+        } catch (err) {
+          console.warn('Could not extract ID token:', err);
+        }
+
         // Fetch user role and other data from Firestore
-        const userDocRef = doc(db, 'users', user.uid);
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
         const userDoc = await getDoc(userDocRef);
         
         let userRole: UserRole = 'client'; // Default role
@@ -90,18 +110,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           // If user doc doesn't exist, create it
            await setDoc(userDocRef, {
-                uid: user.uid,
-                email: user.email,
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
                 role: 'client',
-                displayName: user.displayName,
-                photoURL: user.photoURL
+                displayName: firebaseUser.displayName,
+                photoURL: firebaseUser.photoURL
             }, { merge: true });
         }
         
         setRole(userRole);
-        setUser({ ...user, ...userDataFromDb, role: userRole });
+        setUser({ ...firebaseUser, ...userDataFromDb, role: userRole });
 
       } else {
+        setSessionCookies(null);
         setRole(null);
         setUser(null);
       }

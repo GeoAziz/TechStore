@@ -1,10 +1,14 @@
 
+import LastUpdated from "@/components/ui/last-updated";
+
 export default function TermsPage() {
   return (
     <div className="container py-12">
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tighter mb-2 glow-primary">Terms of Use</h1>
-        <p className="text-muted-foreground max-w-xl mx-auto">Last updated: 2024-07-29</p>
+        <div className="mt-2">
+          <LastUpdated date="2026-10-14" />
+        </div>
       </div>
 
       <div className="prose prose-invert prose-lg max-w-4xl mx-auto text-muted-foreground space-y-6">

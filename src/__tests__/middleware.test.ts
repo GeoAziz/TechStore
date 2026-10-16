@@ -1,27 +1,34 @@
 jest.mock('next/server', () => {
   class MockNextRequest {
     url: string;
-    cookies: Map<string, string>;
     nextUrl: URL;
+    _cookies: {
+      get: (name: string) => { value: string };
+      set: (name: string, value: string) => void;
+      _cookieStore: Map<string, string>;
+    };
     constructor(input: string | URL, init?: any) {
       const u = typeof input === 'string' ? new URL(input) : input;
+      const store = new Map<string, string>();
       this.url = u.toString();
       this.nextUrl = u;
-      this.cookies = new Map();
+      this._cookies = {
+        get: (name: string) => ({ value: store.get(name) || '' }),
+        set: (name: string, value: string) => { store.set(name, value); },
+        _cookieStore: store,
+      };
     }
-    get cookies() { return this._cookies; }
+    get cookies() { return this._cookies as any; }
     set cookies(v: any) { this._cookies = v; }
-    _cookies = {
-      get: (name: string) => ({ value: this._cookieStore.get(name) || '' }),
-      set: (name: string, value: string) => { this._cookieStore.set(name, value); },
-      _cookieStore: new Map<string, string>(),
-    };
   }
   class MockNextResponse extends Response {
     static redirect(url: string | URL) {
       const res = new MockNextResponse(null, { status: 307 });
       res.headers.set('location', typeof url === 'string' ? url : url.toString());
       return res;
+    }
+    static next() {
+      return new MockNextResponse(null, { status: 200 });
     }
     constructor(body?: any, init?: ResponseInit) {
       super(body, init);

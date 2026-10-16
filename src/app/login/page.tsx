@@ -6,15 +6,26 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Logo from '@/components/layout/logo';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldCheck, Store, UserCheck } from 'lucide-react';
+import { PasswordInput } from '@/components/ui/password-input';
 
-export default function LoginPage() {
+function setSessionCookies(token: string) {
+  if (typeof document === 'undefined') return;
+  const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `__session=${token}; path=/; max-age=3600; SameSite=Lax${isSecure}`;
+  document.cookie = `firebaseAuthSession=${token}; path=/; max-age=3600; SameSite=Lax${isSecure}`;
+}
+
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const redirectTarget = searchParams?.get('redirect') || '/dashboard';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
@@ -23,26 +34,30 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const handleQuickFill = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword('password123');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    // Demo user hint
-    if (email === 'admin@zizo.net' || email === 'vendor@zizo.net') {
-      if (password.length === 0) setPassword('password');
-    }
-
     try {
+      let userCredential;
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
         toast({ title: "Success", description: "Logged in successfully." });
-        router.push('/dashboard');
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        userCredential = await createUserWithEmailAndPassword(auth, email, password);
         toast({ title: "Success", description: "Account created successfully. Welcome!" });
-        router.push('/dashboard');
       }
+
+      const token = await userCredential.user.getIdToken();
+      setSessionCookies(token);
+
+      router.push(redirectTarget);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -56,14 +71,46 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <Logo className="h-8 w-auto mx-auto mb-4" />
           <CardTitle className="text-2xl glow-primary">
-            {isLogin ? 'Login to Zizo_OrderVerse' : 'Create Account'}
+            {isLogin ? 'Login to TechStore' : 'Create Account'}
           </CardTitle>
           <CardDescription>
-            {isLogin ? 'Authorize access to your account.' : 'Join the OrderVerse.'}
+            {isLogin ? 'Authorize access to your account.' : 'Join TechStore Marketplace.'}
           </CardDescription>
-           <CardDescription className="text-xs pt-2">
-            Try `admin@zizo.net` or `vendor@zizo.net` with any password.
-          </CardDescription>
+
+          {isLogin && (
+            <div className="pt-3">
+              <p className="text-xs text-muted-foreground mb-2">Quick Demo Credentials (password: password123):</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7 gap-1 border-primary/40 text-primary"
+                  onClick={() => handleQuickFill('admin@demo.com')}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" /> Admin
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7 gap-1 border-accent/40 text-accent"
+                  onClick={() => handleQuickFill('apple.vendor@techstore.co.ke')}
+                >
+                  <Store className="w-3.5 h-3.5" /> Vendor
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7 gap-1 border-cyan-400/40 text-cyan-300"
+                  onClick={() => handleQuickFill('client@demo.com')}
+                >
+                  <UserCheck className="w-3.5 h-3.5" /> Client
+                </Button>
+              </div>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {error && (
@@ -78,7 +125,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="agent@zizo.net"
+                placeholder="name@domain.com"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -86,17 +133,17 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 required
                 value={password}
-                placeholder='••••••••'
+                placeholder="••••••••"
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="animate-spin" /> : (isLogin ? 'Establish Link' : 'Register')}
+              {loading ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
+              {loading ? 'Authenticating...' : (isLogin ? 'Sign In' : 'Register')}
             </Button>
           </form>
         </CardContent>
@@ -110,5 +157,17 @@ export default function LoginPage() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

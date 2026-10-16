@@ -4,7 +4,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '@/lib/firebase-admin';
+import { db, auth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import seedProducts from '@/lib/seed-database';
 
@@ -21,8 +21,25 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ success: false, message: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, message: 'Method not allowed. Use POST with Admin Bearer token.' });
+  }
+
+  // Require Admin Bearer Token
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, message: 'Unauthorized: Admin Bearer token required.' });
+  }
+
+  try {
+    const token = authHeader.substring(7);
+    const decoded = await auth.verifyIdToken(token);
+    const userDoc = await db.collection('users').doc(decoded.uid).get();
+    if (userDoc.data()?.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Forbidden: Admin role required.' });
+    }
+  } catch (err: any) {
+    return res.status(401).json({ success: false, message: 'Invalid or expired token.' });
   }
 
   try {

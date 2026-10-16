@@ -4,35 +4,65 @@
 
 @layer base {
   :root {
-    --background: 228 56% 8%;
-    --foreground: 210 40% 98%;
+    --background: 230 25% 4%; /* #090a0f */
+    --foreground: 210 20% 98%;
 
-    --card: 228 50% 12%;
-    --card-foreground: 210 40% 98%;
+    --card: 226 20% 8%; /* #11131a */
+    --card-foreground: 210 20% 98%;
 
-    --popover: 228 50% 12%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 226 20% 8%;
+    --popover-foreground: 210 20% 98%;
 
-    --primary: 178 100% 50%;
-    --primary-foreground: 228 56% 4%;
+    --primary: 84 81% 55%; /* #a3e635 Electric Lime */
+    --primary-foreground: 230 25% 4%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 224 16% 14%; /* #1d202b */
+    --secondary-foreground: 210 20% 98%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 224 16% 14%;
+    --muted-foreground: 218 14% 65%;
 
-    --accent: 330 100% 50%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 84 85% 67%; /* #bef264 Bright Neon Lime */
+    --accent-foreground: 230 25% 4%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 178 100% 50% / 0.2;
-    --input: 228 50% 12%;
-    --ring: 178 100% 50%;
+    --border: 224 16% 18% / 0.6;
+    --input: 224 16% 14%;
+    --ring: 84 81% 55%;
 
-    --radius: 0.8rem;
+    --radius: 0.9rem;
+  }
+
+  .light {
+    --background: 210 20% 98%; /* #f8fafc */
+    --foreground: 224 71% 4%;  /* #020617 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 71% 4%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71% 4%;
+
+    --primary: 84 81% 40%; /* slightly darker lime for contrast on white */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 224 71% 4%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 8% 46%;
+
+    --accent: 84 75% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 84 81% 40%;
   }
 }
 
@@ -40,40 +70,158 @@
   * {
     @apply border-border;
   }
+  html {
+    scroll-behavior: smooth;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Space Grotesk', 'Rajdhani', 'Orbitron', monospace;
-    background-image: radial-gradient(hsl(var(--primary) / 0.05) 1px, transparent 1px);
-    background-size: 20px 20px;
+    @apply bg-background text-foreground transition-colors duration-200;
+    font-family: var(--font-inter), sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-headline;
   }
+
+  /* Section heading anchor offset for sticky header */
+  [id] {
+    scroll-margin-top: 5.5rem;
+  }
 }
 
 @layer utilities {
+  .glow-lime {
+    text-shadow: 0 0 10px rgba(163, 230, 53, 0.7), 0 0 25px rgba(163, 230, 53, 0.4);
+  }
   .glow-primary {
-    text-shadow: 0 0 8px hsl(var(--primary) / 0.8), 0 0 20px hsl(var(--primary) / 0.5);
+    text-shadow: 0 0 8px rgba(163, 230, 53, 0.6), 0 0 20px rgba(163, 230, 53, 0.3);
   }
   .glow-accent {
-    text-shadow: 0 0 8px hsl(var(--accent) / 0.8), 0 0 20px hsl(var(--accent) / 0.5);
+    text-shadow: 0 0 8px rgba(190, 242, 100, 0.7), 0 0 20px rgba(190, 242, 100, 0.4);
   }
   .card-glow {
     @apply transition-all duration-300;
-    box-shadow: 0 0 0px hsl(var(--primary) / 0);
+    box-shadow: 0 0 0px transparent;
   }
   .card-glow:hover {
     transform: translateY(-4px);
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.2), 0 0 40px hsl(var(--primary) / 0.1);
+    box-shadow: 0 0 20px rgba(163, 230, 53, 0.15), 0 0 35px rgba(163, 230, 53, 0.08);
   }
   .glass-panel {
-    @apply bg-card/50 backdrop-blur-sm border border-primary/20 rounded-lg;
+    background: rgba(18, 20, 28, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
-  .bg-grid-pattern {
-    background-image:
-      linear-gradient(hsl(var(--primary) / 0.05) 1px, transparent 1px),
-      linear-gradient(to right, hsl(var(--primary) / 0.05) 1px, transparent 1px);
-    background-size: 30px 30px;
+  .light .glass-panel {
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  .glass-pill {
+    background: rgba(22, 25, 36, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .light .glass-pill {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  .glass-card-hover {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .glass-card-hover:hover {
+    transform: translateY(-5px);
+    border-color: rgba(163, 230, 53, 0.4);
+    box-shadow: 0 12px 30px -10px rgba(163, 230, 53, 0.2);
+  }
+  .bg-cyber-matrix {
+    background-color: #090a0f;
+    background-image: 
+      radial-gradient(circle at 75% 25%, rgba(163, 230, 53, 0.07) 0%, transparent 50%),
+      radial-gradient(circle at 20% 80%, rgba(163, 230, 53, 0.04) 0%, transparent 40%),
+      linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+  }
+  .light .bg-cyber-matrix {
+    background-color: #f8fafc;
+    background-image: 
+      radial-gradient(circle at 75% 25%, rgba(101, 163, 13, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 20% 80%, rgba(101, 163, 13, 0.05) 0%, transparent 40%),
+      linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+  }
+}
+
+/* Feature 20: Print Stylesheet */
+@media print {
+  header,
+  footer,
+  aside,
+  nav,
+  .no-print,
+  #scroll-progress,
+  #back-to-top,
+  #floating-contact,
+  #cookie-consent-banner,
+  #ai-assistant-overlay,
+  .splash-screen {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-size: 11pt !important;
+    line-height: 1.5 !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .glass-panel, .glass-pill, .card-glow {
+    background: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  a {
+    color: #111827 !important;
+    text-decoration: underline !important;
+  }
+
+  a[href^="http"]:after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: #6b7280;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: #000000 !important;
+    page-break-after: avoid;
+  }
+
+  img, table, tr, pre, code {
+    page-break-inside: avoid;
+  }
+
+  .glow-lime, .glow-primary, .glow-accent {
+    text-shadow: none !important;
   }
 }

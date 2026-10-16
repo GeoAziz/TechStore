@@ -37,7 +37,7 @@ service cloud.firestore {
       // Users can only update their own safe profile fields
       allow update: if isUserAuthenticated() && isRequestingUser(userId) &&
                        request.resource.data.diff(resource.data).affectedKeys()
-                       .hasOnly(['displayName', 'photoURL', 'address', 'phone']);
+                       .hasOnly(['displayName', 'photoURL', 'address', 'phone', 'wishlist']);
 
       allow delete: if false; // Users cannot delete their own profile
 
@@ -48,10 +48,11 @@ service cloud.firestore {
     }
 
     // --- PRODUCTS ---
-    // Anyone can read products. Only admins can create, update, or delete them.
+    // Anyone can read products. Admins can create/edit any. Vendors can manage their own products.
     match /products/{productId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow create: if isAdmin() || (isVendor() && request.resource.data.vendorId == request.auth.uid);
+      allow update, delete: if isAdmin() || (isVendor() && resource.data.vendorId == request.auth.uid);
 
       // Reviews: Any authenticated user can create a review. 
       // Users can only update/delete their own reviews. Admins can moderate.
@@ -63,19 +64,22 @@ service cloud.firestore {
     }
 
     // --- ORDERS ---
-    // Users can create their own orders.
-    // Users can only read their own orders. Admins can read all orders.
-    // Only admins can update orders (e.g., change status).
+    // Clients can create orders for themselves.
+    // Clients can read their own orders. Vendors can read orders containing their items. Admins can read/manage all.
     match /orders/{orderId} {
       allow create: if isClient();
-      allow read: if isUserAuthenticated() && (resource.data.user == request.auth.token.email || isAdmin());
+      allow read: if isUserAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.user == request.auth.token.email ||
+        (isVendor() && ('vendorIds' in resource.data) && resource.data.vendorIds.hasAny([request.auth.uid])) ||
+        isAdmin()
+      );
       allow update: if isAdmin();
       allow delete: if false; // Orders should not be deleted.
     }
     
     // --- NOTIFICATIONS (For Admin) ---
     // Only admins can read notifications.
-    // The system (backend functions/webhooks) creates them, so no direct client creation.
     match /notifications/{notificationId} {
         allow read, update: if isAdmin();
         allow create, delete: if false;

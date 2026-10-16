@@ -9,7 +9,8 @@ jest.mock('@/lib/firebase', () => ({
   db: require('../__mocks__/firestore-mock').mockDb,
 }));
 
-import { getProducts, getOrders, getCompatibilityReport, getCustomizerSuggestions } from '../firestore-service';
+import { getProducts, getOrders, getCompatibilityReport, getCustomizerSuggestions, getReviewsByProductId } from '../firestore-service';
+import { mockDb } from '../__mocks__/firestore-mock';
 
 describe('firestore-service', () => {
   it('should fetch products', async () => {
@@ -32,5 +33,24 @@ describe('firestore-service', () => {
   it('should get customizer suggestions (mock)', async () => {
     const result = await getCustomizerSuggestions('gaming pc');
     expect(result).toBeDefined();
+  });
+
+  it('should return a valid timestamp for reviews with malformed dates', async () => {
+    const reviewQuery = {
+      orderBy: jest.fn().mockReturnThis(),
+      get: jest.fn().mockResolvedValue({
+        empty: false,
+        docs: [{ id: 'review-1', data: () => ({ text: 'Good product', timestamp: 'not-a-date' }) }],
+      }),
+    };
+    mockDb.collection.mockReturnValueOnce({
+      doc: jest.fn().mockReturnValue({
+        collection: jest.fn().mockReturnValue(reviewQuery),
+      }),
+    });
+
+    const reviews = await getReviewsByProductId('product-1');
+
+    expect(Number.isNaN(new Date(reviews[0].timestamp).getTime())).toBe(false);
   });
 });

@@ -1,22 +1,13 @@
-const Logo = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 200 26"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <style>
-      {`.text { font: 700 20px "Space Mono", monospace; }`}
-    </style>
-    <defs>
-      <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="hsl(var(--primary))" />
-        <stop offset="100%" stopColor="hsl(var(--accent))" />
-      </linearGradient>
-    </defs>
-    <text x="0" y="20" className="text" fill="url(#glow)">ZIZO</text>
-    <text x="60" y="20" className="text" fill="hsl(var(--foreground))">_OrderVerse</text>
-  </svg>
+const Logo = ({ className, textClassName }: { className?: string; textClassName?: string }) => (
+  <div className={`flex items-center gap-2 font-bold tracking-tight text-white select-none ${className || ''}`}>
+    <div className="w-7 h-7 rounded-lg bg-[#bef264] text-black flex items-center justify-center font-black text-sm shadow-[0_0_12px_rgba(190,242,100,0.6)]">
+      T
+    </div>
+    <span className={`text-base font-extrabold tracking-wider font-mono ${textClassName || ''}`}>
+      TECH<span className="text-[#bef264]">STORE</span>
+    </span>
+  </div>
 );
 
 export default Logo;
+

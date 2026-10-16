@@ -12,9 +12,12 @@ export interface Product {
   stock: number;
   description: string;
   imageUrl: string;
+  images?: string[];
   tags?: string[];
   specs?: { [key: string]: string };
   color?: string;
+  features?: { title: string; description: string; icon?: string }[];
+  faqs?: { question: string; answer: string }[];
   
   // Flags & Metrics
   isFeatured?: boolean;
@@ -36,6 +39,7 @@ export interface Product {
   warranty?: string;
   shippingTime?: string;
   vendor?: string;
+  vendorId?: string;
   
   // AI Hint for images
   dataAiHint?: string;
@@ -45,6 +49,16 @@ export interface Product {
 
 export type OrderStatus = 'Delivered' | 'Processing' | 'Failed' | 'Cancelled';
 
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  vendorId?: string;
+  vendorName?: string;
+  quantity: number;
+  price: number; // KES
+  imageUrl?: string;
+}
+
 export interface Order {
   id: string;
   productName: string;
@@ -52,6 +66,10 @@ export interface Order {
   timestamp: string; // ISO string date format
   total: number;
   user: string;
+  userId?: string;
+  items?: OrderItem[];
+  vendorIds?: string[];
+  shippingAddress?: string;
 }
 
 export type UserRole = 'admin' | 'vendor' | 'client' | 'vip' | 'premium' | 'inactive';
@@ -63,11 +81,16 @@ export interface UserProfile {
     role: UserRole;
     address?: string;
     photoURL?: string;
+    phone?: string;
     segment?: 'VIP' | 'New' | 'Inactive' | 'Regular';
     flagged?: boolean;
     failedLoginAttempts?: number;
     vendorUpgradeRequested?: boolean;
     createdAt?: string | any;
+    wishlist?: string[];
+    vendorId?: string;
+    vendorBrand?: string;
+    isDemo?: boolean;
 }
 
 export interface CartItem {

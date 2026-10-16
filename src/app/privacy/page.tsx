@@ -1,15 +1,17 @@
 
 import { ShieldCheck, Database, Cookie } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import LastUpdated from '@/components/ui/last-updated';
 
 export default function PrivacyPage() {
   return (
     <div className="container py-12">
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tighter mb-2 glow-primary">Privacy Protocol</h1>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-muted-foreground max-w-2xl mx-auto mb-2">
           Your data integrity is paramount. This document outlines our data handling procedures.
         </p>
+        <LastUpdated date="2026-10-14" />
       </div>
 
       <div className="space-y-8 max-w-4xl mx-auto">

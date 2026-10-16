@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
 import { Rocket, Loader2, ShieldCheck, X, Lock } from 'lucide-react';
+import ConfirmationModal from '@/components/ui/confirmation-modal';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -189,7 +190,7 @@ function CheckoutForm() {
               <div>
                 <h3 className="text-lg font-semibold mb-4 text-primary">Shipping Address</h3>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <FormField
                         control={form.control}
                         name="shipping.firstName"
@@ -330,9 +331,24 @@ function OrderSummary() {
                   <p className="font-semibold text-sm">{item.name}</p>
                   <p className="text-xs text-muted-foreground">{item.price.toLocaleString()} KES x {item.quantity}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-destructive" onClick={() => handleRemoveItem(item.productId)}>
-                  <X className="w-4 h-4" />
-                </Button>
+                <ConfirmationModal
+                  title="Remove from Cart"
+                  description={`Are you sure you want to remove "${item.name}" from your order cart?`}
+                  confirmText="Remove Item"
+                  cancelText="Keep"
+                  destructive
+                  onConfirm={() => handleRemoveItem(item.productId)}
+                  trigger={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="w-8 h-8 text-muted-foreground hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive"
+                      aria-label={`Remove ${item.name} from cart`}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  }
+                />
               </div>
             ))}
           </div>

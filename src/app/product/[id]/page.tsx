@@ -23,8 +23,9 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     notFound();
   }
 
-  // Ensure all fields are present, providing defaults for optional ones
+  // Pass all product fields cleanly
   const productData: Product = {
+    ...product,
     id: product.id,
     name: product.name,
     category: product.category,
@@ -39,7 +40,27 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     subcategory: product.subcategory,
     promoTag: product.promoTag,
     createdAt: product.createdAt,
+    discountPercent: product.discountPercent,
+    specs: product.specs,
+    color: product.color,
+    images: product.images,
+    features: product.features,
+    faqs: product.faqs,
+    warranty: product.warranty,
+    shippingTime: product.shippingTime,
   };
 
-  return <ProductDetailsClient product={productData} initialReviews={reviews as Review[]} />;
+  // Fetch related products from same category or brand
+  const allProducts = await getProducts();
+  const relatedProducts = allProducts
+    .filter(p => p.id !== product.id && (p.category === product.category || p.brand === product.brand))
+    .slice(0, 4);
+
+  return (
+    <ProductDetailsClient 
+      product={productData} 
+      initialReviews={reviews as Review[]} 
+      relatedProducts={relatedProducts}
+    />
+  );
 }

@@ -7,19 +7,18 @@ import React from 'react';
 import { MemoryRouterProvider } from 'next-router-mock/MemoryRouterProvider';
 
 // Mock Firebase to prevent real initialization during tests
-jest.mock('@/lib/firebase', () => ({
-  getAuth: jest.fn(() => ({
+jest.mock('@/lib/firebase', () => {
+  const mockAuth = {
     currentUser: null,
-    onAuthStateChanged: jest.fn(),
     signOut: jest.fn(),
-  })),
-  getFirestore: jest.fn(() => ({})),
-  getAnalytics: jest.fn(() => ({})),
-  initializeApp: jest.fn(() => ({})),
-  getApps: jest.fn(() => []),
-  getApp: jest.fn(() => ({})),
-  isSupported: jest.fn(() => Promise.resolve(false)),
-}));
+  };
+  return {
+    auth: mockAuth,
+    db: {},
+    app: {},
+    analytics: Promise.resolve(null),
+  };
+});
 
 // Mock WebSocket
 class MockWebSocket {
@@ -57,7 +56,7 @@ jest.mock('@/lib/firestore-service', () => ({
 
 // Mock the auth context
 jest.mock('@/context/auth-context', () => ({
-  ...jest.requireActual('@/context/auth-context'),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => children,
   useAuth: () => ({
     user: { uid: '1', email: 'test@test.com', role: 'admin' },
     loading: false,

@@ -109,9 +109,15 @@ export async function getProductsByIds(ids: string[]): Promise<Product[]> {
  * @param {string} brandName - The name of the brand.
  * @returns {Promise<Product[]>} A promise that resolves to an array of products.
  */
-export async function getProductsByVendor(brandName: string): Promise<Product[]> {
+export async function getProductsByVendor(vendorIdOrBrand: string): Promise<Product[]> {
   const productsCol = db.collection('products');
-  const snapshot = await productsCol.where('brand', '==', brandName).get();
+  let snapshot = await productsCol.where('vendorId', '==', vendorIdOrBrand).get();
+  if (snapshot.empty) {
+    snapshot = await productsCol.where('brand', '==', vendorIdOrBrand).get();
+  }
+  if (snapshot.empty) {
+    snapshot = await productsCol.where('vendor', '==', vendorIdOrBrand).get();
+  }
   return snapshot.docs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as Product));
 }
 
@@ -238,26 +244,50 @@ export async function getOrdersByUserId(userId: string): Promise<Order[]> {
  * @param {string} brandName - The name of the vendor.
  * @returns {Promise<Order[]>} A promise that resolves to an array of orders for that vendor.
  */
-export async function getOrdersByVendor(brandName: string): Promise<Order[]> {
-  const vendorProducts = await getProductsByVendor(brandName);
-  const vendorProductNames = vendorProducts.map(p => p.name);
+export async function getOrdersByVendor(vendorIdOrBrand: string): Promise<Order[]> {
+  const ordersCol = db.collection('orders');
+  const ordersMap = new Map<string, any>();
 
-  if (vendorProductNames.length === 0) {
-    return [];
+  // 1. Check orders where vendorIds array contains vendorIdOrBrand
+  try {
+    const directSnapshot = await ordersCol.where('vendorIds', 'array-contains', vendorIdOrBrand).get();
+    directSnapshot.docs.forEach(doc => ordersMap.set(doc.id, doc));
+  } catch (err) {
+    console.warn("Array query warning for vendorIds:", err);
   }
 
-  const ordersCol = db.collection('orders');
-  const snapshot = await ordersCol.where('productName', 'in', vendorProductNames).orderBy('timestamp', 'desc').get();
-  
-  return snapshot.docs.map(doc => {
-      const data = doc.data();
-      const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : new Date(data.timestamp._seconds * 1000).toISOString();
-      return { 
-        id: doc.id, 
-        ...data,
-        timestamp,
-      } as Order
-    });
+  // 2. Fallback to product name matching
+  const vendorProducts = await getProductsByVendor(vendorIdOrBrand);
+  const vendorProductNames = vendorProducts.map(p => p.name);
+
+  if (vendorProductNames.length > 0) {
+    for (let i = 0; i < vendorProductNames.length; i += 30) {
+      const chunk = vendorProductNames.slice(i, i + 30);
+      try {
+        const snap = await ordersCol.where('productName', 'in', chunk).get();
+        snap.docs.forEach(doc => ordersMap.set(doc.id, doc));
+      } catch (err) {
+        console.warn("Product query warning for vendor:", err);
+      }
+    }
+  }
+
+  const allOrders = Array.from(ordersMap.values()).map(doc => {
+    const data = doc.data();
+    let timestamp;
+    if (data.timestamp && typeof data.timestamp.toDate === 'function') {
+      timestamp = data.timestamp.toDate().toISOString();
+    } else if (typeof data.timestamp === 'string') {
+      timestamp = data.timestamp;
+    } else if (data.timestamp && typeof data.timestamp._seconds === 'number') {
+      timestamp = new Date(data.timestamp._seconds * 1000).toISOString();
+    } else {
+      timestamp = new Date().toISOString();
+    }
+    return { id: doc.id, ...data, timestamp } as Order;
+  });
+
+  return allOrders.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
 
@@ -506,7 +536,17 @@ export async function getReviewsByProductId(productId: string): Promise<Review[]
 
   return snapshot.docs.map(doc => {
     const data = doc.data();
-    const timestamp = data.timestamp.toDate ? data.timestamp.toDate().toISOString() : new Date(data.timestamp._seconds * 1000).toISOString();
+    const rawTimestamp = data.timestamp;
+    const reviewDate = rawTimestamp && typeof rawTimestamp.toDate === 'function'
+      ? rawTimestamp.toDate()
+      : rawTimestamp && typeof rawTimestamp._seconds === 'number'
+        ? new Date(rawTimestamp._seconds * 1000)
+        : typeof rawTimestamp === 'string' || typeof rawTimestamp === 'number'
+          ? new Date(rawTimestamp)
+          : null;
+    const timestamp = reviewDate && !Number.isNaN(reviewDate.getTime())
+      ? reviewDate.toISOString()
+      : new Date().toISOString();
     return {
       id: doc.id,
       ...data,

@@ -26,10 +26,19 @@ export function middleware(request: NextRequest) {
     'Permissions-Policy',
     'camera=(), microphone=(), geolocation=()'
   );
-  response.headers.set(
-    'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://placehold.co https://firebasestorage.googleapis.com https://images.pexels.com https://images.unsplash.com; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://api.stripe.com; frame-src 'self' https://js.stripe.com https://hooks.stripe.com;"
-  );
+  const isDev = process.env.NODE_ENV !== 'production';
+
+  const cspDirectives = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://apis.google.com https://www.googletagmanager.com https://*.firebaseio.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: blob: https://placehold.co https://firebasestorage.googleapis.com https://images.pexels.com https://images.unsplash.com https://www.googletagmanager.com https://www.google-analytics.com",
+    "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://firebase.googleapis.com https://firebaseinstallations.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://api.stripe.com https://www.google-analytics.com https://analytics.google.com https://*.google-analytics.com https://stats.g.doubleclick.net" + (isDev ? " ws://localhost:* ws://127.0.0.1:* http://localhost:* http://127.0.0.1:*" : ""),
+    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com;"
+  ].join('; ');
+
+  response.headers.set('Content-Security-Policy', cspDirectives);
   response.headers.delete('X-Powered-By');
 
   if (adminPaths.some(p => pathname.startsWith(p))) {

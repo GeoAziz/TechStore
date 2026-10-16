@@ -38,14 +38,14 @@ type CardProps = {
 };
 
 function ProductCardGrid(props: CardProps) {
-  const { x, y, rotateX, rotateY } = use3DTilt();
+  const { x, y, rotateX, rotateY } = use3DTilt(10);
   const { product } = props;
 
   return (
     <motion.div
-      whileHover={{ scale: 1.06, boxShadow: '0 0 24px hsl(var(--primary) / 0.5)' }}
+      whileHover={{ y: -4 }}
       style={{ perspective: 900 }}
-      className="relative"
+      className="relative h-full"
       onMouseMove={e => {
         const card = e.currentTarget.getBoundingClientRect();
         x.set((e.clientX - card.left) / card.width);
@@ -54,54 +54,90 @@ function ProductCardGrid(props: CardProps) {
       onMouseLeave={() => { x.set(0.5); y.set(0.5); }}
     >
       <motion.div style={{ rotateX, rotateY }} className="h-full">
-        <Card className="glass-panel overflow-hidden group card-glow h-full flex flex-col border border-cyan-400/20 shadow-[0_0_24px_#00fff733] transition-all font-[Orbitron,Space Grotesk,monospace]">
-          <Link href={`/product/${product.id}`} className="block">
-            <div className="relative">
-              <Image src={product.imageUrl} alt={product.name} width={400} height={300} className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint={`${product.category.toLowerCase()} device`} />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/10 opacity-30 group-hover:opacity-60 transition-opacity"></div>
+        <Card className="overflow-hidden group h-full flex flex-col bg-[#12141c]/85 border border-white/10 hover:border-lime-400/40 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] transition-all duration-300 backdrop-blur-md">
+          <Link href={`/product/${product.id}`} className="block relative overflow-hidden">
+            <div className="relative w-full h-48 bg-black/40 flex items-center justify-center p-3">
+              <Image 
+                src={product.imageUrl} 
+                alt={product.name} 
+                width={400} 
+                height={300} 
+                className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" 
+                data-ai-hint={`${product.category.toLowerCase()} device`} 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#12141c] via-transparent to-transparent opacity-60"></div>
               {props.showTrending && (
-                <motion.div className="absolute top-2 left-2" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
-                  <Badge className="bg-cyan-400/90 text-black animate-pulse shadow-[0_0_8px_#00fff7]">{product.promoTag || 'Trending'}</Badge>
-                </motion.div>
+                <div className="absolute top-2.5 left-2.5">
+                  <Badge className="bg-[#bef264] text-black font-extrabold text-[10px] tracking-wider uppercase shadow-[0_0_10px_rgba(190,242,100,0.4)]">
+                    {product.promoTag || 'Trending'}
+                  </Badge>
+                </div>
               )}
               {props.showLowStock && !props.showTrending && (
-                <motion.div className="absolute top-2 right-2" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, delay: 0.2 }}>
-                  <Badge className="bg-pink-600/90 text-white animate-pulse shadow-[0_0_8px_#ff00c8]">Low Stock</Badge>
-                </motion.div>
+                <div className="absolute top-2.5 right-2.5">
+                  <Badge className="bg-amber-500/90 text-black font-bold text-[10px]">Low Stock</Badge>
+                </div>
               )}
               {product.stock === 0 && (
-                <motion.div className="absolute top-2 right-2" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, delay: 0.2 }}>
-                  <Badge variant="destructive" className="bg-red-700/90 text-white shadow-[0_0_8px_#ff0000]">Out of Stock</Badge>
-                </motion.div>
+                <div className="absolute top-2.5 right-2.5">
+                  <Badge variant="destructive" className="bg-red-600/90 text-white font-bold text-[10px]">Out of Stock</Badge>
+                </div>
               )}
             </div>
           </Link>
-          <CardContent className="p-4 flex flex-col flex-grow">
-            <div className='flex-grow'>
-              <p className="text-xs text-muted-foreground">{product.category}</p>
-              <h3 className="text-base font-bold group-hover:text-primary transition-colors font-headline">
+          <CardContent className="p-4 flex flex-col flex-grow justify-between">
+            <div>
+              <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{product.category}</p>
+              <h3 className="text-sm font-bold text-white group-hover:text-lime-300 transition-colors line-clamp-1 mt-0.5">
                 <Link href={`/product/${product.id}`}>{product.name}</Link>
               </h3>
-              <div className="flex items-center gap-1 my-2">
+              <div className="flex items-center gap-1 my-1.5">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className={`w-4 h-4 ${product.averageRating && i < product.averageRating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
+                  <Star key={i} className={`w-3.5 h-3.5 ${product.averageRating && i < product.averageRating ? 'text-[#bef264] fill-[#bef264]' : 'text-white/20'}`} />
                 ))}
-                <span className="text-xs text-muted-foreground ml-1">({product.averageRating})</span>
+                <span className="text-[11px] text-muted-foreground ml-1">({product.averageRating || '5.0'})</span>
               </div>
             </div>
-            <div className="flex justify-between items-center mt-4">
-              <p className="text-lg font-bold text-primary">{product.price.toLocaleString()} {product.currency}</p>
-              <Button variant="ghost" size="icon" onClick={props.handleToggleCart} disabled={props.isPending || product.stock === 0} className="w-9 h-9" aria-label={props.inCart ? 'Remove from cart' : 'Add to cart'}>
-                {props.isPending ? <Loader2 className="animate-spin" /> : props.inCart ? <Check className="text-green-500" /> : <ShoppingCart className="w-5 h-5" />}
-              </Button>
-            </div>
-            <div className="flex gap-2 mt-2">
-              <Button variant={props.isProductInCompare ? "secondary" : "outline"} size="sm" className="w-full" onClick={props.handleToggleCompare}>
-                <Scale className="w-4 h-4 mr-2" /> {props.isProductInCompare ? 'Comparing' : 'Compare'}
-              </Button>
-              <Button variant="outline" size="sm" className="w-full" onClick={props.handleToggleWishlist} disabled={props.isPending}>
-                <Heart className={`w-4 h-4 mr-2 transition-all ${props.isInWishlist ? 'text-red-500 fill-red-500' : ''}`} /> Wishlist
-              </Button>
+
+            <div className="pt-2 border-t border-white/5 mt-2">
+              <div className="flex justify-between items-center mb-2.5">
+                <div>
+                  <span className="text-xs text-muted-foreground font-mono">KES </span>
+                  <span className="text-base font-extrabold text-[#bef264] font-mono">
+                    {product.price.toLocaleString()}
+                  </span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={props.handleToggleCart} 
+                  disabled={props.isPending || product.stock === 0} 
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-[#bef264] hover:text-black border border-white/10 transition-colors" 
+                  aria-label={props.inCart ? 'Remove from cart' : 'Add to cart'}
+                >
+                  {props.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : props.inCart ? <Check className="w-3.5 h-3.5 text-lime-400" /> : <ShoppingCart className="w-3.5 h-3.5" />}
+                </Button>
+              </div>
+
+              <div className="flex gap-2">
+                <Button 
+                  variant={props.isProductInCompare ? "secondary" : "outline"} 
+                  size="sm" 
+                  className="w-full h-7 text-xs rounded-lg border-white/10 hover:border-lime-400/40" 
+                  onClick={props.handleToggleCompare}
+                >
+                  <Scale className="w-3 h-3 mr-1" /> {props.isProductInCompare ? 'Comparing' : 'Compare'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full h-7 text-xs rounded-lg border-white/10 hover:border-lime-400/40" 
+                  onClick={props.handleToggleWishlist} 
+                  disabled={props.isPending}
+                >
+                  <Heart className={`w-3 h-3 mr-1 transition-all ${props.isInWishlist ? 'text-pink-500 fill-pink-500' : ''}`} /> Saved
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -114,44 +150,50 @@ function ProductCardList(props: CardProps) {
   const { product } = props;
 
   return (
-    <motion.div whileHover={{ scale: 1.02, boxShadow: '0 0 32px #00fff733' }} transition={{ type: 'spring', stiffness: 180 }} className="h-full">
-      <Card className="glass-panel overflow-hidden group card-glow flex flex-col sm:flex-row h-full border border-cyan-400/20 shadow-[0_0_24px_#00fff733]">
-        <Link href={`/product/${product.id}`} className="block sm:w-1/3 relative">
-          <Image src={product.imageUrl} alt={product.name} width={400} height={400} className="w-full h-48 sm:h-full object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint={`${product.category.toLowerCase()} electronics`} />
+    <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.2 }} className="h-full">
+      <Card className="overflow-hidden group flex flex-col sm:flex-row h-full bg-[#12141c]/85 border border-white/10 hover:border-lime-400/40 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
+        <Link href={`/product/${product.id}`} className="block sm:w-1/3 relative bg-black/40 p-4 flex items-center justify-center">
+          <Image src={product.imageUrl} alt={product.name} width={400} height={400} className="w-full h-44 object-contain transition-transform duration-300 group-hover:scale-105" data-ai-hint={`${product.category.toLowerCase()} electronics`} />
           {props.showTrending && (
-            <motion.div className="absolute top-2 left-2" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
-              <Badge className="bg-cyan-400/90 text-black animate-pulse shadow-[0_0_8px_#00fff7]">Trending</Badge>
-            </motion.div>
+            <div className="absolute top-2.5 left-2.5">
+              <Badge className="bg-[#bef264] text-black font-extrabold text-[10px] uppercase shadow-[0_0_10px_rgba(190,242,100,0.4)]">Trending</Badge>
+            </div>
           )}
           {props.showLowStock && (
-            <motion.div className="absolute top-2 right-2" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, delay: 0.2 }}>
-              <Badge className="bg-pink-600/90 text-white animate-pulse shadow-[0_0_8px_#ff00c8]">Low Stock</Badge>
-            </motion.div>
+            <div className="absolute top-2.5 right-2.5">
+              <Badge className="bg-amber-500/90 text-black font-bold text-[10px]">Low Stock</Badge>
+            </div>
           )}
         </Link>
-        <CardContent className="p-4 flex flex-col flex-grow sm:w-2/3">
-          <div className='flex-grow'>
+        <CardContent className="p-4 sm:p-6 flex flex-col flex-grow sm:w-2/3 justify-between">
+          <div>
             <div className="flex items-center gap-1">
               {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className={`w-4 h-4 ${product.averageRating && i < product.averageRating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
+                <Star key={i} className={`w-3.5 h-3.5 ${product.averageRating && i < product.averageRating ? 'text-[#bef264] fill-[#bef264]' : 'text-white/20'}`} />
               ))}
-              <span className="text-muted-foreground text-sm">({product.averageRating})</span>
+              <span className="text-muted-foreground text-xs ml-1">({product.averageRating || '5.0'})</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{product.description}</p>
+            <h3 className="text-base font-bold text-white group-hover:text-lime-300 transition-colors mt-1">
+              <Link href={`/product/${product.id}`}>{product.name}</Link>
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">{product.description}</p>
           </div>
-          <div className="flex justify-between items-end mt-4">
-            <p className="text-xl font-bold text-primary">
-              {product.price.toLocaleString()} <span className="text-sm font-normal">{product.currency}</span>
-            </p>
+          <div className="flex justify-between items-end mt-4 pt-3 border-t border-white/5">
+            <div>
+              <span className="text-xs text-muted-foreground font-mono">KES </span>
+              <span className="text-xl font-extrabold text-[#bef264] font-mono">
+                {product.price.toLocaleString()}
+              </span>
+            </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" className="w-8 h-8" onClick={props.handleToggleWishlist} title="Add to Wishlist">
-                <Heart className={`w-4 h-4 transition-all ${props.isInWishlist ? 'text-red-500 fill-red-500' : ''}`} />
+              <Button variant="outline" size="icon" className="w-8 h-8 rounded-full border-white/10" onClick={props.handleToggleWishlist} title="Add to Wishlist">
+                <Heart className={`w-3.5 h-3.5 transition-all ${props.isInWishlist ? 'text-pink-500 fill-pink-500' : ''}`} />
               </Button>
-              <Button variant={props.isProductInCompare ? "secondary" : "outline"} size="icon" className="w-8 h-8" onClick={props.handleToggleCompare} title="Compare">
-                <Scale className="w-4 h-4" />
+              <Button variant={props.isProductInCompare ? "secondary" : "outline"} size="icon" className="w-8 h-8 rounded-full border-white/10" onClick={props.handleToggleCompare} title="Compare">
+                <Scale className="w-3.5 h-3.5" />
               </Button>
-              <Button size="sm" className={`min-w-[90px] ${props.inCart ? 'bg-green-600 hover:bg-green-700' : 'bg-primary/80 hover:bg-primary'} text-primary-foreground`} onClick={props.handleToggleCart} disabled={props.isPending}>
-                {props.isPending ? <Loader2 className="animate-spin" /> : props.inCart ? <><Check className="mr-2"/> In Cart</> : <><ShoppingCart className="w-4 h-4 mr-2" /> Cart</>}
+              <Button size="sm" className={`h-8 rounded-full px-4 text-xs font-bold ${props.inCart ? 'bg-lime-500 text-black' : 'bg-[#bef264] hover:bg-lime-300 text-black'}`} onClick={props.handleToggleCart} disabled={props.isPending}>
+                {props.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : props.inCart ? <><Check className="mr-1 w-3.5 h-3.5"/> In Cart</> : <><ShoppingCart className="w-3.5 h-3.5 mr-1" /> Add to Cart</>}
               </Button>
             </div>
           </div>

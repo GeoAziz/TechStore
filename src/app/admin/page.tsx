@@ -45,13 +45,17 @@ const categoryData = [
 
 const getCustomerAuditLogs = () => [];
 
-export default function AdminPage({ searchParams }: { searchParams?: Promise<{ tab?: string }> }) {
+export default function AdminPage({
+  searchParams,
+  defaultTab: initialTab = "overview",
+  ...rest
+}: any = {}) {
   const { user: currentUser, loading: authLoading, role, isAddProductDialogOpen, setAddProductDialogOpen } = useAuth();
   const { toast } = useToast();
-  const [defaultTab, setDefaultTab] = useState("overview");
+  const [defaultTab, setDefaultTab] = useState(initialTab);
 
   useEffect(() => {
-    searchParams?.then(p => { if (p?.tab) setDefaultTab(p.tab); });
+    searchParams?.then((p: any) => { if (p?.tab) setDefaultTab(p.tab); });
   }, [searchParams]);
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -287,7 +291,7 @@ export default function AdminPage({ searchParams }: { searchParams?: Promise<{ t
         transition={{ duration: 0.5 }}
         className="text-3xl md:text-4xl font-bold mb-6 glow-primary font-['Orbitron',_monospace]">Admin Dashboard</motion.h1>
       
-      <Tabs defaultValue={defaultTab} className="w-full">
+      <Tabs value={defaultTab} onValueChange={setDefaultTab} className="w-full">
         <TabsList className="mb-6 bg-[#18182c]/80 border border-cyan-400/20 rounded-xl shadow-[0_0_16px_#00fff733]">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="inventory"><Warehouse className="mr-2"/>Inventory</TabsTrigger>
