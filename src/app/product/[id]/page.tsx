@@ -5,10 +5,15 @@ import ProductDetailsClient from '@/components/product/product-details-client';
 import type { Product, Review } from '@/lib/types';
 
 export async function generateStaticParams() {
-  const products = await getProducts();
-  return products.map((product) => ({
-    id: product.id,
-  }));
+  try {
+    const products = await getProducts();
+    return products.map((product) => ({
+      id: product.id,
+    }));
+  } catch (error) {
+    console.warn('Failed to fetch static params for /product/[id] during build:', error);
+    return [];
+  }
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {

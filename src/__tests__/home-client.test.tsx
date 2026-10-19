@@ -93,18 +93,20 @@ describe('HomeClient', () => {
 
   it('renders hero section', () => {
     render(<HomeClient trendingProducts={[]} newArrivals={[]} topDeals={[]} />);
-    expect(screen.getByText('Upgrade Your Tech Universe')).toBeInTheDocument();
+    expect(screen.getByText(/Upgrade Your/i)).toBeInTheDocument();
+    expect(screen.getByText(/Everyday Tech\./i)).toBeInTheDocument();
   });
 
   it('renders section headings', () => {
     render(<HomeClient trendingProducts={[]} newArrivals={[]} topDeals={[]} />);
-    expect(screen.getByText('Mission Modules')).toBeInTheDocument();
+    expect(screen.getByText(/Shop By Category/i)).toBeInTheDocument();
   });
 
   it('renders categories', () => {
     render(<HomeClient trendingProducts={[]} newArrivals={[]} topDeals={[]} />);
-    expect(screen.getByText('Gaming Gear')).toBeInTheDocument();
-    expect(screen.getByText('Displays')).toBeInTheDocument();
+    expect(screen.getByText('Smartphones')).toBeInTheDocument();
+    expect(screen.getByText('Laptops')).toBeInTheDocument();
+    expect(screen.getByText('Audio')).toBeInTheDocument();
   });
 
   it('renders recently viewed', () => {

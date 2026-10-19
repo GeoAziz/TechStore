@@ -81,13 +81,23 @@ function renderWithAppRouter(ui: React.ReactElement) {
 }
 
 describe('AdminPage', () => {
+  let isAddProductDialogOpen = false;
+  const setAddProductDialogOpen = jest.fn((val) => {
+    isAddProductDialogOpen = typeof val === 'function' ? val(isAddProductDialogOpen) : val;
+  });
+
   beforeEach(() => {
+    isAddProductDialogOpen = false;
     jest.spyOn(require('@/context/auth-context'), 'useAuth').mockImplementation(() => ({
       user: { uid: 'admin-user', email: 'admin@zizo.net' },
       role: 'admin',
       loading: false,
-      isAddProductDialogOpen: false,
-      setAddProductDialogOpen: jest.fn(),
+      get isAddProductDialogOpen() {
+        return isAddProductDialogOpen;
+      },
+      setAddProductDialogOpen: (val: any) => {
+        setAddProductDialogOpen(val);
+      },
     }));
   });
 
@@ -122,11 +132,10 @@ describe('AdminPage', () => {
       </AuthProvider>
     );
     await waitFor(() => {
-      expect(screen.queryByText(/loader-circle/i)).not.toBeInTheDocument();
+      expect(screen.queryByTestId('admin-loading')).not.toBeInTheDocument();
     });
     const inventoryTab = screen.getByRole('tab', { name: /inventory/i });
     fireEvent.click(inventoryTab);
-    screen.debug();
     const inventoryTable = await screen.findByRole('table', {}, { timeout: 4000 });
     expect(inventoryTable).toBeInTheDocument();
     expect(
@@ -146,9 +155,12 @@ describe('AdminPage', () => {
       </AuthProvider>
     );
     await waitFor(() => {
-      expect(screen.getByText(/no products found/i)).toBeInTheDocument();
-      expect(screen.getByText(/start by adding a new product/i)).toBeInTheDocument();
+      expect(screen.queryByTestId('admin-loading')).not.toBeInTheDocument();
     });
+    const inventoryTab = screen.getByRole('tab', { name: /inventory/i });
+    fireEvent.click(inventoryTab);
+    expect(await screen.findByText(/no products found/i)).toBeInTheDocument();
+    expect(await screen.findByText(/start by adding a new product/i)).toBeInTheDocument();
   });
 
   it('shows out of stock badge for products with stock 0', async () => {
@@ -183,7 +195,12 @@ describe('AdminPage', () => {
         <AdminPage defaultTab="inventory" />
       </AuthProvider>
     );
-    const addButton = screen.getByRole('button', { name: /add new product/i });
+    await waitFor(() => {
+      expect(screen.queryByTestId('admin-loading')).not.toBeInTheDocument();
+    });
+    const inventoryTab = screen.getByRole('tab', { name: /inventory/i });
+    fireEvent.click(inventoryTab);
+    const addButton = await screen.findByRole('button', { name: /add new product/i });
     fireEvent.click(addButton);
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     const cancelButton = screen.getByRole('button', { name: /cancel/i });
@@ -201,11 +218,18 @@ describe('AdminPage', () => {
         <AdminPage defaultTab="inventory" />
       </AuthProvider>
     );
-    const addButton = screen.getByRole('button', { name: /add new product/i });
+    await waitFor(() => {
+      expect(screen.queryByTestId('admin-loading')).not.toBeInTheDocument();
+    });
+    const inventoryTab = screen.getByRole('tab', { name: /inventory/i });
+    fireEvent.click(inventoryTab);
+    const addButton = await screen.findByRole('button', { name: /add new product/i });
     fireEvent.click(addButton);
-    const saveButton = screen.getByRole('button', { name: /save/i });
-    fireEvent.click(saveButton);
-    expect(await screen.findByText(/error/i)).toBeInTheDocument();
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toBeInTheDocument();
+    const form = dialog.querySelector('form')!;
+    fireEvent.submit(form);
+    expect(await screen.findByText(/error/i, {}, { timeout: 4000 })).toBeInTheDocument();
   });
 
   it('handles WebSocket error gracefully', async () => {
@@ -228,6 +252,9 @@ describe('AdminPage', () => {
         <AdminPage />
       </AuthProvider>
     );
+    await waitFor(() => {
+      expect(screen.queryByTestId('admin-loading')).not.toBeInTheDocument();
+    });
     expect(screen.getByText(/admin dashboard/i)).toBeInTheDocument();
     global.WebSocket = originalWebSocket;
   });
@@ -238,6 +265,9 @@ describe('AdminPage', () => {
         <AdminPage />
       </AuthProvider>
     );
+    await waitFor(() => {
+      expect(screen.queryByTestId('admin-loading')).not.toBeInTheDocument();
+    });
     const tab = screen.getByRole('tab', { name: /inventory/i });
     tab.focus();
     expect(tab).toHaveFocus();
@@ -256,20 +286,34 @@ describe('AdminPage', () => {
         <AdminPage />
       </AuthProvider>
     );
-    expect(screen.getByText(/access denied/i)).toBeInTheDocument();
-    expect(screen.getByText(/not authorized/i)).toBeInTheDocument();
+    expect(await screen.findByText(/access denied/i)).toBeInTheDocument();
+    expect(await screen.findByText(/not authorized/i)).toBeInTheDocument();
   });
 
   it('handles large product names and prices', async () => {
+    jest.spyOn(require('@/context/auth-context'), 'useAuth').mockImplementation(() => ({
+      user: { uid: 'admin-user', email: 'admin@zizo.net' },
+      role: 'admin',
+      loading: false,
+      get isAddProductDialogOpen() {
+        return false;
+      },
+      setAddProductDialogOpen: jest.fn(),
+    }));
     const { getProducts } = require('@/lib/firestore-service');
-    getProducts.mockResolvedValueOnce([
+    getProducts.mockImplementationOnce(() => Promise.resolve([
       { id: '3', name: 'Super Ultra Mega Long Product Name That Exceeds Normal Length', price: 99999999, stock: 10, category: 'Laptops', createdAt: new Date().toISOString() }
-    ]);
+    ]));
     renderWithAppRouter(
       <AuthProvider>
         <AdminPage defaultTab="inventory" />
       </AuthProvider>
     );
+    await waitFor(() => {
+      expect(screen.queryByTestId('admin-loading')).not.toBeInTheDocument();
+    });
+    const inventoryTab = screen.getByRole('tab', { name: /inventory/i });
+    fireEvent.click(inventoryTab);
     expect(await screen.findByText(/super ultra mega long product name/i)).toBeInTheDocument();
     expect(await screen.findByText(/99,999,999/i)).toBeInTheDocument();
   });

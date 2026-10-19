@@ -16,6 +16,7 @@ import { UploadCloud } from 'lucide-react';
 interface ProductFormProps {
   product?: Product | null;
   onSubmit: (data: Omit<Product, 'id'> | Product) => void;
+  onCancel?: () => void;
 }
 
 const initialProductState: Omit<Product, 'id' | 'averageRating' | 'isFeatured'> = {
@@ -30,7 +31,7 @@ const initialProductState: Omit<Product, 'id' | 'averageRating' | 'isFeatured'> 
   createdAt: new Date().toISOString(),
 };
 
-export default function ProductForm({ product, onSubmit }: ProductFormProps) {
+export default function ProductForm({ product, onSubmit, onCancel }: ProductFormProps) {
   const [formData, setFormData] = useState(product || initialProductState);
   const [imagePreview, setImagePreview] = useState<string | null>(product?.imageUrl || null);
 
@@ -147,7 +148,16 @@ export default function ProductForm({ product, onSubmit }: ProductFormProps) {
         )}
 
       </div>
-      <DialogFooter>
+      <DialogFooter className="flex gap-2">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={() => {
+            if (onCancel) onCancel();
+          }}
+        >
+          Cancel
+        </Button>
         <Button type="submit">Save Product</Button>
       </DialogFooter>
     </form>

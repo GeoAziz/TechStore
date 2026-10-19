@@ -6,6 +6,19 @@ import { AuthProvider } from '../context/auth-context';
 import { act } from 'react-dom/test-utils';
 import { MemoryRouterProvider } from 'next-router-mock/MemoryRouterProvider';
 
+// Mock WebSocket
+class MockWebSocket {
+  static CONNECTING = 0;
+  static OPEN = 1;
+  static CLOSING = 2;
+  static CLOSED = 3;
+  onopen = jest.fn();
+  onmessage = jest.fn();
+  onerror = jest.fn();
+  close = jest.fn();
+}
+global.WebSocket = MockWebSocket as unknown as typeof WebSocket;
+
 // Mock dependencies
 jest.mock('../lib/firestore-service', () => ({
   getProducts: jest.fn(() => Promise.resolve([])),

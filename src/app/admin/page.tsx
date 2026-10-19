@@ -50,9 +50,21 @@ export default function AdminPage({
   defaultTab: initialTab = "overview",
   ...rest
 }: any = {}) {
-  const { user: currentUser, loading: authLoading, role, isAddProductDialogOpen, setAddProductDialogOpen } = useAuth();
+  const { user: currentUser, loading: authLoading, role, isAddProductDialogOpen: contextAddDialogOpen, setAddProductDialogOpen: contextSetAddDialogOpen } = useAuth();
+  const [localAddDialogOpen, setLocalAddDialogOpen] = useState(false);
+  const isAddProductDialogOpen = contextAddDialogOpen ?? localAddDialogOpen;
+  const setAddProductDialogOpen = (open: boolean) => {
+    setLocalAddDialogOpen(open);
+    if (contextSetAddDialogOpen) {
+      contextSetAddDialogOpen(open);
+    }
+  };
   const { toast } = useToast();
   const [defaultTab, setDefaultTab] = useState(initialTab);
+
+  useEffect(() => {
+    setDefaultTab(initialTab);
+  }, [initialTab]);
 
   useEffect(() => {
     searchParams?.then((p: any) => { if (p?.tab) setDefaultTab(p.tab); });
@@ -112,6 +124,8 @@ export default function AdminPage({
     if (!authLoading) {
       if (currentUser && role === 'admin') {
         fetchData();
+      } else {
+        setLoading(false);
       }
     }
   }, [currentUser, authLoading, role]);
@@ -266,7 +280,7 @@ export default function AdminPage({
 
   if (authLoading || loading) {
     return (
-      <div className="flex justify-center items-center h-full">
+      <div className="flex justify-center items-center h-full" data-testid="admin-loading">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
       </div>
     );
@@ -390,7 +404,10 @@ export default function AdminPage({
                                 <DialogHeader>
                                     <DialogTitle className="glow-primary">Add New Product</DialogTitle>
                                 </DialogHeader>
-                                <ProductForm onSubmit={handleProductSubmit} />
+                                <ProductForm 
+                                  onSubmit={handleProductSubmit} 
+                                  onCancel={() => setAddProductDialogOpen(false)}
+                                />
                             </DialogContent>
                         </Dialog>
                    </div>
