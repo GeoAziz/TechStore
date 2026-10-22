@@ -24,6 +24,7 @@ import { clearCart, getProductById } from '@/lib/firestore-service';
 import { sendOrderToWebhook } from '@/ai/flows/send-order-webhook';
 import { OrderInput } from '@/ai/schemas/order-schema';
 import { getAuth } from 'firebase/auth';
+import { tracker } from '@/lib/analytics/tracker';
 
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -72,6 +73,23 @@ function CheckoutForm() {
       });
     }
   }, [user, reset, getValues]);
+
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      const itemsSubtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+      tracker.track({
+        event: 'begin_checkout',
+        currency: 'KES',
+        value: Number(itemsSubtotal.toFixed(2)),
+        items: cartItems.map(item => ({
+          item_id: item.productId,
+          item_name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+      });
+    }
+  }, [cartItems]);
   
   const onSubmit = async (data: Omit<OrderInput, 'payment' | 'cart' | 'total'>) => {
     if (!stripe || !elements || !user || cartItems.length === 0) {
@@ -143,6 +161,24 @@ function CheckoutForm() {
         }
       };
       
+      const orderId = paymentIntent.id || `ord_${Date.now()}`;
+      const itemsSubtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+      // Track authoritative purchase event
+      await tracker.track({
+        event: 'purchase',
+        transaction_id: orderId,
+        currency: 'KES',
+        value: Number(itemsSubtotal.toFixed(2)),
+        shipping: 25.00,
+        items: cartItems.map(item => ({
+          item_id: item.productId,
+          item_name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+      });
+
       // 3. Send order to fulfillment webhook
       await sendOrderToWebhook(orderData);
       
@@ -151,7 +187,7 @@ function CheckoutForm() {
       
       clearClientCart();
       toast({ title: "Order Submitted", description: "Your order has been sent for processing." });
-      router.push('/order-success');
+      router.push(`/order-success?orderId=${orderId}`);
     } catch (error) {
       toast({
         variant: "destructive",

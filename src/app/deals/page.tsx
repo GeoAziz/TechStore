@@ -8,7 +8,13 @@ import { motion } from 'framer-motion';
 import CopyButton from '@/components/ui/copy-button';
 
 export default async function DealsPage() {
-  const dealProducts = await getDeals();
+  let dealProducts: Product[] = [];
+  try {
+    dealProducts = await getDeals();
+  } catch (err) {
+    console.error('Failed to fetch deals:', err);
+    dealProducts = [];
+  }
 
   return (
     <div className="container py-12">
@@ -21,8 +27,8 @@ export default async function DealsPage() {
         <p className="text-muted-foreground max-w-xl mx-auto mb-6">
             Check out our featured products and special offers. These are the best deals in the OrderVerse right now!
         </p>
-        <div className="inline-flex items-center gap-3 px-4 py-2.5 rounded-full bg-lime-400/10 border border-lime-400/30 text-lime-400 text-xs">
-          <span>Use code <strong className="font-mono text-sm tracking-wider text-white">CYBER10</strong> for 10% off at checkout</span>
+        <div className="inline-flex items-center gap-3 px-4 py-2.5 rounded-full bg-lime-400/10 border border-lime-400/30 text-lime-600 dark:text-lime-400 text-xs">
+          <span>Use code <strong className="font-mono text-sm tracking-wider text-foreground">CYBER10</strong> for 10% off at checkout</span>
           <CopyButton value="CYBER10" label="Copy coupon code" successText="Code Copied!" />
         </div>
       </div>

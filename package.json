@@ -11,7 +11,10 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:seed": "node --import tsx src/scripts/seed.mjs",
-    "test": "jest --passWithNoTests"
+    "test": "jest --passWithNoTests",
+    "test:analytics-gate": "jest tests/analytics-qa/",
+    "simulate:ga4": "node --import tsx src/analytics-qa/adapters/live-dispatcher.ts",
+    "simulate:ga4:dry": "node --import tsx src/analytics-qa/adapters/live-dispatcher.ts --dry"
   },
   "dependencies": {
     "@genkit-ai/firebase": "^1.40.0",

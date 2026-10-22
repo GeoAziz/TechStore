@@ -1,0 +1,63 @@
+{
+  "timestamp": "2026-10-22T03:34:46.044Z",
+  "summary": {
+    "totalRuns": 4,
+    "passedRuns": 4,
+    "failedRuns": 0,
+    "allPassed": true
+  },
+  "runs": [
+    {
+      "runId": "run_500_persona_buyer_kes",
+      "seed": 500,
+      "personaId": "persona_buyer_kes",
+      "passed": true,
+      "violations": [],
+      "metrics": {
+        "expectedCount": 4,
+        "observedCount": 4,
+        "requiredMet": 4,
+        "forbiddenViolated": 0
+      }
+    },
+    {
+      "runId": "run_501_persona_window_kes",
+      "seed": 501,
+      "personaId": "persona_window_kes",
+      "passed": true,
+      "violations": [],
+      "metrics": {
+        "expectedCount": 2,
+        "observedCount": 1,
+        "requiredMet": 1,
+        "forbiddenViolated": 0
+      }
+    },
+    {
+      "runId": "run_502_persona_cart_abandoner_kes",
+      "seed": 502,
+      "personaId": "persona_cart_abandoner_kes",
+      "passed": true,
+      "violations": [],
+      "metrics": {
+        "expectedCount": 3,
+        "observedCount": 2,
+        "requiredMet": 2,
+        "forbiddenViolated": 0
+      }
+    },
+    {
+      "runId": "run_503_persona_consent_denier",
+      "seed": 503,
+      "personaId": "persona_consent_denier",
+      "passed": true,
+      "violations": [],
+      "metrics": {
+        "expectedCount": 1,
+        "observedCount": 0,
+        "requiredMet": 0,
+        "forbiddenViolated": 0
+      }
+    }
+  ]
+}

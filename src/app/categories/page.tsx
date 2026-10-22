@@ -23,7 +23,13 @@ const iconMap: { [key: string]: React.ElementType } = {
 };
 
 export default async function CategoriesPage() {
-  const products = await getProducts();
+  let products: any[] = [];
+  try {
+    products = await getProducts();
+  } catch (err) {
+    console.error('Failed to fetch products for categories:', err);
+    products = [];
+  }
 
   // Aggregate categories dynamically from live Firestore catalog
   const categoryCounts: Record<string, number> = {};

@@ -166,8 +166,8 @@ function HeroSection() {
               {/* Main Visual Image Composition */}
               <div className="relative w-full h-full rounded-3xl overflow-hidden glass-panel border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
                 <Image
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&auto=format&fit=crop&q=80"
-                  alt="Modern Tech Enthusiast"
+                  src="https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=800&auto=format&fit=crop&q=80"
+                  alt="High-Performance PC Rig with Intel i9 and GPU"
                   fill
                   className="object-cover object-center filter brightness-90 contrast-110"
                   priority
@@ -271,12 +271,12 @@ function ShopByCategorySection() {
         
         {/* Section Header */}
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
             Shop By Category
           </h2>
           <Link
             href="/categories"
-            className="text-xs sm:text-sm font-bold text-muted-foreground hover:text-[#bef264] flex items-center gap-1.5 transition-colors group"
+            className="text-xs sm:text-sm font-bold text-muted-foreground hover:text-lime-600 dark:hover:text-[#bef264] flex items-center gap-1.5 transition-colors group"
           >
             <span>View All Categories</span>
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -295,26 +295,26 @@ function ShopByCategorySection() {
             >
               <Link
                 href={cat.href}
-                className="group relative flex flex-col justify-between h-[230px] sm:h-[250px] p-4 rounded-2xl bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-white/10 hover:border-lime-400/40 backdrop-blur-md overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(0,0,0,0.6)]"
+                className="group relative flex flex-col justify-between h-[230px] sm:h-[250px] p-4 rounded-2xl bg-card border border-border hover:border-lime-400/40 backdrop-blur-md overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
               >
                 {/* Product Image on dark reflective pedestal */}
                 <div className="relative w-full h-32 flex items-center justify-center">
-                  <div className="absolute inset-0 bg-radial from-white/10 to-transparent rounded-full opacity-40 group-hover:opacity-75 transition-opacity" />
+                  <div className="absolute inset-0 bg-radial from-muted-foreground/10 to-transparent rounded-full opacity-40 group-hover:opacity-75 transition-opacity" />
                   <Image
                     src={cat.image}
                     alt={cat.name}
                     width={180}
                     height={180}
-                    className="max-h-28 w-auto object-contain transition-transform duration-300 group-hover:scale-110 drop-shadow-[0_10px_15px_rgba(0,0,0,0.7)]"
+                    className="max-h-28 w-auto object-contain transition-transform duration-300 group-hover:scale-110 drop-shadow-md"
                   />
                 </div>
 
                 {/* Card Title & Link */}
-                <div className="mt-auto pt-2 border-t border-white/5">
-                  <h3 className="text-sm sm:text-base font-bold text-white group-hover:text-lime-300 transition-colors">
+                <div className="mt-auto pt-2 border-t border-border">
+                  <h3 className="text-sm sm:text-base font-bold text-foreground group-hover:text-lime-600 dark:group-hover:text-lime-300 transition-colors">
                     {cat.name}
                   </h3>
-                  <div className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground group-hover:text-[#bef264] transition-colors mt-0.5">
+                  <div className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground group-hover:text-lime-600 dark:group-hover:text-[#bef264] transition-colors mt-0.5">
                     <span>Shop Now</span>
                     <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
                   </div>
@@ -332,10 +332,10 @@ function ShopByCategorySection() {
 function SectionHeading({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
   return (
     <div className="flex items-center gap-2.5 mb-6">
-      <div className="w-8 h-8 rounded-lg bg-lime-400/10 border border-lime-400/20 flex items-center justify-center text-[#bef264]">
+      <div className="w-8 h-8 rounded-lg bg-lime-400/10 border border-lime-400/20 flex items-center justify-center text-lime-600 dark:text-[#bef264]">
         <Icon className="w-4 h-4" />
       </div>
-      <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{title}</h2>
+      <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">{title}</h2>
     </div>
   );
 }

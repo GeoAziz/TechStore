@@ -1,5 +1,5 @@
 
-import { getTrendingProducts, getNewArrivals, getDeals } from '@/lib/firestore-service';
+import { getCachedTrendingProducts, getCachedNewArrivals, getCachedDeals } from '@/lib/firestore-service';
 import HomeClient from '@/components/home-client';
 import type { Product } from '@/lib/types';
 
@@ -10,9 +10,9 @@ export default async function Home() {
 
   try {
     [trendingProducts, newArrivals, topDeals] = await Promise.all([
-      getTrendingProducts().catch((): Product[] => []),
-      getNewArrivals().catch((): Product[] => []),
-      getDeals().catch((): Product[] => []),
+      getCachedTrendingProducts().catch((): Product[] => []),
+      getCachedNewArrivals().catch((): Product[] => []),
+      getCachedDeals().catch((): Product[] => []),
     ]);
   } catch {
     // Sections will render empty with error states in client component

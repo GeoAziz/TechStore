@@ -47,7 +47,7 @@ export default function FloatingContact() {
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-label={isOpen ? "Close contact options" : "Open contact options"}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#131622]/90 light:bg-white text-white light:text-slate-900 border border-white/20 light:border-slate-300 shadow-[0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-md hover:border-lime-400/50 hover:text-lime-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-400 focus-visible:ring-offset-2 transition-all duration-200 active:scale-95 group text-xs font-bold"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-card/90 text-foreground border border-border shadow-lg backdrop-blur-md hover:border-lime-400/50 hover:text-lime-500 dark:hover:text-lime-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-400 focus-visible:ring-offset-2 transition-all duration-200 active:scale-95 group text-xs font-bold"
       >
         <MessageCircle className="w-4 h-4 text-lime-400 group-hover:scale-110 transition-transform" />
         <span className="hidden sm:inline">Contact Support</span>

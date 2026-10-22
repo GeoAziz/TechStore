@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, X, Laptop, ArrowRight, BookOpen, HelpCircle, Tag, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { getProducts } from "@/lib/firestore-service";
+import { getCachedProducts } from "@/lib/firestore-service";
 import type { Product } from "@/lib/types";
 
 interface SearchIndexItem {
@@ -50,7 +50,7 @@ export default function SiteSearchDialog({
       setTimeout(() => inputRef.current?.focus(), 50);
       if (products.length === 0) {
         setLoading(true);
-        getProducts()
+        getCachedProducts()
           .then((items) => setProducts(items))
           .catch(() => setProducts([]))
           .finally(() => setLoading(false));

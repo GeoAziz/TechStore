@@ -29,7 +29,7 @@ export default function BackToTop() {
       id="back-to-top"
       onClick={scrollToTop}
       aria-label="Back to top of page"
-      className="fixed bottom-6 right-6 z-40 p-3 rounded-full bg-[#131622]/90 light:bg-white text-white light:text-slate-900 border border-white/20 light:border-slate-300 shadow-[0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-md hover:border-lime-400 hover:text-lime-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-400 focus-visible:ring-offset-2 transition-all duration-300 active:scale-95 group no-print"
+      className="fixed bottom-6 right-6 z-40 p-3 rounded-full bg-card/90 text-foreground border border-border shadow-lg backdrop-blur-md hover:border-lime-400 hover:text-lime-500 dark:hover:text-lime-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-400 focus-visible:ring-offset-2 transition-all duration-300 active:scale-95 group no-print"
     >
       <ArrowUp className="w-5 h-5 transition-transform duration-200 group-hover:-translate-y-1" />
     </button>

@@ -21,6 +21,9 @@ export const mockCollection = (
     get: jest.fn().mockResolvedValue({ docs: _docs }),
     where: jest.fn().mockImplementation(() => chain),
     limit: jest.fn().mockImplementation(() => chain),
+    count: jest.fn().mockReturnValue({
+      get: jest.fn().mockResolvedValue({ data: () => ({ count: _docs.length }) }),
+    }),
     doc: jest.fn().mockReturnThis(),
   };
   return chain;

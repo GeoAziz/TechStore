@@ -21,6 +21,7 @@ import { Textarea } from '../ui/textarea';
 import { useRecentlyViewed } from '@/hooks/use-recently-viewed';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import ProductCard from '@/components/shop/product-card';
+import { tracker } from '@/lib/analytics/tracker';
 
 interface ProductDetailsProps {
   product: Product;
@@ -66,7 +67,22 @@ export default function ProductDetailsClient({ product, initialReviews, relatedP
 
   useEffect(() => {
     addRecentlyViewed(product.id);
-  }, [product.id, addRecentlyViewed]);
+    tracker.track({
+      event: 'view_item',
+      currency: (product.currency as any) || 'KES',
+      value: product.price,
+      items: [
+        {
+          item_id: product.id,
+          item_name: product.name,
+          price: product.price,
+          quantity: 1,
+          item_category: product.category,
+          item_brand: product.brand,
+        },
+      ],
+    });
+  }, [product, addRecentlyViewed]);
   
   useEffect(() => {
     if (user) {
@@ -108,6 +124,39 @@ export default function ProductDetailsClient({ product, initialReviews, relatedP
       if (result.success) {
         setInCart(!inCart);
         toast({ title: "Success", description: result.message });
+        if (!inCart) {
+          tracker.track({
+            event: 'add_to_cart',
+            currency: (product.currency as any) || 'KES',
+            value: product.price,
+            items: [
+              {
+                item_id: product.id,
+                item_name: product.name,
+                price: product.price,
+                quantity: 1,
+                item_category: product.category,
+                item_brand: product.brand,
+              },
+            ],
+          });
+        } else {
+          tracker.track({
+            event: 'remove_from_cart',
+            currency: (product.currency as any) || 'KES',
+            value: product.price,
+            items: [
+              {
+                item_id: product.id,
+                item_name: product.name,
+                price: product.price,
+                quantity: 1,
+                item_category: product.category,
+                item_brand: product.brand,
+              },
+            ],
+          });
+        }
       } else {
         toast({ variant: "destructive", title: "Error", description: result.message });
       }

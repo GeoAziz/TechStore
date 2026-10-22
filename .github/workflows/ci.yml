@@ -34,6 +34,19 @@ jobs:
         env:
           CI: true
 
+      - name: Run Commerce Analytics Quality Gate
+        run: npm run test:analytics-gate
+        env:
+          CI: true
+
+      - name: Upload Analytics Quality Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: analytics-quality-reports
+          path: reports/
+          retention-days: 14
+
       - name: Build Next.js application
         run: npm run build
         env:

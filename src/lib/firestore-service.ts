@@ -16,7 +16,7 @@ export type AuditLog = {
 };
 
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_cache } from 'next/cache';
 import { cookies } from 'next/headers';
 
 const runGenkitFlow = async (flow: string, params: Record<string, any>) => {
@@ -76,6 +76,56 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 /**
+ * Cached version of getProducts for read-heavy public pages (5 min TTL).
+ */
+export const getCachedProducts = unstable_cache(
+  async () => getProducts(),
+  ['all-products-cache'],
+  { revalidate: 300, tags: ['products'] }
+);
+
+/**
+ * Lightweight query to fetch related products by category or brand without full table scan.
+ */
+export async function getRelatedProducts(productId: string, category?: string, brand?: string, limitCount = 4): Promise<Product[]> {
+  const productsCol = db.collection('products');
+  let products: Product[] = [];
+  
+  if (category) {
+    const snap = await productsCol.where('category', '==', category).limit(limitCount + 1).get();
+    products = snap.docs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as Product));
+  } else if (brand) {
+    const snap = await productsCol.where('brand', '==', brand).limit(limitCount + 1).get();
+    products = snap.docs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as Product));
+  }
+
+  return products.filter(p => p.id !== productId).slice(0, limitCount);
+}
+
+/**
+ * Aggregates collection counts without downloading document contents.
+ * Uses Firestore Count Aggregation for ultra-low read cost (1 read per 1000 index items).
+ */
+export async function getSystemCounts(): Promise<{ orders: number; inventory: number; users: number }> {
+  try {
+    const [ordersCountSnap, productsCountSnap, usersCountSnap] = await Promise.all([
+      db.collection('orders').count().get(),
+      db.collection('products').count().get(),
+      db.collection('users').count().get(),
+    ]);
+
+    return {
+      orders: ordersCountSnap.data().count,
+      inventory: productsCountSnap.data().count,
+      users: usersCountSnap.data().count,
+    };
+  } catch (error) {
+    console.warn('Count aggregation failed, falling back to basic query:', error);
+    return { orders: 0, inventory: 0, users: 0 };
+  }
+}
+
+/**
  * Fetches a single product by its ID from the 'products' collection.
  * @param {string} id - The ID of the product to fetch.
  * @returns {Promise<Product | null>} A promise that resolves to the product or null if not found.
@@ -121,7 +171,23 @@ export async function getProductsByVendor(vendorIdOrBrand: string): Promise<Prod
   return snapshot.docs.map(doc => ({ id: doc.id, ...serializeTimestamp(doc.data()) } as Product));
 }
 
-// --- Dynamic Homepage Section Fetchers ---
+export const getCachedTrendingProducts = unstable_cache(
+  async () => getTrendingProducts(),
+  ['trending-products-cache'],
+  { revalidate: 300, tags: ['products'] }
+);
+
+export const getCachedNewArrivals = unstable_cache(
+  async () => getNewArrivals(),
+  ['new-arrivals-cache'],
+  { revalidate: 300, tags: ['products'] }
+);
+
+export const getCachedDeals = unstable_cache(
+  async () => getDeals(),
+  ['deals-cache'],
+  { revalidate: 300, tags: ['products'] }
+);
 
 /**
  * Fetches trending products. Logic: highest views, then most orders.

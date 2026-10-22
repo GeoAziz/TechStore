@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="CommerceAnalyticsSimulator" tests="4" failures="0" errors="0" time="0.05">
+  <testsuite name="AnalyticsQualityGate" tests="4" failures="0" errors="0">
+    <testcase name="[Seed:500] persona_buyer_kes" classname="CommerceAnalyticsSimulator" time="0.01">
+    </testcase>
+    <testcase name="[Seed:501] persona_window_kes" classname="CommerceAnalyticsSimulator" time="0.01">
+    </testcase>
+    <testcase name="[Seed:502] persona_cart_abandoner_kes" classname="CommerceAnalyticsSimulator" time="0.01">
+    </testcase>
+    <testcase name="[Seed:503] persona_consent_denier" classname="CommerceAnalyticsSimulator" time="0.01">
+    </testcase>
+  </testsuite>
+</testsuites>

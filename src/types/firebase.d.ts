@@ -55,4 +55,5 @@ declare module 'firebase/auth' {
 declare module 'firebase/analytics' {
   export function getAnalytics(app?: any): any;
   export function isSupported(): Promise<boolean>;
+  export function logEvent(analyticsInstance: any, eventName: string, eventParams?: any): void;
 }

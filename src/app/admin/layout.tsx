@@ -4,10 +4,38 @@
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
-import { Loader2, Warehouse, PanelLeft, Bot, Bell, Activity, Rocket, User, Settings, LogOut, UploadCloud, Save, UserCircle, PlusCircle, BarChart, Users as UsersIcon, Package, CheckCheck } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  ShoppingBag, 
+  Package, 
+  Users, 
+  BarChart3, 
+  FileText, 
+  User, 
+  PanelLeft, 
+  Bot, 
+  Bell, 
+  Settings, 
+  LogOut, 
+  PlusCircle, 
+  CheckCheck, 
+  Loader2,
+  Warehouse,
+  Activity,
+  Rocket,
+  UploadCloud,
+  Save,
+  UserCircle,
+  BarChart,
+  Users as UsersIcon,
+  Tag,
+  ChevronRight,
+  TrendingUp,
+  Mail
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import Logo from '@/components/layout/logo';
 import {
   DropdownMenu,
@@ -26,7 +54,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { getOrders, getProducts, getUsers } from '@/lib/firestore-service';
+import { getSystemCounts } from '@/lib/firestore-service';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc } from 'firebase/firestore';
@@ -46,8 +74,15 @@ interface Notification {
 }
 
 const navItems = [
-    { href: "/admin", icon: Warehouse, label: "Dashboard" },
-    { href: "/admin/profile", icon: User, label: "Profile" },
+    { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/admin?tab=overview", icon: BarChart3, label: "Analytics" },
+    { href: "/admin?tab=inventory", icon: Package, label: "Products" },
+    { href: "/deals", icon: Tag, label: "Offers" },
+    { href: "/admin?tab=inventory", icon: Warehouse, label: "Inventory" },
+    { href: "/admin?tab=orders", icon: ShoppingBag, label: "Orders" },
+    { href: "/admin?tab=customers", icon: Users, label: "Customer" },
+    { href: "/admin?tab=logs", icon: FileText, label: "Audit Logs" },
+    { href: "/admin/profile", icon: Settings, label: "Settings" },
 ];
 
 function FloatingActionButton({ onAddProductClick }: { onAddProductClick: () => void }) {
@@ -118,15 +153,11 @@ function SystemStatusBar() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const [ordersData, productsData, usersData] = await Promise.all([
-                    getOrders(),
-                    getProducts(),
-                    getUsers(),
-                ]);
+                const counts = await getSystemCounts();
                 setStats({
-                    orders: ordersData.length,
-                    inventory: productsData.length,
-                    users: usersData.length,
+                    orders: counts.orders,
+                    inventory: counts.inventory,
+                    users: counts.users,
                     loading: false,
                 });
             } catch (error) {
@@ -136,7 +167,7 @@ function SystemStatusBar() {
         };
 
         fetchStats();
-        const interval = setInterval(fetchStats, 30000); // Refresh every 30 seconds
+        const interval = setInterval(fetchStats, 60000); // Refresh every 60 seconds
         return () => clearInterval(interval);
     }, []);
 
@@ -404,30 +435,54 @@ function AdminHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
 
 function AdminSidebar({isSidebarOpen, setSidebarOpen}: { isSidebarOpen: boolean; setSidebarOpen: (open: boolean) => void }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams?.get('tab') || 'overview';
   
   return (
-    <aside className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-primary/20 bg-background/90 backdrop-blur-lg transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-border bg-card/95 backdrop-blur-xl transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="flex h-full max-h-screen flex-col gap-2">
-        <div className="flex h-16 items-center border-b border-primary/20 px-6">
+        <div className="flex h-16 items-center border-b border-border px-6">
           <Link href="/" className="flex items-center gap-2 font-semibold">
             <Logo className="h-6 w-auto" />
           </Link>
         </div>
-        <div className="flex-1 overflow-auto py-2">
-          <nav className="grid items-start px-4 text-sm font-mono font-bold">
-            {navItems.map((item, index) => (
-              <motion.div key={item.href} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 * (index + 1) }}>
-                <Link href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-accent hover:bg-accent/10 ${pathname === item.href ? 'bg-muted text-primary neon-glow' : 'text-muted-foreground'}`}>
-                  <item.icon className="h-5 w-5 neon-glow" />
-                  {item.label}
+        <div className="flex-1 overflow-auto py-4">
+          <div className="px-6 mb-2">
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Main Menu</p>
+          </div>
+          <nav className="grid items-start px-3 text-sm font-medium gap-1.5">
+            {navItems.map((item, index) => {
+              const Icon = item.icon;
+              const itemTab = item.href.includes('tab=') ? item.href.split('tab=')[1] : (item.href === '/admin' ? 'overview' : null);
+              const isActive = itemTab 
+                ? (pathname === '/admin' && currentTab === itemTab)
+                : pathname === item.href;
+
+              return (
+                <Link
+                  key={`${item.href}-${item.label}`}
+                  href={item.href}
+                  className={`group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 transition-all text-xs font-semibold ${
+                    isActive
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30 shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className={`h-4 w-4 transition-colors ${isActive ? 'text-emerald-500' : 'text-muted-foreground group-hover:text-foreground'}`} />
+                    <span>{item.label}</span>
+                  </div>
+                  {isActive && (
+                    <ChevronRight className="w-3.5 h-3.5 text-emerald-500 animate-in fade-in" />
+                  )}
                 </Link>
-              </motion.div>
-            ))}
+              );
+            })}
           </nav>
         </div>
-        <div className="mt-auto p-4">
-          <Button variant="outline" className="w-full border-accent text-accent hover:bg-accent/10">
-            <Bot className="w-4 h-4 mr-2 animate-pulse" /> AI Assistant
+        <div className="mt-auto p-4 border-t border-border">
+          <Button variant="outline" className="w-full border-border text-foreground hover:bg-muted text-xs rounded-xl">
+            <Bot className="w-3.5 h-3.5 mr-2 text-lime-500" /> AI Assistant
           </Button>
         </div>
       </div>

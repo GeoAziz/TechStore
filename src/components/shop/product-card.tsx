@@ -15,6 +15,7 @@ import { useState, useEffect, useTransition } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { useCompare } from '@/context/compare-context';
 import { useCart } from '@/context/cart-context';
+import { tracker } from '@/lib/analytics/tracker';
 
 function use3DTilt(max = 18) {
   const x = useMotionValue(0);
@@ -54,9 +55,9 @@ function ProductCardGrid(props: CardProps) {
       onMouseLeave={() => { x.set(0.5); y.set(0.5); }}
     >
       <motion.div style={{ rotateX, rotateY }} className="h-full">
-        <Card className="overflow-hidden group h-full flex flex-col bg-[#12141c]/85 border border-white/10 hover:border-lime-400/40 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] transition-all duration-300 backdrop-blur-md">
+        <Card className="overflow-hidden group h-full flex flex-col bg-card border border-border hover:border-lime-400/40 rounded-2xl shadow-sm hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] transition-all duration-300 backdrop-blur-md">
           <Link href={`/product/${product.id}`} className="block relative overflow-hidden">
-            <div className="relative w-full h-48 bg-black/40 flex items-center justify-center p-3">
+            <div className="relative w-full h-48 bg-muted/40 dark:bg-black/40 flex items-center justify-center p-3">
               <Image 
                 src={product.imageUrl} 
                 alt={product.name} 
@@ -65,7 +66,7 @@ function ProductCardGrid(props: CardProps) {
                 className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" 
                 data-ai-hint={`${product.category.toLowerCase()} device`} 
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#12141c] via-transparent to-transparent opacity-60"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent opacity-60"></div>
               {props.showTrending && (
                 <div className="absolute top-2.5 left-2.5">
                   <Badge className="bg-[#bef264] text-black font-extrabold text-[10px] tracking-wider uppercase shadow-[0_0_10px_rgba(190,242,100,0.4)]">
@@ -88,22 +89,22 @@ function ProductCardGrid(props: CardProps) {
           <CardContent className="p-4 flex flex-col flex-grow justify-between">
             <div>
               <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{product.category}</p>
-              <h3 className="text-sm font-bold text-white group-hover:text-lime-300 transition-colors line-clamp-1 mt-0.5">
+              <h3 className="text-sm font-bold text-foreground group-hover:text-lime-600 dark:group-hover:text-lime-300 transition-colors line-clamp-1 mt-0.5">
                 <Link href={`/product/${product.id}`}>{product.name}</Link>
               </h3>
               <div className="flex items-center gap-1 my-1.5">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className={`w-3.5 h-3.5 ${product.averageRating && i < product.averageRating ? 'text-[#bef264] fill-[#bef264]' : 'text-white/20'}`} />
+                  <Star key={i} className={`w-3.5 h-3.5 ${product.averageRating && i < product.averageRating ? 'text-[#bef264] fill-[#bef264]' : 'text-muted-foreground/30'}`} />
                 ))}
                 <span className="text-[11px] text-muted-foreground ml-1">({product.averageRating || '5.0'})</span>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-white/5 mt-2">
+            <div className="pt-2 border-t border-border mt-2">
               <div className="flex justify-between items-center mb-2.5">
                 <div>
                   <span className="text-xs text-muted-foreground font-mono">KES </span>
-                  <span className="text-base font-extrabold text-[#bef264] font-mono">
+                  <span className="text-base font-extrabold text-lime-600 dark:text-[#bef264] font-mono">
                     {product.price.toLocaleString()}
                   </span>
                 </div>
@@ -112,10 +113,10 @@ function ProductCardGrid(props: CardProps) {
                   size="icon" 
                   onClick={props.handleToggleCart} 
                   disabled={props.isPending || product.stock === 0} 
-                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-[#bef264] hover:text-black border border-white/10 transition-colors" 
+                  className="w-8 h-8 rounded-full bg-secondary/80 hover:bg-[#bef264] hover:text-black border border-border transition-colors" 
                   aria-label={props.inCart ? 'Remove from cart' : 'Add to cart'}
                 >
-                  {props.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : props.inCart ? <Check className="w-3.5 h-3.5 text-lime-400" /> : <ShoppingCart className="w-3.5 h-3.5" />}
+                  {props.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : props.inCart ? <Check className="w-3.5 h-3.5 text-lime-500" /> : <ShoppingCart className="w-3.5 h-3.5" />}
                 </Button>
               </div>
 
@@ -123,7 +124,7 @@ function ProductCardGrid(props: CardProps) {
                 <Button 
                   variant={props.isProductInCompare ? "secondary" : "outline"} 
                   size="sm" 
-                  className="w-full h-7 text-xs rounded-lg border-white/10 hover:border-lime-400/40" 
+                  className="w-full h-7 text-xs rounded-lg border-border hover:border-lime-400/40" 
                   onClick={props.handleToggleCompare}
                 >
                   <Scale className="w-3 h-3 mr-1" /> {props.isProductInCompare ? 'Comparing' : 'Compare'}
@@ -131,7 +132,7 @@ function ProductCardGrid(props: CardProps) {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="w-full h-7 text-xs rounded-lg border-white/10 hover:border-lime-400/40" 
+                  className="w-full h-7 text-xs rounded-lg border-border hover:border-lime-400/40" 
                   onClick={props.handleToggleWishlist} 
                   disabled={props.isPending}
                 >
@@ -151,8 +152,8 @@ function ProductCardList(props: CardProps) {
 
   return (
     <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.2 }} className="h-full">
-      <Card className="overflow-hidden group flex flex-col sm:flex-row h-full bg-[#12141c]/85 border border-white/10 hover:border-lime-400/40 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
-        <Link href={`/product/${product.id}`} className="block sm:w-1/3 relative bg-black/40 p-4 flex items-center justify-center">
+      <Card className="overflow-hidden group flex flex-col sm:flex-row h-full bg-card border border-border hover:border-lime-400/40 rounded-2xl shadow-sm hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
+        <Link href={`/product/${product.id}`} className="block sm:w-1/3 relative bg-muted/40 dark:bg-black/40 p-4 flex items-center justify-center">
           <Image src={product.imageUrl} alt={product.name} width={400} height={400} className="w-full h-44 object-contain transition-transform duration-300 group-hover:scale-105" data-ai-hint={`${product.category.toLowerCase()} electronics`} />
           {props.showTrending && (
             <div className="absolute top-2.5 left-2.5">
@@ -169,27 +170,27 @@ function ProductCardList(props: CardProps) {
           <div>
             <div className="flex items-center gap-1">
               {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className={`w-3.5 h-3.5 ${product.averageRating && i < product.averageRating ? 'text-[#bef264] fill-[#bef264]' : 'text-white/20'}`} />
+                <Star key={i} className={`w-3.5 h-3.5 ${product.averageRating && i < product.averageRating ? 'text-[#bef264] fill-[#bef264]' : 'text-muted-foreground/30'}`} />
               ))}
               <span className="text-muted-foreground text-xs ml-1">({product.averageRating || '5.0'})</span>
             </div>
-            <h3 className="text-base font-bold text-white group-hover:text-lime-300 transition-colors mt-1">
+            <h3 className="text-base font-bold text-foreground group-hover:text-lime-600 dark:group-hover:text-lime-300 transition-colors mt-1">
               <Link href={`/product/${product.id}`}>{product.name}</Link>
             </h3>
             <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">{product.description}</p>
           </div>
-          <div className="flex justify-between items-end mt-4 pt-3 border-t border-white/5">
+          <div className="flex justify-between items-end mt-4 pt-3 border-t border-border">
             <div>
               <span className="text-xs text-muted-foreground font-mono">KES </span>
-              <span className="text-xl font-extrabold text-[#bef264] font-mono">
+              <span className="text-xl font-extrabold text-lime-600 dark:text-[#bef264] font-mono">
                 {product.price.toLocaleString()}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" className="w-8 h-8 rounded-full border-white/10" onClick={props.handleToggleWishlist} title="Add to Wishlist">
+              <Button variant="outline" size="icon" className="w-8 h-8 rounded-full border-border" onClick={props.handleToggleWishlist} title="Add to Wishlist">
                 <Heart className={`w-3.5 h-3.5 transition-all ${props.isInWishlist ? 'text-pink-500 fill-pink-500' : ''}`} />
               </Button>
-              <Button variant={props.isProductInCompare ? "secondary" : "outline"} size="icon" className="w-8 h-8 rounded-full border-white/10" onClick={props.handleToggleCompare} title="Compare">
+              <Button variant={props.isProductInCompare ? "secondary" : "outline"} size="icon" className="w-8 h-8 rounded-full border-border" onClick={props.handleToggleCompare} title="Compare">
                 <Scale className="w-3.5 h-3.5" />
               </Button>
               <Button size="sm" className={`h-8 rounded-full px-4 text-xs font-bold ${props.inCart ? 'bg-lime-500 text-black' : 'bg-[#bef264] hover:bg-lime-300 text-black'}`} onClick={props.handleToggleCart} disabled={props.isPending}>
@@ -246,6 +247,39 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
         toast({ variant: 'destructive', title: "Error", description: result.message });
       } else {
         toast({ title: inCart ? "Removed from cart" : "Added to cart" });
+        if (!inCart) {
+          tracker.track({
+            event: 'add_to_cart',
+            currency: (product.currency as any) || 'KES',
+            value: product.price,
+            items: [
+              {
+                item_id: product.id,
+                item_name: product.name,
+                price: product.price,
+                quantity: 1,
+                item_category: product.category,
+                item_brand: product.brand,
+              },
+            ],
+          });
+        } else {
+          tracker.track({
+            event: 'remove_from_cart',
+            currency: (product.currency as any) || 'KES',
+            value: product.price,
+            items: [
+              {
+                item_id: product.id,
+                item_name: product.name,
+                price: product.price,
+                quantity: 1,
+                item_category: product.category,
+                item_brand: product.brand,
+              },
+            ],
+          });
+        }
       }
     });
   };

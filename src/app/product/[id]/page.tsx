@@ -1,12 +1,12 @@
 
-import { getProductById, getProducts, getReviewsByProductId } from '@/lib/firestore-service';
+import { getProductById, getCachedProducts, getRelatedProducts, getReviewsByProductId } from '@/lib/firestore-service';
 import { notFound } from 'next/navigation';
 import ProductDetailsClient from '@/components/product/product-details-client';
 import type { Product, Review } from '@/lib/types';
 
 export async function generateStaticParams() {
   try {
-    const products = await getProducts();
+    const products = await getCachedProducts();
     return products.map((product) => ({
       id: product.id,
     }));
@@ -55,11 +55,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     shippingTime: product.shippingTime,
   };
 
-  // Fetch related products from same category or brand
-  const allProducts = await getProducts();
-  const relatedProducts = allProducts
-    .filter(p => p.id !== product.id && (p.category === product.category || p.brand === product.brand))
-    .slice(0, 4);
+  // Fetch related products directly with limit instead of scanning entire collection
+  const relatedProducts = await getRelatedProducts(product.id, product.category, product.brand, 4);
 
   return (
     <ProductDetailsClient 

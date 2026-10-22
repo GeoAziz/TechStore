@@ -4,6 +4,7 @@ jest.mock('../firebase-admin', () => ({
 }));
 jest.mock('next/cache', () => ({
     revalidatePath: jest.fn(),
+    unstable_cache: (fn: any) => fn,
 }));
 jest.mock('@/lib/firebase', () => ({
   db: require('../__mocks__/firestore-mock').mockDb,

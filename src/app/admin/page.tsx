@@ -1,6 +1,6 @@
 "use client";
 import { useAuth } from '@/context/auth-context';
-import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, useMemo, useTransition } from 'react';
 import React from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -34,6 +34,15 @@ import { format } from 'date-fns';
 import type { ProductCategory } from '@/lib/types';
 import { deleteMultipleProducts, updateOrderStatus, getAuditLogs } from '@/lib/firestore-service';
 import CustomerManagement from '@/components/admin/customer-management';
+import { SaledashHeader } from '@/components/admin/saledash/saledash-header';
+import { SaledashKpis } from '@/components/admin/saledash/saledash-kpis';
+import { SaledashSalesReport } from '@/components/admin/saledash/saledash-sales-report';
+import { SaledashTopProducts } from '@/components/admin/saledash/saledash-top-products';
+import { SaledashTransactions } from '@/components/admin/saledash/saledash-transactions';
+import { PixelHeader } from '@/components/admin/pixel/pixel-header';
+import { PixelHeroCards } from '@/components/admin/pixel/pixel-hero-cards';
+import { PixelSalesAnalytic } from '@/components/admin/pixel/pixel-sales-analytic';
+import { PixelTopProducts } from '@/components/admin/pixel/pixel-top-products';
 
 const categoryData = [
   { name: 'Electronics' },
@@ -60,11 +69,17 @@ export default function AdminPage({
     }
   };
   const { toast } = useToast();
-  const [defaultTab, setDefaultTab] = useState(initialTab);
+  const queryParams = useSearchParams();
+  const urlTab = queryParams?.get('tab');
+  const [defaultTab, setDefaultTab] = useState(urlTab || initialTab);
 
   useEffect(() => {
-    setDefaultTab(initialTab);
-  }, [initialTab]);
+    if (urlTab) {
+      setDefaultTab(urlTab);
+    } else {
+      setDefaultTab(initialTab);
+    }
+  }, [urlTab, initialTab]);
 
   useEffect(() => {
     searchParams?.then((p: any) => { if (p?.tab) setDefaultTab(p.tab); });
@@ -249,31 +264,49 @@ export default function AdminPage({
     }
   }, [authLoading, currentUser, role]);
 
-  // WebSocket client for real-time updates
+  // WebSocket client for real-time updates (graceful fallback)
   useEffect(() => {
     let ws: WebSocket | null = null;
     if (typeof window !== 'undefined') {
-      // Use wss://yourdomain:4001 in production, ws://localhost:4001 in development
-      const wsUrl = process.env.NODE_ENV === 'production'
-        ? 'wss://yourdomain.com:4001'
-        : 'ws://localhost:4001';
-      ws = new WebSocket(wsUrl);
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'order' || data.type === 'log') {
-          fetchData(); // Refresh data on update
-          toast({ title: 'Real-time Update', description: data.message || 'Order/log updated.' });
-        }
-      };
-      ws.onopen = () => {
-        console.log('WebSocket connected');
-      };
-      ws.onerror = (err) => {
-        console.error('WebSocket error:', err);
-      };
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 
+        (process.env.NODE_ENV === 'production' ? 'wss://yourdomain.com:4001' : 'ws://localhost:4001');
+
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'order' || data.type === 'log') {
+              fetchData();
+              toast({ title: 'Real-time Update', description: data.message || 'Order/log updated.' });
+            }
+          } catch {
+            // ignore non-json messages
+          }
+        };
+        ws.onopen = () => {
+          console.log('WebSocket connected');
+        };
+        ws.onerror = (err) => {
+          // Graceful handling when standalone WS microservice is offline
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('Real-time WebSocket server at port 4001 is offline. Polling fallback is active.');
+          } else {
+            console.error('WebSocket error:', err);
+          }
+        };
+      } catch (e) {
+        console.warn('Could not initialize WebSocket connection:', e);
+      }
     }
     return () => {
-      if (ws) ws.close();
+      if (ws) {
+        try {
+          ws.close();
+        } catch {
+          // ignore
+        }
+      }
     };
   }, []);
 
@@ -298,60 +331,44 @@ export default function AdminPage({
   }
 
   return (
-    <div>
-      <motion.h1 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-3xl md:text-4xl font-bold mb-6 glow-primary font-['Orbitron',_monospace]">Admin Dashboard</motion.h1>
+    <div className="space-y-6">
+      <PixelHeader 
+        title="Overview" 
+        notificationsCount={orders.filter(o => o.status === 'Processing').length} 
+      />
       
       <Tabs value={defaultTab} onValueChange={setDefaultTab} className="w-full">
-        <TabsList className="mb-6 bg-[#18182c]/80 border border-cyan-400/20 rounded-xl shadow-[0_0_16px_#00fff733]">
+        {/* Screen-reader tab trigger hooks to keep accessibility and test selectors intact without visual duplication */}
+        <TabsList className="sr-only">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="inventory"><Warehouse className="mr-2"/>Inventory</TabsTrigger>
-          <TabsTrigger value="orders"><Package className="mr-2"/>Orders</TabsTrigger>
-          <TabsTrigger value="customers"><Users className="mr-2"/>Customers</TabsTrigger>
-          <TabsTrigger value="logs"><Activity className="mr-2"/>System Logs</TabsTrigger>
+          <TabsTrigger value="inventory">Inventory</TabsTrigger>
+          <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="customers">Customers</TabsTrigger>
+          <TabsTrigger value="logs">System Logs</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="overview">
-             <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  <Card className="glass-panel">
-                      <CardHeader className="flex flex-row items-center justify-between pb-2">
-                          <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                          <DollarSign className="w-4 h-4 text-muted-foreground"/>
-                      </CardHeader>
-                      <CardContent>
-                          <div className="text-2xl font-bold text-primary">KES {totalSales.toLocaleString()}</div>
-                          <p className="text-xs text-muted-foreground">All-time sales</p>
-                      </CardContent>
-                  </Card>
-                    <Card className="glass-panel">
-                      <CardHeader className="flex flex-row items-center justify-between pb-2">
-                          <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-                          <Package className="w-4 h-4 text-muted-foreground"/>
-                      </CardHeader>
-                      <CardContent>
-                          <div className="text-2xl font-bold">+{orders.length}</div>
-                          <p className="text-xs text-muted-foreground">All-time order count</p>
-                      </CardContent>
-                  </Card>
-                    <Card className="glass-panel">
-                      <CardHeader className="flex flex-row items-center justify-between pb-2">
-                          <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                          <Users className="w-4 h-4 text-muted-foreground"/>
-                      </CardHeader>
-                      <CardContent>
-                          <div className="text-2xl font-bold">{users.length}</div>
-                          <p className="text-xs text-muted-foreground">Total registered users</p>
-                      </CardContent>
-                  </Card>
-              </motion.div>
-              <AnalyticsCharts orders={orders} users={users} products={products} />
+        <TabsContent value="overview" className="space-y-6">
+          {/* Top 4 Saledash KPI Metric Cards */}
+          <SaledashKpis products={products} orders={orders} />
+          {/* Pixel Commerce: 2 Hero Cards (Total Revenue & Total Order) */}
+          <PixelHeroCards orders={orders} totalRevenue={totalSales} />
+
+          {/* Saledash Main Grid: Sales Report Chart (Left 2/3) + Top Products Spotlight (Right 1/3) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <SaledashSalesReport orders={orders} totalRevenue={totalSales} />
+            </div>
+            <div className="lg:col-span-1">
+              <SaledashTopProducts products={products} />
+            </div>
+          </div>
+          {/* Pixel Commerce: Sales Analytic Dual-Wave Chart */}
+          <PixelSalesAnalytic orders={orders} totalRevenue={totalSales} />
+
+          {/* Saledash Last Transactions Table */}
+          <SaledashTransactions orders={orders} />
+          {/* Pixel Commerce: Top Selling Products Card Row */}
+          <PixelTopProducts products={products} />
         </TabsContent>
 
         <TabsContent value="inventory">
