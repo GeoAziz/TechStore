@@ -1,5 +1,6 @@
 import { getCookieConsent } from '@/components/compliance/cookie-consent';
-import { GA4CommerceEvent } from '@/analytics-qa/contracts/events';
+import { GA4CommerceEvent } from '@/contracts/analytics/events';
+import { sanitizeAnalyticsPayload } from '@/contracts/analytics/privacy';
 import { app } from '@/lib/firebase';
 
 export interface DispatchResult {
@@ -11,6 +12,7 @@ export interface DispatchResult {
 export class StorefrontAnalyticsTracker {
   private static instance: StorefrontAnalyticsTracker;
   private dispatchedPurchases = new Set<string>();
+  private trackedPageViews = new Set<string>();
 
   private constructor() {
     // Rehydrate dispatched purchases from sessionStorage if in browser
@@ -26,6 +28,20 @@ export class StorefrontAnalyticsTracker {
       } catch {
         // Safe fallback
       }
+
+      // Listen for consent changes and reset/purge if consent was withdrawn
+      window.addEventListener('techstore:consent_changed', ((e: CustomEvent) => {
+        const prefs = e.detail;
+        if (!prefs || !prefs.analytics) {
+          this.dispatchedPurchases.clear();
+          this.trackedPageViews.clear();
+          try {
+            sessionStorage.removeItem('techstore_dispatched_purchases');
+          } catch {
+            // Safe fallback
+          }
+        }
+      }) as EventListener);
     }
   }
 
@@ -37,7 +53,23 @@ export class StorefrontAnalyticsTracker {
   }
 
   /**
-   * Dispatches an event through the storefront consent and idempotency gate.
+   * Deduplicates client-side page views on Next.js SPA navigations.
+   * Returns true if newly tracked, false if duplicate suppression triggered.
+   */
+  trackPageView(urlPath: string): boolean {
+    const consent = getCookieConsent();
+    if (!consent || !consent.analytics) {
+      return false;
+    }
+    if (this.trackedPageViews.has(urlPath)) {
+      return false;
+    }
+    this.trackedPageViews.add(urlPath);
+    return true;
+  }
+
+  /**
+   * Dispatches an event through the storefront consent, PII sanitization, and idempotency gate.
    */
   async track(event: GA4CommerceEvent): Promise<DispatchResult> {
     if (typeof window === 'undefined') {
@@ -69,27 +101,30 @@ export class StorefrontAnalyticsTracker {
       }
     }
 
-    // 3. Dispatch to Firebase Analytics client SDK if available
+    // 3. PII Sanitization Guard
+    const sanitizedEvent = sanitizeAnalyticsPayload(event);
+
+    // 4. Dispatch to Firebase Analytics client SDK if available
     try {
       const { getAnalytics, logEvent, isSupported } = await import('firebase/analytics');
       const supported = await isSupported();
       if (supported && app) {
         const analytics = getAnalytics(app);
-        const { event: eventName, ...params } = event;
+        const { event: eventName, ...params } = sanitizedEvent;
         logEvent(analytics, eventName as any, params as any);
       }
-    } catch (err) {
+    } catch {
       // In SSR, test, or environments where Firebase Analytics is stubbed, don't throw
     }
 
-    // Also dispatch a browser custom event for local testing and observer tools
+    // 5. Dispatch browser custom event for testing and observer tools
     window.dispatchEvent(
       new CustomEvent('techstore:analytics_event', {
-        detail: event,
+        detail: sanitizedEvent,
       })
     );
 
-    return { success: true, event };
+    return { success: true, event: sanitizedEvent };
   }
 }
 

@@ -1,14 +1,21 @@
 "use client";
 
-import { Search, Bell, Calendar } from "lucide-react";
+import { Search, Bell, Calendar, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 
 interface PixelHeaderProps {
   title?: string;
   notificationsCount?: number;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export function PixelHeader({ title = "Overview", notificationsCount = 0 }: PixelHeaderProps) {
+export function PixelHeader({
+  title = "Overview",
+  notificationsCount = 0,
+  onRefresh,
+  isRefreshing = false,
+}: PixelHeaderProps) {
   const currentDate = format(new Date(), "dd MMM yyyy");
 
   return (
@@ -37,6 +44,20 @@ export function PixelHeader({ title = "Overview", notificationsCount = 0 }: Pixe
           <Calendar className="w-3.5 h-3.5 text-emerald-500" />
           <span>{currentDate}</span>
         </div>
+
+        {/* Manual Refresh Button */}
+        {onRefresh && (
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="w-9 h-9 rounded-xl bg-card border border-border hover:bg-muted flex items-center justify-center text-foreground transition-all shadow-sm disabled:opacity-50"
+            aria-label="Refresh Data"
+            title="Refresh Data"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-emerald-500" : "text-muted-foreground"}`} />
+          </button>
+        )}
 
         {/* Notification Bell */}
         <button

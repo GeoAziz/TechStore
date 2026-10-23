@@ -52,6 +52,11 @@ export default function CookieConsentBanner() {
   const saveConsent = (prefs: CookiePreferences) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('techstore:consent_changed', { detail: prefs })
+        );
+      }
     } catch {
       // ignore
     }

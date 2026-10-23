@@ -53,7 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const userId = decodedToken.uid;
-    const { amount } = req.body;
+    const { amount, clientId, sessionId, consentAnalytics, consentMarketing } = req.body;
 
     // Validate amount input
     if (!amount || typeof amount !== 'number') {
@@ -117,6 +117,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       metadata: {
         userId,
         cartItemCount: cartSnapshot.size,
+        clientId: typeof clientId === 'string' ? clientId : '',
+        sessionId: typeof sessionId === 'string' ? sessionId : '',
+        consentAnalytics: String(consentAnalytics ?? true),
+        consentMarketing: String(consentMarketing ?? false),
       },
     });
 

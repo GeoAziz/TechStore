@@ -10,11 +10,12 @@ import { ShoppingCart, Heart, Star, Scale, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { addToCart, removeFromCart, toggleWishlist, getWishlist } from '@/lib/firestore-service';
-import { useState, useEffect, useTransition } from 'react';
+import { addToCart, removeFromCart } from '@/lib/firestore-service';
+import { useState, useTransition } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { useCompare } from '@/context/compare-context';
 import { useCart } from '@/context/cart-context';
+import { useWishlist } from '@/context/wishlist-context';
 import { tracker } from '@/lib/analytics/tracker';
 
 function use3DTilt(max = 18) {
@@ -209,17 +210,12 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
   const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [isInWishlist, setIsInWishlist] = useState(false);
+  const { isInWishlist: checkIsInWishlist, toggleWishlist } = useWishlist();
   const { compareItems, addToCompare, removeFromCompare } = useCompare();
   const { cartItems } = useCart();
 
   const inCart = cartItems.some(item => item.productId === product.id);
-
-  useEffect(() => {
-    if (user) {
-      getWishlist(user.uid).then(ids => setIsInWishlist(ids.includes(product.id))).catch(() => {});
-    }
-  }, [user, product.id]);
+  const isInWishlist = checkIsInWishlist(product.id);
 
   const isProductInCompare = compareItems.some(item => item.id === product.id);
 
@@ -289,9 +285,8 @@ export default function ProductCard({ product, viewMode = 'grid' }: { product: P
     e.stopPropagation();
     if (!user) { router.push('/login'); return; }
     startTransition(async () => {
-      const result = await toggleWishlist(user.uid, product.id);
+      const result = await toggleWishlist(product.id);
       if (result.success) {
-        setIsInWishlist(prev => !prev);
         toast({ title: "Wishlist Updated", description: result.message });
       } else {
         toast({ variant: "destructive", title: "Error", description: result.message });

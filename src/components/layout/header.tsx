@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { useCart } from "@/context/cart-context";
 import { useTheme } from "@/context/theme-context";
-import { getWishlist } from "@/lib/firestore-service";
+import { useWishlist } from "@/context/wishlist-context";
 import SiteSearchDialog from "@/components/search/site-search-dialog";
 
 const navLinks = [
@@ -29,17 +29,8 @@ export default function Header() {
   const { user, handleLogout } = useAuth();
   const { cartCount } = useCart();
   const { theme, toggleTheme } = useTheme();
-  const [wishlistCount, setWishlistCount] = useState(0);
-
-  useEffect(() => {
-    if (user) {
-      getWishlist(user.uid)
-        .then(ids => setWishlistCount(ids.length))
-        .catch(() => setWishlistCount(0));
-    } else {
-      setWishlistCount(0);
-    }
-  }, [user]);
+  const { wishlistIds } = useWishlist();
+  const wishlistCount = wishlistIds.length;
 
   // Keyboard shortcut Ctrl+K / Cmd+K to open search dialog
   useEffect(() => {

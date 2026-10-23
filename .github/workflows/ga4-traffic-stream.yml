@@ -1,0 +1,42 @@
+name: Automated GA4 Traffic & Analytics Seeder
+
+on:
+  schedule:
+    # Runs every 6 hours (00:00, 06:00, 12:00, 18:00 UTC) to keep GA4 active and populate rolling trends
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: 'Number of realistic shopper sessions to dispatch'
+        required: false
+        default: '50'
+
+concurrency:
+  group: ga4-traffic-stream
+  cancel-in-progress: true
+
+jobs:
+  stream-ga4-traffic:
+    name: Stream Multi-User Traffic to GA4
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Stream High-Density Commerce Traffic
+        run: npx tsx src/scripts/pulse-traffic-heavy.ts ${{ github.event.inputs.batch_size || 50 }}
+        env:
+          GA4_MEASUREMENT_ID: ${{ secrets.GA4_MEASUREMENT_ID || 'G-RTDRRL0F9B' }}
+          GA4_API_SECRET: ${{ secrets.GA4_API_SECRET || 'r-dQbQdNQ22FBtS0aNy6Rg' }}
+

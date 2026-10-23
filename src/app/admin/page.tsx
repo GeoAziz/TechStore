@@ -1,5 +1,6 @@
 "use client";
 import { useAuth } from '@/context/auth-context';
+import { auth } from '@/lib/firebase';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, useMemo, useTransition } from 'react';
 import React from 'react';
@@ -107,6 +108,8 @@ export default function AdminPage({
 
   const [actionStatus, setActionStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+
   const handleUpdateUserRole = async () => {
     if (!editingUser) return;
     await serverUpdateUserRole(editingUser.uid, selectedRole, currentUser?.uid || '', currentUser?.email || '');
@@ -128,6 +131,24 @@ export default function AdminPage({
       setOrders(ordersData);
       setUsers(usersData);
       setAuditLogs(logsData);
+
+      // Fetch Live GA4 Top Products
+      try {
+        const token = await auth.currentUser?.getIdToken();
+        if (token) {
+          const res = await fetch('/api/admin/analytics/top-products', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const json = await res.json();
+            if (json.success) {
+              setAnalyticsData(json);
+            }
+          }
+        }
+      } catch {
+        // Safe fallback to database
+      }
     } catch (error) {
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch dashboard data.' });
     } finally {
@@ -254,12 +275,12 @@ export default function AdminPage({
 
   const totalSales = orders.reduce((acc, order) => acc + order.total, 0);
 
-  // Real-time polling for orders and audit logs
+  // Periodic fallback refresh for orders and audit logs (every 3 minutes, or via real-time WebSocket)
   useEffect(() => {
     if (!authLoading && currentUser && role === 'admin') {
       const interval = setInterval(() => {
         fetchData();
-      }, 10000); // Poll every 10 seconds
+      }, 180000); // Poll every 3 minutes instead of hammering every 10 seconds
       return () => clearInterval(interval);
     }
   }, [authLoading, currentUser, role]);
@@ -334,7 +355,9 @@ export default function AdminPage({
     <div className="space-y-6">
       <PixelHeader 
         title="Overview" 
-        notificationsCount={orders.filter(o => o.status === 'Processing').length} 
+        notificationsCount={orders.filter(o => o.status === 'Processing').length}
+        onRefresh={fetchData}
+        isRefreshing={loading}
       />
       
       <Tabs value={defaultTab} onValueChange={setDefaultTab} className="w-full">
@@ -368,7 +391,7 @@ export default function AdminPage({
           {/* Saledash Last Transactions Table */}
           <SaledashTransactions orders={orders} />
           {/* Pixel Commerce: Top Selling Products Card Row */}
-          <PixelTopProducts products={products} />
+          <PixelTopProducts products={products} analyticsData={analyticsData} />
         </TabsContent>
 
         <TabsContent value="inventory">

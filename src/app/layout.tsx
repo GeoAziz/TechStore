@@ -6,7 +6,9 @@ import { AuthProvider } from '@/context/auth-context';
 import { Inter, Space_Grotesk, Orbitron } from 'next/font/google';
 import { CompareProvider } from '@/context/compare-context';
 import { CartProvider } from '@/context/cart-context';
+import { WishlistProvider } from '@/context/wishlist-context';
 import { ThemeProvider } from '@/context/theme-context';
+import GoogleAnalyticsTag from '@/components/analytics/google-analytics-tag';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk' });
@@ -33,13 +35,16 @@ export default function RootLayout({
           Skip to main content
         </a>
         <ThemeProvider>
+          <GoogleAnalyticsTag />
           <AuthProvider>
             <CartProvider>
-              <CompareProvider>
-                <AppWrapper>
-                  {children}
-                </AppWrapper>
-              </CompareProvider>
+              <WishlistProvider>
+                <CompareProvider>
+                  <AppWrapper>
+                    {children}
+                  </AppWrapper>
+                </CompareProvider>
+              </WishlistProvider>
             </CartProvider>
           </AuthProvider>
         </ThemeProvider>

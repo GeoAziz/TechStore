@@ -40,6 +40,11 @@ jest.mock('@/context/cart-context', () => ({
   CartProvider: ({ children }: any) => children,
 }));
 
+jest.mock('@/context/wishlist-context', () => ({
+  useWishlist: () => ({ wishlistIds: [], isInWishlist: () => false, toggleWishlist: jest.fn(), loading: false }),
+  WishlistProvider: ({ children }: any) => children,
+}));
+
 jest.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: jest.fn() }),
 }));
